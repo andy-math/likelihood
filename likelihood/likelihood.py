@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod, abstractproperty
-from typing import Callable, List, Optional, Tuple
+from abc import ABCMeta, abstractmethod, abstractproperty
+from typing import Any, Callable, Generic, List, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
@@ -17,29 +17,46 @@ def _make_names(*stages: Stage) -> Tuple[List[str], List[int]]:
     return names, numpy.cumsum(packing)  # type: ignore
 
 
-class Stage(ABC):
+_gradinfo_t = TypeVar("_gradinfo_t")
+
+
+class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     @abstractproperty
     def names(self) -> List[str]:
         pass
 
-    def eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
-    ) -> Tuple[ndarray, Optional[Tuple[ndarray, ndarray]]]:
-        return self._eval(coeff, input, grad=grad)
-
     @abstractmethod
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
-    ) -> Tuple[ndarray, Optional[Tuple[ndarray, ndarray]]]:
+    ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
         pass
 
+    @abstractmethod
+    def _grad(
+        self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        pass
 
-class Compose(Stage):
+    def eval(
+        self, coeff: ndarray, input: ndarray, *, grad: bool
+    ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
+        return self._eval(coeff, input, grad=grad)
+
+    def grad(
+        self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        return self._grad(coeff, gradinfo, dL_do)
+
+
+_Compose_gradinfo_t = List[object]
+
+
+class Compose(Stage[_Compose_gradinfo_t]):
     names: List[str]
     packing: List[int]
-    stages: List[Stage]
+    stages: List[Stage[object]]
 
-    def __init__(self, stages: List[Stage]) -> None:
+    def __init__(self, stages: List[Stage[object]]) -> None:
         self.names, self.packing = _make_names(*stages)
         self.stages = stages
 
@@ -48,31 +65,37 @@ class Compose(Stage):
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
-    ) -> Tuple[ndarray, Optional[Tuple[ndarray, ndarray]]]:
+    ) -> Tuple[ndarray, Optional[_Compose_gradinfo_t]]:
         coeffs = self._unpack(coeff)
         stages = self.stages
         output: ndarray = input
-        grads: List[Optional[Tuple[ndarray, ndarray]]] = []
+        gradinfo: List[Optional[object]] = []
         for s, c in zip(stages, coeffs):
             output, g = s.eval(c, output, grad=grad)
-            grads.append(g)
+            gradinfo.append(g)
         if not grad:
             return output, None
-        nSample, n = output.shape
-        do_di = numpy.tile(numpy.eye(n), [nSample, 1, 1])
-        do_dc: List[ndarray] = []
-        for g in grads[::-1]:
-            assert g is not None
-            _do_di, _do_dc = g
-            do_dc.append(do_di @ _do_dc)
-            do_di = do_di @ _do_di
-        return output, (do_di, numpy.concatenate(do_dc))
+        return output, gradinfo
+
+    def _grad(
+        self, coeff: ndarray, gradinfo: _Compose_gradinfo_t, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        coeffs = self._unpack(coeff)
+        stages = self.stages
+        dL_dc: List[ndarray] = []
+        for s, c, g in zip(stages[::-1], coeffs[::-1], gradinfo[::-1]):
+            dL_do, _dL_dc = s.grad(c, g, dL_do)
+            dL_dc.append(_dL_dc)
+        return dL_do, numpy.concatenate(dL_dc)
 
 
-class Elementwise(Stage):
+_Elementwise_gradinfo_t = Tuple[ndarray, ndarray]
+
+
+class Elementwise(Stage[_Elementwise_gradinfo_t]):
     names: List[str]
-    func: Optional[Callable[[ndarray, ndarray], ndarray]]
-    grad: Optional[Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]]
+    evalf: Optional[Callable[[ndarray, ndarray], ndarray]]
+    gradf: Optional[Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]]
 
     def __init__(
         self,
@@ -81,20 +104,30 @@ class Elementwise(Stage):
         grad: Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]],
     ) -> None:
         self.names = names
-        self.func = func
-        self.grad = grad
+        self.evalf = func
+        self.gradf = grad
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
-    ) -> Tuple[ndarray, Optional[Tuple[ndarray, ndarray]]]:
-        assert self.func is not None
-        assert self.grad is not None
-        output = self.func(coeff, input)
+    ) -> Tuple[ndarray, Optional[_Elementwise_gradinfo_t]]:
+        assert self.evalf is not None
+        output = self.evalf(coeff, input)
         if not grad:
             return output, None
-        return output, self.grad(coeff, input, output)
+        return output, (input, output)
+
+    def _grad(
+        self, coeff: ndarray, gradinfo: _Elementwise_gradinfo_t, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        assert self.gradf is not None
+        input, output = gradinfo
+        do_di, do_dc = self.gradf(coeff, input, output)
+        dL_dc = dL_do @ do_dc
+        dL_di = dL_do * do_di.reshape(dL_do.shape)
+        return dL_di, dL_dc
 
 
+"""
 class Iterative(Stage):
     names: List[str]
     output0: ndarray
@@ -121,13 +154,14 @@ class Iterative(Stage):
             output[i, :] = output0
         if not grad:
             return output, None
-        """
-        nSample, n = output.shape
-        do_di = numpy.tile(numpy.eye(n), [nSample, 1, 1])
-        do_dc = numpy.ndarray((nSample, nOutput, nCoeff))
-        for i in range(nSample - 1, -1, -1):
-            pass
-        """
+"""
+"""
+nSample, n = output.shape
+do_di = numpy.tile(numpy.eye(n), [nSample, 1, 1])
+do_dc = numpy.ndarray((nSample, nOutput, nCoeff))
+for i in range(nSample - 1, -1, -1):
+    pass
+"""
 
 
 class Likelihood:
