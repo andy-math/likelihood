@@ -86,7 +86,7 @@ class Compose(Stage[_Compose_gradinfo_t]):
         for s, c, g in zip(stages[::-1], coeffs[::-1], gradinfo[::-1]):
             dL_do, _dL_dc = s.grad(c, g, dL_do)
             dL_dc.append(_dL_dc)
-        return dL_do, numpy.concatenate(dL_dc)
+        return dL_do, numpy.concatenate(dL_dc[::-1])
 
 
 _Elementwise_gradinfo_t = Tuple[ndarray, ndarray]
@@ -122,8 +122,8 @@ class Elementwise(Stage[_Elementwise_gradinfo_t]):
         assert self.gradf is not None
         input, output = gradinfo
         do_di, do_dc = self.gradf(coeff, input, output)
-        dL_dc = dL_do @ do_dc
-        dL_di = dL_do * do_di.reshape(dL_do.shape)
+        dL_di = dL_do * do_di
+        dL_dc = numpy.sum(dL_do * do_dc, axis=(0, 1))
         return dL_di, dL_dc
 
 
