@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod, abstractproperty
-from typing import Any, Callable, Generic, List, Optional, Tuple, TypeVar
+from typing import Callable, Generic, List, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
@@ -167,7 +167,7 @@ for i in range(nSample - 1, -1, -1):
 class Likelihood:
     stages: Compose
 
-    def __init__(self, stages: List[Stage]) -> None:
+    def __init__(self, stages: List[Stage[object]]) -> None:
         self.stages = Compose(stages)
 
     def eval(self, coeff: ndarray, input: ndarray) -> ndarray:
@@ -175,7 +175,7 @@ class Likelihood:
         return o
 
     def grad(self, coeff: ndarray, input: ndarray) -> ndarray:
-        _, g = self.stages.eval(coeff, input, grad=True)
-        assert g is not None
-        _, do_dc = g
-        return do_dc
+        _, gradinfo = self.stages.eval(coeff, input, grad=True)
+        assert gradinfo is not None
+        _, dL_dc = self.stages.grad(coeff, gradinfo, numpy.array([1.0]))
+        return dL_dc
