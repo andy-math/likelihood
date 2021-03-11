@@ -7,7 +7,7 @@ import numpy
 from numerical.typedefs import ndarray
 
 
-def _make_names(*stages: Stage) -> Tuple[List[str], List[int]]:
+def _make_names(*stages: Stage[object]) -> Tuple[List[str], List[int]]:
     names: List[str] = []
     packing: List[int] = []
     for s in stages:
