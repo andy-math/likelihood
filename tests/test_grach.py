@@ -34,7 +34,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
 
     beta0 = numpy.array([numpy.std(input[:, 0]) ** 2 * 0.1, 0.1, 0.8])
 
-    assert nll.eval(beta0, input) == nll.eval(beta0, input)
+    assert numpy.all(nll.grad(beta0, input) == nll.grad(beta0, input))
 
     def func(x: ndarray) -> float:
         return nll.eval(x, input)
@@ -52,7 +52,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     result = trust_region.trust_region(
         func,
         grad,
-        beta0,
+        beta0 if n > 10 else coeff,
         constr_A,
         constr_b,
         constr_lb,
@@ -65,6 +65,9 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("coeff: ", coeff)
     print("mle:   ", beta_mle)
     print("abserr_mle: ", abserr_mle)
+    assert result.success
+    assert 5 < result.iter < 20
+    assert abserr_mle < 0.05
 
 
 class Test_1:
