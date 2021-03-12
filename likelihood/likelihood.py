@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from abc import ABCMeta
-from typing import Any, List, Optional, Tuple, TypeVar
+from typing import Any, List, Optional, Tuple
 
 import numpy
 from numerical.typedefs import ndarray
 
+from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Stage import Stage
 from likelihood.stages.Compose import Compose
 
@@ -67,13 +67,6 @@ _Convolution_gradinfo_t = type(None)
 class Convolution(Stage[_Convolution_gradinfo_t]):
     pass
 """
-
-
-_Logpdf_gradinfo_t = TypeVar("_Logpdf_gradinfo_t")
-
-
-class Logpdf(Stage[_Logpdf_gradinfo_t], metaclass=ABCMeta):
-    pass
 
 
 _LogNormpdf_gradinfo_t = ndarray
