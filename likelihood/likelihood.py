@@ -224,28 +224,21 @@ class Convolution(Stage[_Convolution_gradinfo_t]):
     pass
 """
 
-_Sum_gradinfo_t = int
-
-
-class Sum(Stage[_Sum_gradinfo_t]):
-    name: List[str] = []
-
-    def _eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
-    ) -> Tuple[ndarray, int]:
-        return numpy.sum(input, axis=0), input.shape[0]
-
-    def _grad(
-        self, coeff: ndarray, len: _Sum_gradinfo_t, dL_do: ndarray
-    ) -> Tuple[ndarray, ndarray]:
-        return numpy.full((len, 1), dL_do), numpy.array([], dtype=numpy.float64)
-
 
 _Linear_gradinfo_t = ndarray
 
 
 class Linear(Stage[_Linear_gradinfo_t]):
     names: List[str]
+    _input_idx: Sequence[int]
+    _output_idx: Sequence[int]
+
+    def __init__(
+        self, names: List[str], input: Sequence[int], output: Sequence[int]
+    ) -> None:
+        self.names = names
+        self._input_idx = input
+        self._output_idx = output
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
@@ -260,7 +253,11 @@ class Linear(Stage[_Linear_gradinfo_t]):
         return dL_do * coeff, dL_do.flatten() @ input
 
 
-class LogNormpdf(Elementwise):
+class Logpdf(Elementwise, metaclass=ABCMeta):
+    pass
+
+
+class LogNormpdf(Logpdf):
     def __init__(
         self, names: List[str], input: Sequence[int], output: Sequence[int]
     ) -> None:
@@ -289,18 +286,21 @@ class LogNormpdf(Elementwise):
         super().__init__(names, input, output, func, grad)
 
 
-class Likelihood:
+class negLikelihood:
     stages: Compose
 
-    def __init__(self, stages: List[Stage[object]]) -> None:
-        self.stages = Compose(stages)
+    def __init__(self, stages: List[Stage[object]], nVars: int) -> None:
+        self.stages = Compose(stages, list(range(nVars)), list(range(nVars)))
+        # assert isinstance(stages[-1], Logpdf)
+        assert len(stages[-1]._output_idx) == 1
+        assert stages[-1]._output_idx[0] == 0
 
-    def eval(self, coeff: ndarray, input: ndarray) -> ndarray:
+    def eval(self, coeff: ndarray, input: ndarray) -> float:
         o, _ = self.stages.eval(coeff, input, grad=False)
-        return o
+        return -numpy.sum(o[:, 0])
 
     def grad(self, coeff: ndarray, input: ndarray) -> ndarray:
-        _, gradinfo = self.stages.eval(coeff, input, grad=True)
+        o, gradinfo = self.stages.eval(coeff, input, grad=True)
         assert gradinfo is not None
-        _, dL_dc = self.stages.grad(coeff, gradinfo, numpy.array([1.0]))
+        _, dL_dc = self.stages.grad(coeff, gradinfo, numpy.full((o.shape[0], 1), -1.0))
         return dL_dc
