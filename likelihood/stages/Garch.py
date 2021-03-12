@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence, Tuple
+from typing import Tuple
 
 import numpy
 from likelihood.stages.abc.Iterative import Iterative
@@ -8,9 +8,7 @@ from numerical.typedefs import ndarray
 
 
 class Garch(Iterative):
-    def __init__(
-        self, names: Sequence[str], input: Sequence[int], output: Sequence[int]
-    ) -> None:
+    def __init__(self, names: Tuple[str, str, str], input: int, output: int) -> None:
         def output0(coeff: ndarray) -> Tuple[ndarray, ndarray]:
             """
             var = c + a*var + b*var
@@ -50,9 +48,9 @@ class Garch(Iterative):
             c, a, b = coeff
             _input = float(input)
             return (
-                dL_do * numpy.array([1.0, _input, float(lag)]),
+                dL_do * numpy.array([1.0, _input * _input, float(lag)]),
                 dL_do * 2.0 * a * input,
                 dL_do * b,
             )
 
-        super().__init__(names, input, output, output0, eval, grad)
+        super().__init__(names, (input,), (output,), output0, eval, grad)

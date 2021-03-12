@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 import numpy
-
 from likelihood.stages.abc.Logpdf import Logpdf
 from numerical.typedefs import ndarray
 
@@ -21,7 +20,7 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         x ~ N(0, Var)
         p(x) = 1/sqrt(Var*2pi) * exp{ -(x*x)/(2Var) }
         log p(x) = -1/2{ log(Var) + log(2pi) } - (x*x)/(2Var)
-                    = (-1/2) { log(Var) + log(2pi) + (x*x)/Var }
+                 = (-1/2) { log(Var) + log(2pi) + (x*x)/Var }
         """
         x: ndarray = mu_x[:, [1]] - mu_x[:, [0]]  # type: ignore
         constant = numpy.log(var) + numpy.log(2.0) + numpy.log(numpy.pi)
@@ -36,7 +35,7 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         """
         d/dx{log p(x)} = (-1/2) { 2x/Var } = -x/Var
         d/dVar{log p(x)} = (-1/2) {1/Var - (x*x)/(Var*Var)}
-                            = (1/2) {(x/Var) * (x/Var) - 1/Var}
+                         = (1/2) {(x/Var) * (x/Var) - 1/Var}
         """
         z = x / var
         dL_di = dL_dlogP * -z
