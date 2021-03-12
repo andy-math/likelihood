@@ -64,7 +64,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("result.success: ", result.success)
     print("coeff: ", coeff)
     print("mle:   ", beta_mle)
-    print("abserr_mle:    ", abserr_mle)
+    print("abserr_mle: ", abserr_mle)
 
 
 class Test_1:
