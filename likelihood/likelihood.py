@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-from typing import Any, List, Optional, Sequence, Tuple, TypeVar
+from typing import Any, List, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
@@ -67,29 +67,6 @@ _Convolution_gradinfo_t = type(None)
 class Convolution(Stage[_Convolution_gradinfo_t]):
     pass
 """
-
-
-_Linear_gradinfo_t = ndarray
-
-
-class Linear(Stage[_Linear_gradinfo_t]):
-    def __init__(
-        self, names: List[str], input: Sequence[int], output: Sequence[int]
-    ) -> None:
-        super().__init__(names, input, output)
-
-    def _eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
-    ) -> Tuple[ndarray, Optional[_Linear_gradinfo_t]]:
-        output = (input @ coeff).reshape((-1, 1))
-        if not grad:
-            return output, None
-        return output, input
-
-    def _grad(
-        self, coeff: ndarray, input: _Linear_gradinfo_t, dL_do: ndarray
-    ) -> Tuple[ndarray, ndarray]:
-        return dL_do * coeff, dL_do.flatten() @ input
 
 
 _Logpdf_gradinfo_t = TypeVar("_Logpdf_gradinfo_t")
