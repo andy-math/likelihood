@@ -177,10 +177,11 @@ class Iterative(Stage[_Iterative_gradinfo_t]):
         return dL_di, dL_dc
 
 
-"""
-class Conv(Stage):
+_Convolution_gradinfo_t = type(None)
+
+
+class Convolution(Stage[_Convolution_gradinfo_t]):
     pass
-"""
 
 
 class Likelihood:
