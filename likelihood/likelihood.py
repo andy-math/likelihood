@@ -39,13 +39,13 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def _grad(
         self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray
     ) -> Tuple[ndarray, ndarray]:
-        pass
+        pass  # pragma: no cover
 
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
@@ -118,46 +118,6 @@ class Compose(Stage[_Compose_gradinfo_t]):
             dL_do, _dL_dc = s.grad(c, g, dL_do)
             dL_dc.append(_dL_dc)
         return dL_do, numpy.concatenate(dL_dc[::-1])
-
-
-_Elementwise_gradinfo_t = Tuple[ndarray, ndarray]
-
-
-class Elementwise(Stage[_Elementwise_gradinfo_t]):
-    evalf: Optional[Callable[[ndarray, ndarray], ndarray]]
-    gradf: Optional[Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]]
-
-    def __init__(
-        self,
-        names: List[str],
-        input: Sequence[int],
-        output: Sequence[int],
-        func: Callable[[ndarray, ndarray], ndarray],
-        grad: Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]],
-    ) -> None:
-        super().__init__(names, input, output)
-        self.evalf = func
-        self.gradf = grad
-        assert len(input) == len(output)
-
-    def _eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
-    ) -> Tuple[ndarray, Optional[_Elementwise_gradinfo_t]]:
-        assert self.evalf is not None
-        output = self.evalf(coeff, input)
-        if not grad:
-            return output, None
-        return output, (input, output)
-
-    def _grad(
-        self, coeff: ndarray, gradinfo: _Elementwise_gradinfo_t, dL_do: ndarray
-    ) -> Tuple[ndarray, ndarray]:
-        assert self.gradf is not None
-        input, output = gradinfo
-        do_di, do_dc = self.gradf(coeff, input, output)
-        dL_di = dL_do * do_di
-        dL_dc = numpy.sum(dL_do * do_dc, axis=(0, 1))
-        return dL_di, dL_dc
 
 
 """
