@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, Callable, List, Optional, Tuple
 
 import numpy
 from numerical.typedefs import ndarray
@@ -9,7 +9,6 @@ from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Stage import Stage
 from likelihood.stages.Compose import Compose
 
-"""
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray]
 
 
@@ -58,15 +57,6 @@ class Iterative(Stage[_Iterative_gradinfo_t]):
         dL_di[0, :] = dL_do[0, :] @ do_di
         dL_dc += dL_do[0, :] @ do_dc
         return dL_di, dL_dc
-"""
-
-"""
-_Convolution_gradinfo_t = type(None)
-
-
-class Convolution(Stage[_Convolution_gradinfo_t]):
-    pass
-"""
 
 
 class negLikelihood:
