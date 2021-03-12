@@ -4,6 +4,7 @@ from typing import Any, List
 
 import numpy
 from numerical.typedefs import ndarray
+from overloads.shortcuts import assertNoInfNaN
 
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Stage import Stage
@@ -25,11 +26,13 @@ class negLikelihood:
 
     def eval(self, coeff: ndarray, input: ndarray) -> float:
         assert coeff.shape == (self.nCoeff,)
+        assertNoInfNaN(input)
         o, _ = self.stages.eval(coeff, input.copy(), grad=False)
         return -numpy.sum(o[:, 0])
 
     def grad(self, coeff: ndarray, input: ndarray) -> ndarray:
         assert coeff.shape == (self.nCoeff,)
+        assertNoInfNaN(input)
         o, gradinfo = self.stages.eval(coeff, input.copy(), grad=True)
         assert gradinfo is not None
         dL_dL = numpy.zeros(o.shape)
