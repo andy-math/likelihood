@@ -114,3 +114,5 @@ dmypy.json
 .pyre/
 numerical
 overloads
+.DS_Store
+optimizer

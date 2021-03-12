@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod, abstractproperty
-from typing import Callable, Generic, List, Optional, Tuple, TypeVar
+from typing import Callable, Generic, List, Optional, Sequence, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
+from overloads.shortcuts import assertNoInfNaN
 
 
 def _make_names(*stages: Stage[object]) -> Tuple[List[str], List[int]]:
@@ -25,6 +26,14 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def names(self) -> List[str]:
         pass
 
+    @abstractproperty
+    def _input_idx(self) -> Sequence[int]:
+        pass
+
+    @abstractproperty
+    def _output_idx(self) -> Sequence[int]:
+        pass
+
     @abstractmethod
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
@@ -40,12 +49,24 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
-        return self._eval(coeff, input, grad=grad)
+        _input: ndarray = input[:, self._input_idx]  # type: ignore
+        _output, gradinfo = self._eval(coeff, _input, grad=grad)
+        assertNoInfNaN(_output)
+        output = input
+        output[:, self._output_idx] = _output
+        return output, gradinfo
 
     def grad(
         self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray
     ) -> Tuple[ndarray, ndarray]:
-        return self._grad(coeff, gradinfo, dL_do)
+        _dL_do: ndarray = dL_do[:, self._output_idx]  # type: ignore
+        dL_do[:, self._output_idx] = 0.0
+        _dL_di, dL_dc = self._grad(coeff, gradinfo, _dL_do)
+        assertNoInfNaN(_dL_di)
+        assertNoInfNaN(dL_dc)
+        dL_di = dL_do
+        dL_di[:, self._input_idx] = _dL_di
+        return dL_di, dL_dc
 
 
 _Compose_gradinfo_t = List[object]
@@ -54,11 +75,21 @@ _Compose_gradinfo_t = List[object]
 class Compose(Stage[_Compose_gradinfo_t]):
     names: List[str]
     packing: List[int]
+    _input_idx: Sequence[int]
+    _output_idx: Sequence[int]
     stages: List[Stage[object]]
 
-    def __init__(self, stages: List[Stage[object]]) -> None:
+    def __init__(
+        self, stages: List[Stage[object]], input: Sequence[int], output: Sequence[int]
+    ) -> None:
         self.names, self.packing = _make_names(*stages)
+        self._input_idx = input
+        self._output_idx = output
         self.stages = stages
+        assert len(input) == len(output)
+        for s in stages:
+            assert max(s._input_idx) < len(input)
+            assert max(s._output_idx) < len(output)
 
     def _unpack(self, coeff: ndarray) -> List[ndarray]:
         return numpy.split(coeff, self.packing)
@@ -94,18 +125,25 @@ _Elementwise_gradinfo_t = Tuple[ndarray, ndarray]
 
 class Elementwise(Stage[_Elementwise_gradinfo_t]):
     names: List[str]
+    _input_idx: Sequence[int]
+    _output_idx: Sequence[int]
     evalf: Optional[Callable[[ndarray, ndarray], ndarray]]
     gradf: Optional[Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]]
 
     def __init__(
         self,
         names: List[str],
+        input: Sequence[int],
+        output: Sequence[int],
         func: Callable[[ndarray, ndarray], ndarray],
         grad: Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]],
     ) -> None:
         self.names = names
+        self._input_idx = input
+        self._output_idx = output
         self.evalf = func
         self.gradf = grad
+        assert len(input) == len(output)
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
@@ -127,6 +165,7 @@ class Elementwise(Stage[_Elementwise_gradinfo_t]):
         return dL_di, dL_dc
 
 
+"""
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray]
 
 
@@ -175,13 +214,79 @@ class Iterative(Stage[_Iterative_gradinfo_t]):
         dL_di[0, :] = dL_do[0, :] @ do_di
         dL_dc += dL_do[0, :] @ do_dc
         return dL_di, dL_dc
+"""
 
-
+"""
 _Convolution_gradinfo_t = type(None)
 
 
 class Convolution(Stage[_Convolution_gradinfo_t]):
     pass
+"""
+
+_Sum_gradinfo_t = int
+
+
+class Sum(Stage[_Sum_gradinfo_t]):
+    name: List[str] = []
+
+    def _eval(
+        self, coeff: ndarray, input: ndarray, *, grad: bool
+    ) -> Tuple[ndarray, int]:
+        return numpy.sum(input, axis=0), input.shape[0]
+
+    def _grad(
+        self, coeff: ndarray, len: _Sum_gradinfo_t, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        return numpy.full((len, 1), dL_do), numpy.array([], dtype=numpy.float64)
+
+
+_Linear_gradinfo_t = ndarray
+
+
+class Linear(Stage[_Linear_gradinfo_t]):
+    names: List[str]
+
+    def _eval(
+        self, coeff: ndarray, input: ndarray, *, grad: bool
+    ) -> Tuple[ndarray, Optional[_Linear_gradinfo_t]]:
+        if not grad:
+            return input @ coeff, None
+        return input @ coeff, input
+
+    def _grad(
+        self, coeff: ndarray, input: _Linear_gradinfo_t, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        return dL_do * coeff, dL_do.flatten() @ input
+
+
+class LogNormpdf(Elementwise):
+    def __init__(
+        self, names: List[str], input: Sequence[int], output: Sequence[int]
+    ) -> None:
+        def func(var: ndarray, x: ndarray) -> ndarray:
+            """
+            x ~ N(0, Var)
+            p(x) = 1/sqrt(Var*2pi) * exp{ -(x*x)/(2Var) }
+            log p(x) = -1/2{ log(Var) + log(2pi) } - (x*x)/(2Var)
+                     = (-1/2) { log(Var) + log(2pi) + (x*x)/Var }
+            """
+            constant = numpy.log(var) + numpy.log(2.0) + numpy.log(numpy.pi)
+            return (-1.0 / 2.0) * (constant + (x * x) / var)
+
+        def grad(var: ndarray, x: ndarray, logP: ndarray) -> Tuple[ndarray, ndarray]:
+            """
+            d/dx{log p(x)} = (-1/2) { 2x/Var } = -x/Var
+            d/dVar{log p(x)} = (-1/2) {1/Var - (x*x)/(Var*Var)}
+                             = (1/2) {(x/Var) * (x/Var) - 1/Var}
+            """
+            z = x / var
+            do_di = -z
+            do_dc = (1.0 / 2.0) * (z * z - 1.0 / var)
+            return do_di, do_dc
+
+        assert len(names) == 1
+        super().__init__(names, input, output, func, grad)
 
 
 class Likelihood:
