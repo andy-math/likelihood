@@ -127,39 +127,58 @@ class Elementwise(Stage[_Elementwise_gradinfo_t]):
         return dL_di, dL_dc
 
 
-"""
-class Iterative(Stage):
+_Iterative_gradinfo_t = Tuple[ndarray, ndarray]
+
+
+class Iterative(Stage[_Iterative_gradinfo_t]):
     names: List[str]
     output0: ndarray
-    func: Optional[
-        Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]]
+    evalf: Optional[Callable[[ndarray, ndarray, ndarray], ndarray]]
+    gradf: Optional[
+        Callable[[ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray, ndarray]]
     ]
 
     def _eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
-    ) -> Tuple[ndarray, Optional[Tuple[ndarray, ndarray]]]:
-        assert self.func is not None
-        (nCoeff,) = coeff.shape
-        nSample, nInput = input.shape
-        (nOutput,) = self.output0.shape
+        self, coeff: ndarray, inputs: ndarray, *, grad: bool
+    ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
+        assert self.evalf is not None
         output0 = self.output0
-        output = numpy.ndarray((nSample, nOutput))
-        _do_di = numpy.ndarray((nSample, nOutput, nInput))
-        _do_do = numpy.ndarray((nSample, nOutput, nOutput))
-        _do_dc = numpy.ndarray((nSample, nOutput, nCoeff))
+        nSample, nOutput = inputs.shape[0], output0.shape[0]
+        outputs = numpy.ndarray((nSample, nOutput))
         for i in range(nSample):
-            output0, _do_di[i, :, :], _do_do[i, :, :], _do_dc[i, :, :] = self.func(
-                coeff, input[i, :], output0
-            )
-            output[i, :] = output0
+            output0 = self.evalf(coeff, inputs[i, :], output0)
+            outputs[i, :] = output0
         if not grad:
-            return output, None
+            return outputs, None
+        return outputs, (inputs, outputs)
+
+    def _grad(
+        self, coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        assert self.gradf is not None
+        inputs, outputs = gradinfo
+        nSample, nInput = inputs.shape
+        assert outputs.shape[0] == nSample and dL_do.shape[0] == nSample
+        dL_di = numpy.ndarray((nSample, nInput))
+        dL_dc = numpy.zeros(coeff.shape)
+        for i in range(nSample - 1, 0, -1):
+            do_di, do_do, do_dc = self.gradf(
+                coeff, inputs[i, :], outputs[i - 1, :], outputs[i, :]
+            )
+            dL_di[i, :] = dL_do[i, :] @ do_di
+            dL_dc += dL_do[i, :] @ do_dc
+            dL_do[i - 1, :] += dL_do[i, :] @ do_do
+
+        do_di, do_do, do_dc = self.gradf(
+            coeff, inputs[0, :], self.output0, outputs[0, :]
+        )
+        dL_di[0, :] = dL_do[0, :] @ do_di
+        dL_dc += dL_do[0, :] @ do_dc
+        return dL_di, dL_dc
+
+
 """
-"""
-nSample, n = output.shape
-do_di = numpy.tile(numpy.eye(n), [nSample, 1, 1])
-do_dc = numpy.ndarray((nSample, nOutput, nCoeff))
-for i in range(nSample - 1, -1, -1):
+class Conv(Stage):
     pass
 """
 
