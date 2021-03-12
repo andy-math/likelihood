@@ -253,37 +253,54 @@ class Linear(Stage[_Linear_gradinfo_t]):
         return dL_do * coeff, dL_do.flatten() @ input
 
 
-class Logpdf(Elementwise, metaclass=ABCMeta):
+_Logpdf_gradinfo_t = TypeVar("_Logpdf_gradinfo_t")
+
+
+class Logpdf(Stage[_Logpdf_gradinfo_t], metaclass=ABCMeta):
     pass
 
 
-class LogNormpdf(Logpdf):
-    def __init__(
-        self, names: List[str], input: Sequence[int], output: Sequence[int]
-    ) -> None:
-        def func(var: ndarray, x: ndarray) -> ndarray:
-            """
-            x ~ N(0, Var)
-            p(x) = 1/sqrt(Var*2pi) * exp{ -(x*x)/(2Var) }
-            log p(x) = -1/2{ log(Var) + log(2pi) } - (x*x)/(2Var)
-                     = (-1/2) { log(Var) + log(2pi) + (x*x)/Var }
-            """
-            constant = numpy.log(var) + numpy.log(2.0) + numpy.log(numpy.pi)
-            return (-1.0 / 2.0) * (constant + (x * x) / var)
+_LogNormpdf_gradinfo_t = ndarray
 
-        def grad(var: ndarray, x: ndarray, logP: ndarray) -> Tuple[ndarray, ndarray]:
-            """
-            d/dx{log p(x)} = (-1/2) { 2x/Var } = -x/Var
-            d/dVar{log p(x)} = (-1/2) {1/Var - (x*x)/(Var*Var)}
-                             = (1/2) {(x/Var) * (x/Var) - 1/Var}
-            """
-            z = x / var
-            do_di = -z
-            do_dc = (1.0 / 2.0) * (z * z - 1.0 / var)
-            return do_di, do_dc
 
-        assert len(names) == 1
-        super().__init__(names, input, output, func, grad)
+class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
+    names: List[str]
+    _input_idx: Sequence[int]
+    _output_idx: Sequence[int]
+
+    def __init__(self, variance_name: str, input: Tuple[int, int], output: int) -> None:
+        self.names = [variance_name]
+        self._input_idx = input
+        self._output_idx = (output,)
+
+    def _eval(
+        self, var: ndarray, mu_x: ndarray, *, grad: bool
+    ) -> Tuple[ndarray, Optional[_LogNormpdf_gradinfo_t]]:
+        """
+        x ~ N(0, Var)
+        p(x) = 1/sqrt(Var*2pi) * exp{ -(x*x)/(2Var) }
+        log p(x) = -1/2{ log(Var) + log(2pi) } - (x*x)/(2Var)
+                    = (-1/2) { log(Var) + log(2pi) + (x*x)/Var }
+        """
+        x: ndarray = mu_x[:, [1]] - mu_x[:, [0]]  # type: ignore
+        constant = numpy.log(var) + numpy.log(2.0) + numpy.log(numpy.pi)
+        logP = (-1.0 / 2.0) * (constant + (x * x) / var)
+        if not grad:
+            return logP, None
+        return logP, x
+
+    def _grad(
+        self, var: ndarray, x: _LogNormpdf_gradinfo_t, dL_dlogP: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        """
+        d/dx{log p(x)} = (-1/2) { 2x/Var } = -x/Var
+        d/dVar{log p(x)} = (-1/2) {1/Var - (x*x)/(Var*Var)}
+                            = (1/2) {(x/Var) * (x/Var) - 1/Var}
+        """
+        z = x / var
+        dL_di = dL_dlogP * -z
+        dL_dc = dL_dlogP * (1.0 / 2.0) * (z * z - 1.0 / var)
+        return dL_di, dL_dc
 
 
 class negLikelihood:
@@ -291,7 +308,7 @@ class negLikelihood:
 
     def __init__(self, stages: List[Stage[object]], nVars: int) -> None:
         self.stages = Compose(stages, list(range(nVars)), list(range(nVars)))
-        # assert isinstance(stages[-1], Logpdf)
+        assert isinstance(stages[-1], Logpdf)
         assert len(stages[-1]._output_idx) == 1
         assert stages[-1]._output_idx[0] == 0
 

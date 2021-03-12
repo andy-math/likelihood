@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy
 import numpy.linalg
-
-# from likelihood import likelihood
+from likelihood import likelihood
 from numerical import difference
 
 numpy.random.seed(0)
@@ -20,7 +19,11 @@ print("abserr: ", difference.absolute(beta, beta_decomp))
 
 
 def make_stage() -> None:
-    pass  # stage1 = likelihood.Linear()
+    stage1 = likelihood.Linear(
+        ["b1", "b2", "b3", "b4", "b5", "b0"], list(range(1, 7)), [1]
+    )
+    stage2 = likelihood.LogNormpdf("var", (0, 1), 0)
+    likelihood.negLikelihood([stage1, stage2], 7)
 
 
 if __name__ == "__main__":
