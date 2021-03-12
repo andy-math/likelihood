@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod, abstractproperty
-from typing import Callable, Generic, List, Optional, Sequence, Tuple, TypeVar
+from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, Generic, List, Optional, Sequence, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
 from overloads.shortcuts import assertNoInfNaN
 
 
-def _make_names(*stages: Stage[object]) -> Tuple[List[str], List[int]]:
+def _make_names(*stages: Stage[Any]) -> Tuple[List[str], List[int]]:
     names: List[str] = []
     packing: List[int] = []
     for s in stages:
@@ -18,21 +18,22 @@ def _make_names(*stages: Stage[object]) -> Tuple[List[str], List[int]]:
     return names, numpy.cumsum(packing)  # type: ignore
 
 
-_gradinfo_t = TypeVar("_gradinfo_t")
+_gradinfo_t = TypeVar("_gradinfo_t", contravariant=True)
 
 
 class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
-    @abstractproperty
-    def names(self) -> List[str]:
-        pass
+    names: List[str]
+    _input_idx: Sequence[int]
+    _output_idx: Sequence[int]
 
-    @abstractproperty
-    def _input_idx(self) -> Sequence[int]:
-        pass
-
-    @abstractproperty
-    def _output_idx(self) -> Sequence[int]:
-        pass
+    def __init__(
+        self, names: Sequence[str], input: Sequence[int], output: Sequence[int]
+    ) -> None:
+        assert len(set(names)) == len(names)
+        super().__init__()
+        self.names = list(names)
+        self._input_idx = input
+        self._output_idx = output
 
     @abstractmethod
     def _eval(
@@ -69,27 +70,26 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         return dL_di, dL_dc
 
 
-_Compose_gradinfo_t = List[object]
+_Compose_gradinfo_t = List[Any]
 
 
 class Compose(Stage[_Compose_gradinfo_t]):
-    names: List[str]
+    len_coeff: int
     packing: List[int]
-    _input_idx: Sequence[int]
-    _output_idx: Sequence[int]
-    stages: List[Stage[object]]
+    stages: List[Stage[Any]]
 
     def __init__(
-        self, stages: List[Stage[object]], input: Sequence[int], output: Sequence[int]
+        self, stages: List[Stage[Any]], input: Sequence[int], output: Sequence[int]
     ) -> None:
-        self.names, self.packing = _make_names(*stages)
-        self._input_idx = input
-        self._output_idx = output
-        self.stages = stages
+        names, packing = _make_names(*stages)
+        super().__init__(names, input, output)
         assert len(input) == len(output)
         for s in stages:
             assert max(s._input_idx) < len(input)
             assert max(s._output_idx) < len(output)
+        self.len_coeff = packing[-1]
+        self.packing = packing[:-1]
+        self.stages = stages
 
     def _unpack(self, coeff: ndarray) -> List[ndarray]:
         return numpy.split(coeff, self.packing)
@@ -100,7 +100,7 @@ class Compose(Stage[_Compose_gradinfo_t]):
         coeffs = self._unpack(coeff)
         stages = self.stages
         output: ndarray = input
-        gradinfo: List[Optional[object]] = []
+        gradinfo: List[Optional[Any]] = []
         for s, c in zip(stages, coeffs):
             output, g = s.eval(c, output, grad=grad)
             gradinfo.append(g)
@@ -124,9 +124,6 @@ _Elementwise_gradinfo_t = Tuple[ndarray, ndarray]
 
 
 class Elementwise(Stage[_Elementwise_gradinfo_t]):
-    names: List[str]
-    _input_idx: Sequence[int]
-    _output_idx: Sequence[int]
     evalf: Optional[Callable[[ndarray, ndarray], ndarray]]
     gradf: Optional[Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]]
 
@@ -138,9 +135,7 @@ class Elementwise(Stage[_Elementwise_gradinfo_t]):
         func: Callable[[ndarray, ndarray], ndarray],
         grad: Callable[[ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]],
     ) -> None:
-        self.names = names
-        self._input_idx = input
-        self._output_idx = output
+        super().__init__(names, input, output)
         self.evalf = func
         self.gradf = grad
         assert len(input) == len(output)
@@ -229,23 +224,18 @@ _Linear_gradinfo_t = ndarray
 
 
 class Linear(Stage[_Linear_gradinfo_t]):
-    names: List[str]
-    _input_idx: Sequence[int]
-    _output_idx: Sequence[int]
-
     def __init__(
         self, names: List[str], input: Sequence[int], output: Sequence[int]
     ) -> None:
-        self.names = names
-        self._input_idx = input
-        self._output_idx = output
+        super().__init__(names, input, output)
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
     ) -> Tuple[ndarray, Optional[_Linear_gradinfo_t]]:
+        output = (input @ coeff).reshape((-1, 1))
         if not grad:
-            return input @ coeff, None
-        return input @ coeff, input
+            return output, None
+        return output, input
 
     def _grad(
         self, coeff: ndarray, input: _Linear_gradinfo_t, dL_do: ndarray
@@ -264,14 +254,8 @@ _LogNormpdf_gradinfo_t = ndarray
 
 
 class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
-    names: List[str]
-    _input_idx: Sequence[int]
-    _output_idx: Sequence[int]
-
     def __init__(self, variance_name: str, input: Tuple[int, int], output: int) -> None:
-        self.names = [variance_name]
-        self._input_idx = input
-        self._output_idx = (output,)
+        super().__init__([variance_name], input, (output,))
 
     def _eval(
         self, var: ndarray, mu_x: ndarray, *, grad: bool
@@ -299,25 +283,32 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         """
         z = x / var
         dL_di = dL_dlogP * -z
-        dL_dc = dL_dlogP * (1.0 / 2.0) * (z * z - 1.0 / var)
+        dL_dlogP.shape = (dL_dlogP.shape[0],)
+        dL_dc = dL_dlogP @ ((1.0 / 2.0) * (z * z - 1.0 / var))
         return dL_di, dL_dc
 
 
 class negLikelihood:
     stages: Compose
 
-    def __init__(self, stages: List[Stage[object]], nVars: int) -> None:
+    def __init__(self, stages: List[Stage[Any]], nVars: int) -> None:
         self.stages = Compose(stages, list(range(nVars)), list(range(nVars)))
         assert isinstance(stages[-1], Logpdf)
         assert len(stages[-1]._output_idx) == 1
         assert stages[-1]._output_idx[0] == 0
 
     def eval(self, coeff: ndarray, input: ndarray) -> float:
-        o, _ = self.stages.eval(coeff, input, grad=False)
+        assert len(coeff.shape) == 1
+        assert coeff.shape[0] == self.stages.len_coeff
+        o, _ = self.stages.eval(coeff, input.copy(), grad=False)
         return -numpy.sum(o[:, 0])
 
     def grad(self, coeff: ndarray, input: ndarray) -> ndarray:
-        o, gradinfo = self.stages.eval(coeff, input, grad=True)
+        assert len(coeff.shape) == 1
+        assert coeff.shape[0] == self.stages.len_coeff
+        o, gradinfo = self.stages.eval(coeff, input.copy(), grad=True)
         assert gradinfo is not None
-        _, dL_dc = self.stages.grad(coeff, gradinfo, numpy.full((o.shape[0], 1), -1.0))
+        dL_dL = numpy.zeros(o.shape)
+        dL_dL[:, 0] = -1.0
+        _, dL_dc = self.stages.grad(coeff, gradinfo, dL_dL)
         return dL_dc
