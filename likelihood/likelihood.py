@@ -70,23 +70,25 @@ class Convolution(Stage[_Convolution_gradinfo_t]):
 
 
 class negLikelihood:
+    nCoeff: int
+    nInput: int
     stages: Compose
 
     def __init__(self, stages: List[Stage[Any]], nVars: int) -> None:
-        self.stages = Compose(stages, list(range(nVars)), list(range(nVars)))
         assert isinstance(stages[-1], Logpdf)
         assert len(stages[-1]._output_idx) == 1
         assert stages[-1]._output_idx[0] == 0
+        self.stages = Compose(stages, list(range(nVars)), list(range(nVars)))
+        self.nCoeff = self.stages.len_coeff
+        self.nInput = nVars
 
     def eval(self, coeff: ndarray, input: ndarray) -> float:
-        assert len(coeff.shape) == 1
-        assert coeff.shape[0] == self.stages.len_coeff
+        assert coeff.shape == (self.nCoeff,)
         o, _ = self.stages.eval(coeff, input.copy(), grad=False)
         return -numpy.sum(o[:, 0])
 
     def grad(self, coeff: ndarray, input: ndarray) -> ndarray:
-        assert len(coeff.shape) == 1
-        assert coeff.shape[0] == self.stages.len_coeff
+        assert coeff.shape == (self.nCoeff,)
         o, gradinfo = self.stages.eval(coeff, input.copy(), grad=True)
         assert gradinfo is not None
         dL_dL = numpy.zeros(o.shape)
