@@ -10,13 +10,40 @@ from numerical.typedefs import ndarray
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray]
 
 
+def _make_eval(
+    output0f: Callable[[ndarray], Tuple[ndarray, ndarray]],
+    evalf: Callable[[ndarray, ndarray, ndarray], ndarray],
+) -> Callable[
+    [ndarray, ndarray, bool],
+    Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
+]:
+    def _iterative_eval_impl(
+        coeff: ndarray, inputs: ndarray, grad: bool
+    ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
+        output0, d0_dc = output0f(coeff)
+        nSample, nOutput = inputs.shape[0], output0.shape[0]
+        outputs = numpy.ndarray((nSample, nOutput))
+        outputs[0, :] = evalf(coeff, inputs[0, :], output0)
+        for i in range(1, nSample):
+            outputs[i, :] = evalf(coeff, inputs[i, :], outputs[i - 1, :])
+        if not grad:
+            return outputs, None
+        return outputs, (output0, inputs, outputs, d0_dc)
+
+    return _iterative_eval_impl
+
+
 class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
-    output0: Optional[Callable[[ndarray], Tuple[ndarray, ndarray]]]
-    evalf: Optional[Callable[[ndarray, ndarray, ndarray], ndarray]]
     gradf: Optional[
         Callable[
             [ndarray, ndarray, ndarray, ndarray, ndarray],
             Tuple[ndarray, ndarray, ndarray],
+        ]
+    ]
+    _eval_impl: Optional[
+        Callable[
+            [ndarray, ndarray, bool],
+            Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
         ]
     ]
 
@@ -36,21 +63,13 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
         self.output0 = output0
         self.evalf = eval
         self.gradf = grad
+        self._eval_impl = _make_eval(output0, eval)
 
     def _eval(
         self, coeff: ndarray, inputs: ndarray, *, grad: bool
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
-        assert self.output0 is not None
-        assert self.evalf is not None
-        output0, d0_dc = self.output0(coeff)
-        nSample, nOutput = inputs.shape[0], output0.shape[0]
-        outputs = numpy.ndarray((nSample, nOutput))
-        outputs[0, :] = self.evalf(coeff, inputs[0, :], output0)
-        for i in range(1, nSample):
-            outputs[i, :] = self.evalf(coeff, inputs[i, :], outputs[i - 1, :])
-        if not grad:
-            return outputs, None
-        return outputs, (output0, inputs, outputs, d0_dc)
+        assert self._eval_impl is not None
+        return self._eval_impl(coeff, inputs, grad)
 
     def _grad(
         self, coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
