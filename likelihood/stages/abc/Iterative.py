@@ -13,6 +13,11 @@ _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray]
 _Iterative_gradinfo_numba = types.Tuple(
     (float64[:], float64[:, :], float64[:, :], float64[:, :])
 )
+output0_signature = types.Tuple((float64[:], float64[:, :]))(float64[:])
+eval_signature = float64[:](float64[:], float64[:], float64[:])
+grad_signature = types.UniTuple(float64[:], 3)(
+    float64[:], float64[:], float64[:], float64[:], float64[:]
+)
 
 
 def _make_eval(
@@ -25,8 +30,8 @@ def _make_eval(
     Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
 ]:
     if compile:
-        output0f = njit(types.Tuple((float64[:], float64[:, :]))(float64[:]))(output0f)
-        evalf = njit(float64[:](float64[:], float64[:], float64[:]))(evalf)
+        output0f = njit(output0_signature)(output0f)
+        evalf = njit(eval_signature)(evalf)
 
     def _eval_impl(
         coeff: ndarray, inputs: ndarray, grad: bool
@@ -60,11 +65,7 @@ def _make_grad(
     compile: bool
 ) -> Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]:
     if compile:
-        gradf = njit(
-            types.UniTuple(float64[:], 3)(
-                float64[:], float64[:], float64[:], float64[:], float64[:]
-            )
-        )(gradf)
+        gradf = njit(grad_signature)(gradf)
 
     def _grad_impl(
         coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
