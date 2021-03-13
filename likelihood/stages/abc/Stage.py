@@ -48,7 +48,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         _input: ndarray = input[:, self._input_idx]  # type: ignore
         _output, gradinfo = self._eval(coeff, _input, grad=grad)
         assertNoInfNaN(_output)
-        k = _output.shape[0] - input.shape[0]
+        k = input.shape[0] - _output.shape[0]
         output = input[k:, :] if k else input
         output[:, self._output_idx] = _output
         return output, gradinfo
