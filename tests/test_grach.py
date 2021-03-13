@@ -47,21 +47,15 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     def grad(x: ndarray) -> ndarray:
         return nll.grad(x, input)
 
-    opts = trust_region.Trust_Region_Options(max_iter=300)
+    constraint = nll.get_constraint()
 
-    constr_A = numpy.array([[0.0, 1.0, 1.0]])
-    constr_b = numpy.array([1.0])
-    constr_lb = numpy.array([0.0, 0.0, 0.0])
-    constr_ub = numpy.array([numpy.inf, 1.0, 1.0])
+    opts = trust_region.Trust_Region_Options(max_iter=300)
 
     result = trust_region.trust_region(
         func,
         grad,
         beta0 if n > 10 else coeff,
-        constr_A,
-        constr_b,
-        constr_lb,
-        constr_ub,
+        *constraint,
         opts,
     )
     beta_mle = result.x

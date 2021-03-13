@@ -65,3 +65,14 @@ class Compose(Stage[_Compose_gradinfo_t]):
             dL_do, _dL_dc = s.grad(c, g, dL_do)
             dL_dc.append(_dL_dc)
         return dL_do, numpy.concatenate(dL_dc[::-1])
+
+    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        from scipy.linalg import block_diag  # type: ignore
+
+        A, b, lb, ub = zip(*(s.get_constraint() for s in self.stages))
+        return (
+            block_diag(*A),
+            numpy.concatenate(b),
+            numpy.concatenate(lb),
+            numpy.concatenate(ub),
+        )

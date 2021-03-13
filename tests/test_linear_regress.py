@@ -35,20 +35,13 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
 
-    n = m + 2
-    constr_A = numpy.zeros((0, n))
-    constr_b = numpy.zeros((0,))
-    constr_lb = numpy.full((n,), -numpy.inf)
-    constr_ub = numpy.full((n,), numpy.inf)
+    constraint = nll.get_constraint()
 
     result = trust_region.trust_region(
         func,
         grad,
         beta0,
-        constr_A,
-        constr_b,
-        constr_lb,
-        constr_ub,
+        *constraint,
         opts,
     )
     beta_mle = result.x[:-1]

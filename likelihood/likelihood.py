@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, List, Tuple
 
 import numpy
 from numerical.typedefs import ndarray
@@ -39,3 +39,6 @@ class negLikelihood:
         dL_dL[:, 0] = -1.0
         _, dL_dc = self.stages.grad(coeff, gradinfo, dL_dL)
         return dL_dc
+
+    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        return self.stages.get_constraint()
