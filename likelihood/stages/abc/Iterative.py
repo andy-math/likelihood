@@ -3,12 +3,16 @@ from __future__ import annotations
 from abc import ABCMeta
 from typing import Callable, Optional, Sequence, Tuple
 
+import numba  # type: ignore
 import numpy
 from likelihood.stages.abc.Stage import Stage
-from numba import float64, njit, types  # type: ignore
+from numba import float64, njit, optional, types
 from numerical.typedefs import ndarray
 
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray]
+_Iterative_gradinfo_numba = types.Tuple(
+    (float64[:], float64[:, :], float64[:, :], float64[:, :])
+)
 
 
 def _make_eval(
@@ -29,13 +33,20 @@ def _make_eval(
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
         output0, d0_dc = output0f(coeff)
         nSample, nOutput = inputs.shape[0], output0.shape[0]
-        outputs = numpy.ndarray((nSample, nOutput))
+        outputs = numpy.empty((nSample, nOutput))
         outputs[0, :] = evalf(coeff, inputs[0, :], output0)
         for i in range(1, nSample):
             outputs[i, :] = evalf(coeff, inputs[i, :], outputs[i - 1, :])
         if not grad:
             return outputs, None
         return outputs, (output0, inputs, outputs, d0_dc)
+
+    if compile:
+        _eval_impl = njit(
+            types.Tuple((float64[:, :], optional(_Iterative_gradinfo_numba)))(
+                float64[:], float64[:, :], numba.boolean
+            )
+        )(_eval_impl)
 
     return _eval_impl
 
@@ -60,7 +71,7 @@ def _make_grad(
     ) -> Tuple[ndarray, ndarray]:
         output0, inputs, outputs, d0_dc = gradinfo
         nSample, nInput = inputs.shape
-        dL_di = numpy.ndarray((nSample, nInput))
+        dL_di = numpy.empty((nSample, nInput))
         dL_dc = numpy.zeros(coeff.shape)
         for i in range(nSample - 1, 0, -1):
             _dL_dc, dL_di[i, :], _dL_do = gradf(
@@ -74,6 +85,13 @@ def _make_grad(
         )
         dL_dc += _dL_dc + dL_d0 @ d0_dc
         return dL_di, dL_dc
+
+    if compile:
+        _grad_impl = njit(
+            types.Tuple((float64[:, :], float64[:]))(
+                float64[:], _Iterative_gradinfo_numba, float64[:, :]
+            )
+        )(_grad_impl)
 
     return _grad_impl
 

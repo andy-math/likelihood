@@ -27,14 +27,16 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
     x, y = x[:-1, :], x[1:, :]
     input = numpy.concatenate((y, x), axis=1)
-
-    Garch(("c", "a", "b"), 1, 1, compile=True)
-    stage1 = Garch(("c", "a", "b"), 1, 1, compile=False)
-    stage2 = LogNormpdf_var((0, 1), 0)
-    nll = likelihood.negLikelihood([stage1, stage2], 2)
-
     beta0 = numpy.array([numpy.std(input[:, 0]) ** 2 * 0.1, 0.1, 0.8])
 
+    stage1_cover = Garch(("c", "a", "b"), 1, 1, compile=False)
+    stage1 = Garch(("c", "a", "b"), 1, 1, compile=True)
+    stage2 = LogNormpdf_var((0, 1), 0)
+
+    nll = likelihood.negLikelihood([stage1_cover, stage2], 2)
+    assert numpy.all(nll.grad(beta0, input) == nll.grad(beta0, input))
+
+    nll = likelihood.negLikelihood([stage1, stage2], 2)
     assert numpy.all(nll.grad(beta0, input) == nll.grad(beta0, input))
 
     def func(x: ndarray) -> float:
