@@ -26,7 +26,7 @@ class Midas_exp(Convolution):
         rphi = omega ** k
         drphi_do = k * omega ** (k - 1.0)
 
-        max = float(drphi_do[0])
+        max = float(rphi[0])
 
         if max * max == 0:
             rphi[0] = 1.0  # pragma: no cover

@@ -36,9 +36,6 @@ class Midas_beta(Convolution):
         else:
             rphi = rphi ** (omega1 - 1.0)
 
-        rphi = omega ** k
-        drphi_do = k * omega ** (k - 1.0)
-
         max = float(drphi_do[0])
         dmax_do = float(drphi_do[0])
 
