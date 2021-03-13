@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from typing import Generic, List, Optional, Sequence, Tuple, TypeVar
 
+import numpy
 from numerical.typedefs import ndarray
 from overloads.shortcuts import assertNoInfNaN
 
@@ -47,7 +48,8 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         _input: ndarray = input[:, self._input_idx]  # type: ignore
         _output, gradinfo = self._eval(coeff, _input, grad=grad)
         assertNoInfNaN(_output)
-        output = input
+        k = _output.shape[0] - input.shape[0]
+        output = input[k:, :] if k else input
         output[:, self._output_idx] = _output
         return output, gradinfo
 
@@ -59,6 +61,11 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         _dL_di, dL_dc = self._grad(coeff, gradinfo, _dL_do)
         assertNoInfNaN(_dL_di)
         assertNoInfNaN(dL_dc)
-        dL_di = dL_do
+        k = _dL_di.shape[0] - dL_do.shape[0]
+        if k:
+            dL_di = numpy.zeros((_dL_di.shape[0], dL_do.shape[1]))
+            dL_di[k:, :] = dL_do
+        else:
+            dL_di = dL_do
         dL_di[:, self._input_idx] = _dL_di
         return dL_di, dL_dc
