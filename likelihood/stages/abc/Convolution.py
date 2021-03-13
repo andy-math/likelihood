@@ -13,7 +13,7 @@ _Convolution_gradinfo_t = Tuple[ndarray, ndarray, ndarray]
 class Convolution(Stage[_Convolution_gradinfo_t], metaclass=ABCMeta):
     @abstractmethod
     def kernel(self, coeff: ndarray) -> Tuple[ndarray, ndarray]:
-        pass
+        pass  # pragma: no cover
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
