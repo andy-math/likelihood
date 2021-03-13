@@ -30,11 +30,10 @@ class Midas_exp(Convolution):
         dmax_do = float(drphi_do[0])
 
         if max * max == 0:
-            # pragma: no cover
-            rphi[0] = 1.0
-            drphi_do[0] = 1.0
-            max = 1.0
-            dmax_do = 1.0
+            rphi[0] = 1.0  # pragma: no cover
+            drphi_do[0] = 1.0  # pragma: no cover
+            max = 1.0  # pragma: no cover
+            dmax_do = 1.0  # pragma: no cover
 
         rphi = rphi / max
         drphi_do = drphi_do / max - rphi * dmax_do / (max * max)
