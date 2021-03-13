@@ -4,11 +4,9 @@ from typing import Tuple
 
 import numpy
 from likelihood.stages.abc.Iterative import Iterative
-from numba import float64, njit, types  # type: ignore
 from numerical.typedefs import ndarray
 
 
-@njit(types.Tuple((float64[:], float64[:, :]))(float64[:]))  # type: ignore
 def _garch_output0_impl(coeff: ndarray) -> Tuple[ndarray, ndarray]:
     """
     var = c + a*var + b*var
@@ -29,17 +27,11 @@ def _garch_output0_impl(coeff: ndarray) -> Tuple[ndarray, ndarray]:
     )
 
 
-@njit(float64[:](float64[:], float64[:], float64[:]))  # type: ignore
 def _grach_eval_impl(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
     c, a, b = coeff[0], coeff[1], coeff[2]
     return numpy.array([c + a * input[0] * input[0] + b * lag[0]])
 
 
-@njit(
-    types.UniTuple(float64[:], 3)(
-        float64[:], float64[:], float64[:], float64[:], float64[:]
-    )
-)  # type: ignore
 def _garch_grad_impl(
     coeff: ndarray, input: ndarray, lag: ndarray, _: ndarray, dL_do: ndarray
 ) -> Tuple[ndarray, ndarray, ndarray]:
@@ -59,7 +51,9 @@ def _garch_grad_impl(
 
 
 class Garch(Iterative):
-    def __init__(self, names: Tuple[str, str, str], input: int, output: int) -> None:
+    def __init__(
+        self, names: Tuple[str, str, str], input: int, output: int, *, compile: bool
+    ) -> None:
 
         super().__init__(
             names,
@@ -68,4 +62,5 @@ class Garch(Iterative):
             _garch_output0_impl,
             _grach_eval_impl,
             _garch_grad_impl,
+            compile=compile,
         )

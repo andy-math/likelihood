@@ -5,6 +5,7 @@ from typing import Callable, Optional, Sequence, Tuple
 
 import numpy
 from likelihood.stages.abc.Stage import Stage
+from numba import float64, njit, types  # type: ignore
 from numerical.typedefs import ndarray
 
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray]
@@ -13,10 +14,16 @@ _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray]
 def _make_eval(
     output0f: Callable[[ndarray], Tuple[ndarray, ndarray]],
     evalf: Callable[[ndarray, ndarray, ndarray], ndarray],
+    *,
+    compile: bool
 ) -> Callable[
     [ndarray, ndarray, bool],
     Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
 ]:
+    if compile:
+        output0f = njit(types.Tuple((float64[:], float64[:, :]))(float64[:]))(output0f)
+        evalf = njit(float64[:](float64[:], float64[:], float64[:]))(evalf)
+
     def _eval_impl(
         coeff: ndarray, inputs: ndarray, grad: bool
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
@@ -37,8 +44,17 @@ def _make_grad(
     gradf: Callable[
         [ndarray, ndarray, ndarray, ndarray, ndarray],
         Tuple[ndarray, ndarray, ndarray],
-    ]
+    ],
+    *,
+    compile: bool
 ) -> Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]:
+    if compile:
+        gradf = njit(
+            types.UniTuple(float64[:], 3)(
+                float64[:], float64[:], float64[:], float64[:], float64[:]
+            )
+        )(gradf)
+
     def _grad_impl(
         coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
     ) -> Tuple[ndarray, ndarray]:
@@ -84,10 +100,12 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
             [ndarray, ndarray, ndarray, ndarray, ndarray],
             Tuple[ndarray, ndarray, ndarray],
         ],
+        *,
+        compile: bool
     ) -> None:
         super().__init__(names, input, output)
-        self._eval_impl = _make_eval(output0, eval)
-        self._grad_impl = _make_grad(grad)
+        self._eval_impl = _make_eval(output0, eval, compile=compile)
+        self._grad_impl = _make_grad(grad, compile=compile)
 
     def _eval(
         self, coeff: ndarray, inputs: ndarray, *, grad: bool

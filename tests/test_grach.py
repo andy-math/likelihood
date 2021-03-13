@@ -28,7 +28,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x, y = x[:-1, :], x[1:, :]
     input = numpy.concatenate((y, x), axis=1)
 
-    stage1 = Garch(("c", "a", "b"), 1, 1)
+    stage1 = Garch(("c", "a", "b"), 1, 1, compile=True)
     stage2 = LogNormpdf_var((0, 1), 0)
     nll = likelihood.negLikelihood([stage1, stage2], 2)
 
