@@ -35,6 +35,12 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     ) -> Tuple[ndarray, ndarray]:
         pass  # pragma: no cover
 
+    @abstractmethod
+    def get_constraint(
+        self,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray, ndarray]:
+        pass  # pragma: no cover
+
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
