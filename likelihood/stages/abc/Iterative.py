@@ -17,7 +17,7 @@ def _make_eval(
     [ndarray, ndarray, bool],
     Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
 ]:
-    def _iterative_eval_impl(
+    def _eval_impl(
         coeff: ndarray, inputs: ndarray, grad: bool
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
         output0, d0_dc = output0f(coeff)
@@ -30,21 +30,47 @@ def _make_eval(
             return outputs, None
         return outputs, (output0, inputs, outputs, d0_dc)
 
-    return _iterative_eval_impl
+    return _eval_impl
+
+
+def _make_grad(
+    gradf: Callable[
+        [ndarray, ndarray, ndarray, ndarray, ndarray],
+        Tuple[ndarray, ndarray, ndarray],
+    ]
+) -> Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]:
+    def _grad_impl(
+        coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        output0, inputs, outputs, d0_dc = gradinfo
+        nSample, nInput = inputs.shape
+        dL_di = numpy.ndarray((nSample, nInput))
+        dL_dc = numpy.zeros(coeff.shape)
+        for i in range(nSample - 1, 0, -1):
+            _dL_dc, dL_di[i, :], _dL_do = gradf(
+                coeff, inputs[i, :], outputs[i - 1, :], outputs[i, :], dL_do[i, :]
+            )
+            dL_dc += _dL_dc
+            dL_do[i - 1, :] += _dL_do
+
+        _dL_dc, dL_di[i, :], dL_d0 = gradf(
+            coeff, inputs[0, :], output0, outputs[0, :], dL_do[0, :]
+        )
+        dL_dc += _dL_dc + dL_d0 @ d0_dc
+        return dL_di, dL_dc
+
+    return _grad_impl
 
 
 class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
-    gradf: Optional[
-        Callable[
-            [ndarray, ndarray, ndarray, ndarray, ndarray],
-            Tuple[ndarray, ndarray, ndarray],
-        ]
-    ]
     _eval_impl: Optional[
         Callable[
             [ndarray, ndarray, bool],
             Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
         ]
+    ]
+    _grad_impl: Optional[
+        Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]
     ]
 
     def __init__(
@@ -60,10 +86,8 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
         ],
     ) -> None:
         super().__init__(names, input, output)
-        self.output0 = output0
-        self.evalf = eval
-        self.gradf = grad
         self._eval_impl = _make_eval(output0, eval)
+        self._grad_impl = _make_grad(grad)
 
     def _eval(
         self, coeff: ndarray, inputs: ndarray, *, grad: bool
@@ -74,20 +98,5 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
     def _grad(
         self, coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
     ) -> Tuple[ndarray, ndarray]:
-        assert self.gradf is not None
-        output0, inputs, outputs, d0_dc = gradinfo
-        nSample, nInput = inputs.shape
-        dL_di = numpy.ndarray((nSample, nInput))
-        dL_dc = numpy.zeros(coeff.shape)
-        for i in range(nSample - 1, 0, -1):
-            _dL_dc, dL_di[i, :], _dL_do = self.gradf(
-                coeff, inputs[i, :], outputs[i - 1, :], outputs[i, :], dL_do[i, :]
-            )
-            dL_dc += _dL_dc
-            dL_do[i - 1, :] += _dL_do
-
-        _dL_dc, dL_di[i, :], dL_d0 = self.gradf(
-            coeff, inputs[0, :], output0, outputs[0, :], dL_do[0, :]
-        )
-        dL_dc += _dL_dc + dL_d0 @ d0_dc
-        return dL_di, dL_dc
+        assert self._grad_impl is not None
+        return self._grad_impl(coeff, gradinfo, dL_do)
