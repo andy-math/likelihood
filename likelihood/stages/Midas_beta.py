@@ -5,7 +5,7 @@ from likelihood.stages.abc.Convolution import Convolution
 from numerical.typedefs import ndarray
 
 
-class Midas_exp(Convolution):
+class Midas_beta(Convolution):
     k: int
 
     def __init__(
@@ -17,20 +17,39 @@ class Midas_exp(Convolution):
 
     def kernel(self, omega: ndarray) -> Tuple[ndarray, ndarray]:
         """
-        rphi(1<= k <= K) = omega ** k
+        rphi(1<= k <= K) = (k/K) ** (omega1 - 1) * (1-k/K) ** (omega2 - 1)
         phi = rphi/sum(rphi)
         0 < omega < 1
         """
         k = numpy.arange(1.0, self.k + 1.0)
 
+        omega1, omega2 = omega
+        if omega1 <= omega2:
+            alpha = (omega1 - 1.0) / (omega2 - 1.0)
+            rphi = (k / self.k) ** alpha * (1.0 - k / self.k)
+        else:
+            alpha = (omega2 - 1.0) / (omega1 - 1.0)
+            rphi = (k / self.k) * (1.0 - k / self.k) ** alpha
+
+        if omega1 <= omega2:
+            rphi = rphi ** (omega2 - 1.0)
+        else:
+            rphi = rphi ** (omega1 - 1.0)
+
         rphi = omega ** k
         drphi_do = k * omega ** (k - 1.0)
 
         max = float(drphi_do[0])
+        dmax_do = float(drphi_do[0])
 
         if max * max == 0:
             rphi[0] = 1.0  # pragma: no cover
             drphi_do[0] = 1.0  # pragma: no cover
+            max = 1.0  # pragma: no cover
+            dmax_do = 1.0  # pragma: no cover
+
+        rphi = rphi / max
+        drphi_do = drphi_do / max - rphi * dmax_do / (max * max)
 
         sum = numpy.sum(rphi)
         dsum_do = numpy.sum(drphi_do)
