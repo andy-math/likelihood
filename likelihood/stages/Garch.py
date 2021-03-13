@@ -64,3 +64,12 @@ class Garch(Iterative):
             _garch_grad_impl,
             compile=compile,
         )
+
+    def get_constraint(
+        self,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        A = numpy.array([[0.0, 1.0, 1.0]])
+        b = numpy.array([1.0])
+        lb = numpy.array([0.0, 0.0, 0.0])
+        ub = numpy.array([numpy.inf, 1.0, 1.0])
+        return A, b, lb, ub
