@@ -23,7 +23,7 @@ class Midas_beta(Convolution):
 
     def kernel(self, omega: ndarray) -> Tuple[ndarray, ndarray]:
         """
-        rphi(1<= k <= K) = (k/K) ** (omega1-1) * (1-k/K) ** (omega2-1)
+        rphi(1 <= k <= K) = (k/K) ** (omega1-1) * (1-k/K) ** (omega2-1)
 
         if omega1 <= omega2:
             kLeft, kRight = k, K-k
