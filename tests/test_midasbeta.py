@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from typing import Optional
+
 import numpy
 import numpy.linalg
 from likelihood import likelihood
+from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.stages.Midas_beta import Midas_beta
 from numerical import difference
@@ -62,14 +65,33 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
         opts,
     )
     beta_mle = result.x[:-1]
-    relerr_mle = difference.relative(coeff, beta_mle)
+    abserr_mle = difference.absolute(coeff, beta_mle)
     print("result.success: ", result.success)
     print("coeff: ", coeff)
     print("mle:   ", beta_mle)
-    print("abserr_mle: ", relerr_mle)
+    print("abserr_mle: ", abserr_mle)
     assert result.success
     assert 2 < result.iter < 20
-    assert relerr_mle < 0.3  # (?)
+    assert abserr_mle < 1.05  # (?)
+
+
+def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
+    x = generate(coeff, n, k, seed=seed)
+    x, y = x[:-1, :], x[1:, :]
+    input = numpy.concatenate((y, x), axis=1)
+    beta0 = numpy.array([1.0e308, 1.0e308, 1.0])
+
+    stage1 = Midas_beta(("omega1", "omega2"), [1], [1], k=k)
+    stage2 = LogNormpdf("var", (0, 1), 0)
+
+    ce: Optional[BaseException] = None
+    try:
+        nll = likelihood.negLikelihood([stage1, stage2], 2)
+        nll.eval(beta0, input)
+    except BaseException as e:
+        ce = e
+    assert isinstance(ce, KnownIssue)
+    assert ce.args[0] == "Midas_beta: 权重全为0"
 
 
 class Test_1:
@@ -80,10 +102,19 @@ class Test_1:
         run_once(numpy.array([5.0, 5.0]), 1000, 30)
 
     def test_3(self) -> None:
-        run_once(numpy.array([3.0, 3.0]), 1000, 7)
+        run_once(numpy.array([1.5, 1.5]), 1000, 30)
 
     def test_4(self) -> None:
+        run_once(numpy.array([3.0, 3.0]), 1000, 7)
+
+    def test_5(self) -> None:
         run_once(numpy.array([5.0, 5.0]), 1000, 7)
+
+    def test_6(self) -> None:
+        run_once(numpy.array([1.5, 1.5]), 1000, 7)
+
+    def test_7(self) -> None:
+        known_issue(numpy.array([2.0, 2.0]), 1000, 7)
 
 
 if __name__ == "__main__":
@@ -91,3 +122,6 @@ if __name__ == "__main__":
     Test_1().test_2()
     Test_1().test_3()
     Test_1().test_4()
+    Test_1().test_5()
+    Test_1().test_6()
+    Test_1().test_7()
