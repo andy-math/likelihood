@@ -1,0 +1,2 @@
+class KnownIssue(BaseException):
+    pass

@@ -1,6 +1,7 @@
 from typing import Sequence, Tuple
 
 import numpy
+from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.abc.Convolution import Convolution
 from numerical.typedefs import ndarray
 
@@ -22,7 +23,7 @@ class Midas_beta(Convolution):
 
     def kernel(self, omega: ndarray) -> Tuple[ndarray, ndarray]:
         """
-        rphi(1<= k <= K) = (k/K) ** (omega1 - 1) * (1-k/K) ** (omega2 - 1)
+        rphi(1<= k <= K) = (k/K) ** (omega1-1) * (1-k/K) ** (omega2-1)
 
         if omega1 <= omega2:
             kLeft, kRight = k, K-k
@@ -79,14 +80,18 @@ class Midas_beta(Convolution):
         drphi_do = drphi_dstage1 * dstage1_do
         drphi_do[:, [1]] += drphi_doRight  # type: ignore
 
-        if numpy.max(rphi) == 0:
-            assert False
-
         sum = numpy.sum(rphi)
         dsum_do = numpy.sum(drphi_do, axis=0, keepdims=True)
+        if sum == 0:
+            raise KnownIssue("Midas_beta: 权重全为0")
 
+        """
+        phi = rphi/sum
+        dphi_do = (1/sum) * drphi_do - rphi / (sum*sum) * dsum_do
+                = drphi_do / sum - dsum_do * phi / sum
+        """
         phi = rphi / sum
-        dphi_do = drphi_do / sum - rphi * dsum_do / (sum * sum)
+        dphi_do = drphi_do / sum - dsum_do * phi / sum
 
         phi.shape = (phi.shape[0],)
         if _omega1 <= _omega2:
