@@ -90,6 +90,7 @@ def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     except BaseException as e:
         ce = e
     assert isinstance(ce, KnownIssue)
+    assert ce.args[0] == "Midas_exp: 权重全为0"
 
 
 class Test_1:
