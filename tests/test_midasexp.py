@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from typing import Optional
+
 import numpy
 import numpy.linalg
 from likelihood import likelihood
+from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.stages.Midas_exp import Midas_exp
 from numerical import difference
@@ -71,6 +74,24 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     assert abserr_mle < 0.05
 
 
+def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
+    x = generate(coeff, n, k, seed=seed)
+    x, y = x[:-1, :], x[1:, :]
+    input = numpy.concatenate((y, x), axis=1)
+    beta0 = numpy.array([0.0, 1.0])
+
+    stage1 = Midas_exp("omega", [1], [1], k=k)
+    stage2 = LogNormpdf("var", (0, 1), 0)
+
+    ce: Optional[BaseException] = None
+    try:
+        nll = likelihood.negLikelihood([stage1, stage2], 2)
+        nll.eval(beta0, input)
+    except BaseException as e:
+        ce = e
+    assert isinstance(ce, KnownIssue)
+
+
 class Test_1:
     def test_1(self) -> None:
         run_once(numpy.array([0.8]), 1000, 30)
@@ -78,7 +99,11 @@ class Test_1:
     def test_2(self) -> None:
         run_once(numpy.array([0.2]), 1000, 7)
 
+    def test_3(self) -> None:
+        known_issue(numpy.array([0.5]), 1000, 7)
+
 
 if __name__ == "__main__":
     Test_1().test_1()
     Test_1().test_2()
+    Test_1().test_3()
