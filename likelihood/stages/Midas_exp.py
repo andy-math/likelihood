@@ -26,11 +26,8 @@ class Midas_exp(Convolution):
         rphi = omega ** k
         drphi_do = k * omega ** (k - 1.0)
 
-        max = float(rphi[0])
-
-        if max * max == 0:
-            rphi[0] = 1.0  # pragma: no cover
-            drphi_do[0] = 1.0  # pragma: no cover
+        if max(rphi) == 0:
+            assert False
 
         sum = numpy.sum(rphi)
         dsum_do = numpy.sum(drphi_do)
@@ -39,7 +36,6 @@ class Midas_exp(Convolution):
         dphi_do = drphi_do / sum - rphi * dsum_do / (sum * sum)
 
         dphi_do.shape = (dphi_do.shape[0], 1)
-
         return phi, dphi_do
 
     def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:

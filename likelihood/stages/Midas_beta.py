@@ -6,61 +6,97 @@ from numerical.typedefs import ndarray
 
 
 class Midas_beta(Convolution):
-    k: int
+    K: int
 
     def __init__(
-        self, names: str, input: Sequence[int], output: Sequence[int], *, k: int
+        self,
+        names: Tuple[str, str],
+        input: Sequence[int],
+        output: Sequence[int],
+        *,
+        k: int
     ) -> None:
         assert len(input) == len(output)
-        super().__init__((names,), input, output)
-        self.k = k
+        super().__init__(names, input, output)
+        self.K = k
 
     def kernel(self, omega: ndarray) -> Tuple[ndarray, ndarray]:
         """
         rphi(1<= k <= K) = (k/K) ** (omega1 - 1) * (1-k/K) ** (omega2 - 1)
+
+        if omega1 <= omega2:
+            kLeft, kRight = k, K-k
+            oLeft, oRight = omega1-1, omega2-1
+        else:
+            kLeft, kRight = K-k, k
+            oLeft, oRight = omega2-1, omega1-1
+
+        alpha = oLeft / oRight
+        stage1 = (kLeft/K) ** alpha * (kRight/K)
+
+        rphi = stage1 ** oRight
+
         phi = rphi/sum(rphi)
-        0 < omega < 1
         """
-        k = numpy.arange(1.0, self.k + 1.0)
+        k = numpy.arange(1.0, self.K + 1.0)
+        k.shape = (k.shape[0], 1)
+        _omega1, _omega2 = omega
 
-        omega1, omega2 = omega
-        if omega1 <= omega2:
-            alpha = (omega1 - 1.0) / (omega2 - 1.0)
-            rphi = (k / self.k) ** alpha * (1.0 - k / self.k)
+        if _omega1 <= _omega2:
+            kLeft, kRight = k, self.K - k
+            oLeft, oRight = _omega1 - 1.0, _omega2 - 1.0
         else:
-            alpha = (omega2 - 1.0) / (omega1 - 1.0)
-            rphi = (k / self.k) * (1.0 - k / self.k) ** alpha
+            kLeft, kRight = self.K - k, k
+            oLeft, oRight = _omega2 - 1.0, _omega1 - 1.0
 
-        if omega1 <= omega2:
-            rphi = rphi ** (omega2 - 1.0)
-        else:
-            rphi = rphi ** (omega1 - 1.0)
+        alpha = oLeft / oRight
+        da_do = numpy.array([[1.0, -alpha]]) / oRight
+        """
+        dstage1_da = (kLeft/K) ** alpha * log(kLeft/K) * (1-kRight/K)
+                    = stage1 * log(kLeft/K)
+                    = rphi * [log(kLeft) - log(K)]
+        if kLeft == 0:
+            stage1 = 0 ** alpha * (1-kRight/K)
+            dstage1_da = 0
+        """
+        stage1 = (kLeft / self.K) ** alpha * (kRight / self.K)
+        dstage1_da = stage1 * (numpy.log(kLeft) - numpy.log(self.K))
+        dstage1_da[kLeft == 0] = 0.0
+        dstage1_do = dstage1_da * da_do
+        """
+        rphi = stage1 ** oRight
+        drphi_dstage1 = oRight * stage1 ** (oRight-1)
+        drphi_doRight = stage1 ** oRight * log(stage1)
+                      = rphi * log(stage1)
+        if stage1 == 0:
+            rphi = 0 ** oRight
+            drphi_doRight = 0
+        """
+        rphi = stage1 ** oRight
+        drphi_dstage1 = oRight * stage1 ** (oRight - 1)
+        drphi_doRight = rphi * numpy.log(stage1)
+        drphi_doRight[stage1 == 0] = 0.0
+        drphi_do = drphi_dstage1 * dstage1_do
+        drphi_do[:, [1]] += drphi_doRight  # type: ignore
 
-        max = float(drphi_do[0])
-        dmax_do = float(drphi_do[0])
-
-        if max * max == 0:
-            rphi[0] = 1.0  # pragma: no cover
-            drphi_do[0] = 1.0  # pragma: no cover
-            max = 1.0  # pragma: no cover
-            dmax_do = 1.0  # pragma: no cover
-
-        rphi = rphi / max
-        drphi_do = drphi_do / max - rphi * dmax_do / (max * max)
+        if numpy.max(rphi) == 0:
+            assert False
 
         sum = numpy.sum(rphi)
-        dsum_do = numpy.sum(drphi_do)
+        dsum_do = numpy.sum(drphi_do, axis=0, keepdims=True)
 
         phi = rphi / sum
         dphi_do = drphi_do / sum - rphi * dsum_do / (sum * sum)
 
-        dphi_do.shape = (dphi_do.shape[0], 1)
-
-        return phi, dphi_do
+        phi.shape = (phi.shape[0],)
+        if _omega1 <= _omega2:
+            return phi, dphi_do
+        else:
+            return phi, dphi_do[:, ::-1]
 
     def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
-        A = numpy.empty((0, 1))
+        A = numpy.empty((0, 2))
         b = numpy.empty((0,))
-        lb = numpy.array([0.0])
-        ub = numpy.array([1.0])
+        lb = numpy.array([1.0, 1.0])
+        ub = numpy.array([numpy.inf, numpy.inf])
         return A, b, lb, ub
