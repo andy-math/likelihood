@@ -16,13 +16,13 @@ class negLikelihood:
     nInput: int
     stages: Compose
 
-    def __init__(self, stages: List[Stage[Any]], nVars: int) -> None:
+    def __init__(self, stages: List[Stage[Any]], *, nvars: int) -> None:
         assert isinstance(stages[-1], Logpdf)
         assert len(stages[-1]._output_idx) == 1
         assert stages[-1]._output_idx[0] == 0
-        self.stages = Compose(stages, list(range(nVars)), list(range(nVars)))
+        self.stages = Compose(stages, list(range(nvars)), list(range(nvars)))
         self.nCoeff = self.stages.len_coeff
-        self.nInput = nVars
+        self.nInput = nvars
 
     def eval(self, coeff: ndarray, input: ndarray) -> float:
         assert coeff.shape == (self.nCoeff,)
