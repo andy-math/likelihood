@@ -33,19 +33,29 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     stage1 = Garch(("c", "a", "b"), 1, 1, compile=True)
     stage2 = LogNormpdf_var((0, 1), (0, 1))
 
-    nll = likelihood.negLikelihood([stage1_cover, stage2], nvars=2)
-    assert nll.eval(beta0, input) == nll.eval(beta0, input)
-    assert numpy.all(nll.grad(beta0, input) == nll.grad(beta0, input))
+    nll = likelihood.negLikelihood([stage1_cover, stage2], None, nvars=2)
+    assert nll.eval(beta0, input, regularize=False) == nll.eval(
+        beta0, input, regularize=False
+    )
+    assert numpy.all(
+        nll.grad(beta0, input, regularize=False)
+        == nll.grad(beta0, input, regularize=False)
+    )
 
-    nll = likelihood.negLikelihood([stage1, stage2], nvars=2)
-    assert nll.eval(beta0, input) == nll.eval(beta0, input)
-    assert numpy.all(nll.grad(beta0, input) == nll.grad(beta0, input))
+    nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
+    assert nll.eval(beta0, input, regularize=False) == nll.eval(
+        beta0, input, regularize=False
+    )
+    assert numpy.all(
+        nll.grad(beta0, input, regularize=False)
+        == nll.grad(beta0, input, regularize=False)
+    )
 
     def func(x: ndarray) -> float:
-        return nll.eval(x, input)
+        return nll.eval(x, input, regularize=False)
 
     def grad(x: ndarray) -> ndarray:
-        return nll.grad(x, input)
+        return nll.grad(x, input, regularize=False)
 
     constraint = nll.get_constraint()
 

@@ -42,15 +42,20 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     stage1 = Midas_exp("omega", [1], [1], k=k)
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
 
-    nll = likelihood.negLikelihood([stage1, stage2], nvars=2)
-    assert nll.eval(beta0, input) == nll.eval(beta0, input)
-    assert numpy.all(nll.grad(beta0, input) == nll.grad(beta0, input))
+    nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
+    assert nll.eval(beta0, input, regularize=False) == nll.eval(
+        beta0, input, regularize=False
+    )
+    assert numpy.all(
+        nll.grad(beta0, input, regularize=False)
+        == nll.grad(beta0, input, regularize=False)
+    )
 
     def func(x: ndarray) -> float:
-        return nll.eval(x, input)
+        return nll.eval(x, input, regularize=False)
 
     def grad(x: ndarray) -> ndarray:
-        return nll.grad(x, input)
+        return nll.grad(x, input, regularize=False)
 
     constraint = nll.get_constraint()
 
@@ -85,8 +90,8 @@ def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
 
     ce: Optional[BaseException] = None
     try:
-        nll = likelihood.negLikelihood([stage1, stage2], nvars=2)
-        nll.eval(beta0, input)
+        nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
+        nll.eval(beta0, input, regularize=False)
     except BaseException as e:
         ce = e
     assert isinstance(ce, KnownIssue)
