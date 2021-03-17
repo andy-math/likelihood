@@ -53,7 +53,6 @@ class negLikelihood:
         _, o, gradinfo, _gradinfo = _eval(
             self, coeff, input, grad=True, regularize=regularize
         )
-        assert gradinfo is not None and _gradinfo is not None
 
         dL_dL = numpy.zeros(o.shape)
         dL_dL[:, 0] = -1.0
@@ -61,8 +60,10 @@ class negLikelihood:
 
         if regularize:
             assert self.penalty is not None
+            assert _gradinfo is not None
             dL_dL, _dL_dc = self.penalty.grad(coeff, _gradinfo, dL_dL)
 
+        assert gradinfo is not None
         _, dL_dc = self.stages.grad(coeff, gradinfo, dL_dL)
         dL_dc += _dL_dc
         return dL_dc
