@@ -14,10 +14,11 @@ from likelihood.stages.Compose import Compose
 
 def _eval(
     self: negLikelihood, coeff: ndarray, input: ndarray, *, grad: bool, regularize: bool
-) -> Tuple[float, ndarray, Any, Any]:
+) -> Tuple[float, ndarray, Optional[Any], Optional[Any]]:
     assert coeff.shape == (self.nCoeff,)
     assertNoInfNaN(input)
     output, gradinfo = self.stages.eval(coeff, input.copy(), grad=grad)
+    _gradinfo = None
     if regularize:
         assert self.penalty is not None
         output, _gradinfo = self.penalty.eval(coeff, output, grad=grad)
