@@ -12,17 +12,11 @@ from likelihood.stages.abc.Stage import Stage
 from likelihood.stages.Compose import Compose
 
 
-def _eval(
-    self: negLikelihood, coeff: ndarray, input: ndarray, *, grad: bool, regularize: bool
-) -> Tuple[float, ndarray, Optional[Any], Optional[Any]]:
-    assert coeff.shape == (self.nCoeff,)
-    assertNoInfNaN(input)
-    output, gradinfo = self.stages.eval(coeff, input.copy(), grad=grad)
-    _gradinfo = None
-    if regularize:
-        assert self.penalty is not None
-        output, _gradinfo = self.penalty.eval(coeff, output, grad=grad)
-    return -numpy.sum(output[:, 0]), output, gradinfo, _gradinfo
+def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
+    for s in stages:
+        assert max(s._input_idx) < nvars
+    assert isinstance(stages[-1], Logpdf)
+    assert stages[-1]._output_idx[0] == 0
 
 
 class negLikelihood:
@@ -34,24 +28,43 @@ class negLikelihood:
     def __init__(
         self, stages: List[Stage[Any]], penalty: Optional[Penalty[Any]], *, nvars: int
     ) -> None:
-        assert isinstance(stages[-1], Logpdf)
-        assert stages[-1]._output_idx[0] == 0
+        _check_stages(stages, nvars)
         self.stages = Compose(stages, list(range(nvars)), list(range(nvars)))
         self.penalty = penalty
         self.nCoeff = self.stages.len_coeff
         self.nInput = nvars
 
+    def _eval(
+        self: negLikelihood,
+        coeff: ndarray,
+        input: ndarray,
+        *,
+        grad: bool,
+        regularize: bool
+    ) -> Tuple[float, ndarray, Optional[Any], Optional[Any]]:
+
+        assert coeff.shape == (self.nCoeff,)
+        assert input.shape[1] == self.nInput
+
+        assertNoInfNaN(coeff)
+        assertNoInfNaN(input)
+
+        output, gradinfo = self.stages.eval(coeff, input.copy(), grad=grad)
+        _gradinfo = None
+        if regularize:
+            assert self.penalty is not None
+            output, _gradinfo = self.penalty.eval(coeff, output, grad=grad)
+        return -numpy.sum(output[:, 0]), output, gradinfo, _gradinfo
+
     def eval(
         self, coeff: ndarray, input: ndarray, *, regularize: bool
     ) -> Tuple[float, ndarray]:
-        fval, output, _, _ = _eval(
-            self, coeff, input, grad=False, regularize=regularize
-        )
+        fval, output, _, _ = self._eval(coeff, input, grad=False, regularize=regularize)
         return fval, output
 
     def grad(self, coeff: ndarray, input: ndarray, *, regularize: bool) -> ndarray:
-        _, o, gradinfo, _gradinfo = _eval(
-            self, coeff, input, grad=True, regularize=regularize
+        _, o, gradinfo, _gradinfo = self._eval(
+            coeff, input, grad=True, regularize=regularize
         )
 
         dL_dL = numpy.zeros(o.shape)
