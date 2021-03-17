@@ -28,14 +28,14 @@ class negLikelihood:
         self.nCoeff = self.stages.len_coeff
         self.nInput = nvars
 
-    def eval(self, coeff: ndarray, input: ndarray, *, regularize: bool) -> float:
+    def eval(self, coeff: ndarray, input: ndarray, *, regularize: bool) -> Tuple[float, ndarray]:
         assert coeff.shape == (self.nCoeff,)
         assertNoInfNaN(input)
         o, _ = self.stages.eval(coeff, input.copy(), grad=False)
         if regularize:
             assert self.penalty is not None
             o, _ = self.penalty.eval(coeff, o, grad=False)
-        return -numpy.sum(o[:, 0])
+        return -numpy.sum(o[:, 0]), o
 
     def grad(self, coeff: ndarray, input: ndarray, *, regularize: bool) -> ndarray:
         assert coeff.shape == (self.nCoeff,)

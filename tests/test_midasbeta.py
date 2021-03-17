@@ -44,8 +44,9 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
 
     nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
-    assert nll.eval(beta0, input, regularize=False) == nll.eval(
-        beta0, input, regularize=False
+    assert (
+        nll.eval(beta0, input, regularize=False)[0]
+        == nll.eval(beta0, input, regularize=False)[0]
     )
     assert numpy.all(
         nll.grad(beta0, input, regularize=False)
@@ -53,7 +54,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     )
 
     def func(x: ndarray) -> float:
-        return nll.eval(x, input, regularize=False)
+        return nll.eval(x, input, regularize=False)[0]
 
     def grad(x: ndarray) -> ndarray:
         return nll.grad(x, input, regularize=False)

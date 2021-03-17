@@ -25,12 +25,13 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     beta0[-1] = 1.0
     input = numpy.concatenate((y.reshape((-1, 1)), x), axis=1)
 
-    assert nll.eval(beta0, input, regularize=False) == nll.eval(
-        beta0, input, regularize=False
+    assert (
+        nll.eval(beta0, input, regularize=False)[0]
+        == nll.eval(beta0, input, regularize=False)[0]
     )
 
     def func(x: ndarray) -> float:
-        return nll.eval(x, input, regularize=False)
+        return nll.eval(x, input, regularize=False)[0]
 
     def grad(x: ndarray) -> ndarray:
         return nll.grad(x, input, regularize=False)
