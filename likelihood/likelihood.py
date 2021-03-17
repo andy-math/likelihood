@@ -12,6 +12,18 @@ from likelihood.stages.abc.Stage import Stage
 from likelihood.stages.Compose import Compose
 
 
+def _eval(
+    self: negLikelihood, coeff: ndarray, input: ndarray, *, grad: bool, regularize: bool
+) -> Tuple[float, ndarray, Any, Any]:
+    assert coeff.shape == (self.nCoeff,)
+    assertNoInfNaN(input)
+    output, gradinfo = self.stages.eval(coeff, input.copy(), grad=grad)
+    if regularize:
+        assert self.penalty is not None
+        output, _gradinfo = self.penalty.eval(coeff, output, grad=grad)
+    return -numpy.sum(output[:, 0]), output, gradinfo, _gradinfo
+
+
 class negLikelihood:
     nCoeff: int
     nInput: int
@@ -28,25 +40,19 @@ class negLikelihood:
         self.nCoeff = self.stages.len_coeff
         self.nInput = nvars
 
-    def eval(self, coeff: ndarray, input: ndarray, *, regularize: bool) -> Tuple[float, ndarray]:
-        assert coeff.shape == (self.nCoeff,)
-        assertNoInfNaN(input)
-        o, _ = self.stages.eval(coeff, input.copy(), grad=False)
-        if regularize:
-            assert self.penalty is not None
-            o, _ = self.penalty.eval(coeff, o, grad=False)
-        return -numpy.sum(o[:, 0]), o
+    def eval(
+        self, coeff: ndarray, input: ndarray, *, regularize: bool
+    ) -> Tuple[float, ndarray]:
+        fval, output, _, _ = _eval(
+            self, coeff, input, grad=False, regularize=regularize
+        )
+        return fval, output
 
     def grad(self, coeff: ndarray, input: ndarray, *, regularize: bool) -> ndarray:
-        assert coeff.shape == (self.nCoeff,)
-        assertNoInfNaN(input)
-        o, gradinfo = self.stages.eval(coeff, input.copy(), grad=True)
-        assert gradinfo is not None
-
-        if regularize:
-            assert self.penalty is not None
-            o, _gradinfo = self.penalty.eval(coeff, o, grad=True)
-            assert _gradinfo is not None
+        _, o, gradinfo, _gradinfo = _eval(
+            self, coeff, input, grad=True, regularize=regularize
+        )
+        assert gradinfo is not None and _gradinfo is not None
 
         dL_dL = numpy.zeros(o.shape)
         dL_dL[:, 0] = -1.0
