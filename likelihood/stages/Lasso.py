@@ -92,10 +92,3 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
             + (self.Lambda / (2.0)) * numpy.sum(numpy.abs(beta)) / (var * var)
         )
         return numpy.concatenate((dL_dlogP, dL_dvar), axis=1), dL_dbeta
-
-    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
-        A = numpy.empty((0, 0))
-        b = numpy.empty((0,))
-        lb = numpy.empty((0,))
-        ub = numpy.empty((0,))
-        return A, b, lb, ub
