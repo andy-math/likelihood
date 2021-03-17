@@ -46,7 +46,7 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         dL_di = dL_dlogP * -z
         dL_dlogP.shape = (dL_dlogP.shape[0],)
         dL_dc = dL_dlogP @ ((1.0 / 2.0) * (z * z - 1.0 / var)) + numpy.sum(dL_dvar)
-        return dL_di, dL_dc
+        return dL_di * numpy.array([[-1.0, 1.0]]), dL_dc
 
     def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         A = numpy.empty((0, 1))
