@@ -24,6 +24,7 @@ class negLikelihood:
         assert isinstance(stages[-1], Logpdf)
         assert stages[-1]._output_idx[0] == 0
         self.stages = Compose(stages, list(range(nvars)), list(range(nvars)))
+        self.penalty = penalty
         self.nCoeff = self.stages.len_coeff
         self.nInput = nvars
 

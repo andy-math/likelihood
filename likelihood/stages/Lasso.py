@@ -79,12 +79,14 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
         self, beta: ndarray, _var: _Lasso_gradinfo_t, dL_dlogP: ndarray
     ) -> Tuple[ndarray, ndarray]:
         """
-        d{posteriori[i]}/d{beta}   = (L/(2var[i])) * sign(beta)
+        d{posteriori[i]}/d{beta}   = -(L/(2var[i])) * sign(beta)
         d{posteriori[i]}/d{var[i]} = -len(beta)/var[i]
                                         + L/2*sum[j](|beta[j]|) / (var[i]*var[i])
         """
         (var,) = _var
-        dL_dbeta = dL_dlogP @ (self.Lambda / 2 * var) * numpy.sign(beta)
+        dL_dbeta = -dL_dlogP.flatten() @ (
+            (self.Lambda / (2.0 * var)) * numpy.sign(beta)
+        )
         dL_dvar = dL_dlogP * (
             -beta.shape[0] / var
             + (self.Lambda / (2.0)) * numpy.sum(numpy.abs(beta)) / (var * var)
