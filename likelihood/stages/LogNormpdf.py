@@ -10,8 +10,10 @@ _LogNormpdf_gradinfo_t = ndarray
 
 
 class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
-    def __init__(self, variance_name: str, input: Tuple[int, int], output: int) -> None:
-        super().__init__([variance_name], input, (output,))
+    def __init__(
+        self, variance_name: str, input: Tuple[int, int], output: Tuple[int, int]
+    ) -> None:
+        super().__init__([variance_name], input, output)
 
     def _eval(
         self, var: ndarray, mu_x: ndarray, *, grad: bool
@@ -25,12 +27,13 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         x: ndarray = mu_x[:, [1]] - mu_x[:, [0]]  # type: ignore
         constant = numpy.log(var) + numpy.log(2.0) + numpy.log(numpy.pi)
         logP = (-1.0 / 2.0) * (constant + (x * x) / var)
+        output = numpy.concatenate((logP, numpy.full(logP.shape, var)), axis=1)
         if not grad:
-            return logP, None
-        return logP, x
+            return output, None
+        return output, x
 
     def _grad(
-        self, var: ndarray, x: _LogNormpdf_gradinfo_t, dL_dlogP: ndarray
+        self, var: ndarray, x: _LogNormpdf_gradinfo_t, dL_dlogP_dvar: ndarray
     ) -> Tuple[ndarray, ndarray]:
         """
         d/dx{log p(x)} = (-1/2) { 2x/Var } = -x/Var
@@ -38,9 +41,11 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
                          = (1/2) {(x/Var) * (x/Var) - 1/Var}
         """
         z = x / var
+        dL_dlogP: ndarray = dL_dlogP_dvar[:, [0]]  # type: ignore
+        dL_dvar: ndarray = dL_dlogP_dvar[:, [1]]  # type: ignore
         dL_di = dL_dlogP * -z
         dL_dlogP.shape = (dL_dlogP.shape[0],)
-        dL_dc = dL_dlogP @ ((1.0 / 2.0) * (z * z - 1.0 / var))
+        dL_dc = dL_dlogP @ ((1.0 / 2.0) * (z * z - 1.0 / var)) + numpy.sum(dL_dvar)
         return dL_di, dL_dc
 
     def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:

@@ -11,8 +11,8 @@ _LogNormpdfVar_gradinfo_t = Tuple[ndarray, ndarray]
 
 
 class LogNormpdf_var(Logpdf[_LogNormpdfVar_gradinfo_t]):
-    def __init__(self, input: Tuple[int, int], output: int) -> None:
-        super().__init__([], input, (output,))
+    def __init__(self, input: Tuple[int, int], output: Tuple[int, int]) -> None:
+        super().__init__([], input, output)
 
     def _eval(
         self, var: ndarray, x_var: ndarray, *, grad: bool
@@ -27,12 +27,13 @@ class LogNormpdf_var(Logpdf[_LogNormpdfVar_gradinfo_t]):
         var: ndarray = x_var[:, [1]]  # type: ignore
         constant = math.log(2.0) + math.log(math.pi)
         logP = (-1.0 / 2.0) * (numpy.log(var) + (x * x) / var + constant)
+        output = numpy.concatenate((logP, var), axis=1)
         if not grad:
-            return logP, None
-        return logP, (x, var)
+            return output, None
+        return output, (x, var)
 
     def _grad(
-        self, var: ndarray, x_var: _LogNormpdfVar_gradinfo_t, dL_dlogP: ndarray
+        self, var: ndarray, x_var: _LogNormpdfVar_gradinfo_t, dL_dlogP_dvar: ndarray
     ) -> Tuple[ndarray, ndarray]:
         """
         d/dx{log p(x)} = (-1/2) { 2x/Var } = -x/Var
@@ -41,8 +42,10 @@ class LogNormpdf_var(Logpdf[_LogNormpdfVar_gradinfo_t]):
         """
         x, var = x_var
         z = x / var
+        dL_dlogP: ndarray = dL_dlogP_dvar[:, [0]]  # type: ignore
+        dL_dvar: ndarray = dL_dlogP_dvar[:, [1]]  # type: ignore
         dL_dx = dL_dlogP * -z
-        dL_dvar = dL_dlogP * ((1.0 / 2.0) * (z * z - 1.0 / var))
+        dL_dvar = dL_dvar + dL_dlogP * ((1.0 / 2.0) * (z * z - 1.0 / var))
         return numpy.concatenate((dL_dx, dL_dvar), axis=1), numpy.ndarray((0,))
 
     def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:

@@ -18,7 +18,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     abserr_decomp = difference.absolute(beta, beta_decomp)
 
     stage1 = Linear(["b1", "b2", "b3", "b4", "b5", "b0"], list(range(1, 7)), [1])
-    stage2 = LogNormpdf("var", (0, 1), 0)
+    stage2 = LogNormpdf("var", (0, 1), (0, 1))
     nll = likelihood.negLikelihood([stage1, stage2], nvars=7)
 
     beta0 = numpy.zeros((beta.shape[0] + 1,))

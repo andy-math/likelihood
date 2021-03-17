@@ -40,7 +40,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     beta0 = numpy.array([0.5, 1.0])
 
     stage1 = Midas_exp("omega", [1], [1], k=k)
-    stage2 = LogNormpdf("var", (0, 1), 0)
+    stage2 = LogNormpdf("var", (0, 1), (0, 1))
 
     nll = likelihood.negLikelihood([stage1, stage2], nvars=2)
     assert nll.eval(beta0, input) == nll.eval(beta0, input)
@@ -81,7 +81,7 @@ def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     beta0 = numpy.array([0.0, 1.0])
 
     stage1 = Midas_exp("omega", [1], [1], k=k)
-    stage2 = LogNormpdf("var", (0, 1), 0)
+    stage2 = LogNormpdf("var", (0, 1), (0, 1))
 
     ce: Optional[BaseException] = None
     try:
