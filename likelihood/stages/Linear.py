@@ -10,10 +10,8 @@ _Linear_gradinfo_t = ndarray
 
 
 class Linear(Stage[_Linear_gradinfo_t]):
-    def __init__(
-        self, names: List[str], input: Sequence[int], output: Sequence[int]
-    ) -> None:
-        super().__init__(names, input, output)
+    def __init__(self, names: List[str], input: Sequence[int], output: int) -> None:
+        super().__init__(names, input, (output,))
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool

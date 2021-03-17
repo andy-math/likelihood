@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy
 import numpy.linalg
@@ -14,7 +14,7 @@ from optimizer import trust_region
 from overloads.shortcuts import assertNoInfNaN
 
 
-def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
+def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> Tuple[ndarray, ndarray]:
     numpy.random.seed(seed)
     omega1, omega2 = coeff
     assert 1 < omega1 and 1 < omega2
@@ -31,17 +31,20 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
         stop = i
         x[i] = x[start:stop, 0] @ kernel + numpy.random.randn()
     start = k * 10
-    return x[start:]
+    return x[start:], kernel
 
 
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
-    x = generate(coeff, n, k, seed=seed)
+    x, kkkk = generate(coeff, n, k, seed=seed)
     x, y = x[:-1, :], x[1:, :]
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([2.0, 2.0, 1.0])
 
     stage1 = Midas_beta(("omega1", "omega2"), [1], [1], k=k)
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
+
+    kernel_reldiff = difference.relative(stage1.kernel(coeff)[0], kkkk[::-1])
+    assert kernel_reldiff < 1e-8
 
     nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
     assert (
@@ -82,7 +85,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
 
 
 def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
-    x = generate(coeff, n, k, seed=seed)
+    x, _ = generate(coeff, n, k, seed=seed)
     x, y = x[:-1, :], x[1:, :]
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([1.0e308, 1.0e308, 1.0])
@@ -105,7 +108,7 @@ class Test_1:
         run_once(numpy.array([3.0, 3.0]), 1000, 30)
 
     def test_2(self) -> None:
-        run_once(numpy.array([5.0, 5.0]), 1000, 30)
+        run_once(numpy.array([5.0, 1.5]), 1000, 30)
 
     def test_3(self) -> None:
         run_once(numpy.array([1.5, 1.5]), 1000, 30)
