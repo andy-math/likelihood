@@ -42,7 +42,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
         return nll.grad(x, input, regularize=True)
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
-    opts.check_iter = 20
+    # opts.check_iter = 20
 
     constraint = nll.get_constraint()
 
