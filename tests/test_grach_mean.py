@@ -78,7 +78,6 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("mle:   ", beta_mle)
     print("abserr_mle: ", abserr_mle)
     print("result.grad: ", result.gradient)
-    return
     assert result.success
     assert 5 < result.iter < 20
     assert abserr_mle < 0.05
