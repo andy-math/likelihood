@@ -81,7 +81,7 @@ def _make_grad(
             dL_dc += _dL_dc
             dL_do[i - 1, :] += _dL_do
 
-        _dL_dc, dL_di[i, :], dL_d0 = gradf(
+        _dL_dc, dL_di[0, :], dL_d0 = gradf(
             coeff, inputs[0, :], output0, outputs[0, :], dL_do[0, :]
         )
         dL_dc += _dL_dc + dL_d0 @ d0_dc
