@@ -11,11 +11,11 @@ from numerical.typedefs import ndarray
 
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray]
 _Iterative_gradinfo_numba = types.Tuple(
-    (float64[:], float64[:, :], float64[:, :], float64[:, :])
+    (float64[:], float64[:, :], float64[:, :], float64[:, ::1])
 )
-output0_signature = types.Tuple((float64[:], float64[:, :]))(float64[:])
+output0_signature = types.Tuple((float64[:], float64[:, ::1]))(float64[:])
 eval_signature = float64[:](float64[:], float64[:], float64[:])
-grad_signature = types.UniTuple(float64[:], 3)(
+grad_signature = types.UniTuple(float64[::1], 3)(
     float64[:], float64[:], float64[:], float64[:], float64[:]
 )
 
