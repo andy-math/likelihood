@@ -67,5 +67,5 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
             dL_di[k:, :] = dL_do
         else:
             dL_di = dL_do
-        dL_di[:, self._input_idx] = _dL_di
+        dL_di[:, self._input_idx] += _dL_di
         return dL_di, dL_dc
