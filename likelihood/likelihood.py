@@ -33,6 +33,8 @@ class negLikelihood:
         self.penalty = penalty
         self.nCoeff = self.stages.len_coeff
         self.nInput = nvars
+        if penalty is not None:
+            penalty.make_index(self.stages.names)
 
     def _eval(
         self: negLikelihood,
@@ -53,7 +55,9 @@ class negLikelihood:
         _gradinfo = None
         if regularize:
             assert self.penalty is not None
-            output, _gradinfo = self.penalty.eval(coeff, output, grad=grad)
+            assert self.penalty.index is not None
+            index = self.penalty.index
+            output, _gradinfo = self.penalty.eval(coeff[index], output, grad=grad)
         return -numpy.sum(output[:, 0]), output, gradinfo, _gradinfo
 
     def eval(
@@ -69,16 +73,20 @@ class negLikelihood:
 
         dL_dL = numpy.zeros(o.shape)
         dL_dL[:, 0] = -1.0
-        _dL_dc = numpy.zeros(coeff.shape)
 
         if regularize:
             assert self.penalty is not None
             assert _gradinfo is not None
-            dL_dL, _dL_dc = self.penalty.grad(coeff, _gradinfo, dL_dL)
+            assert self.penalty.index is not None
+            index = self.penalty.index
+            dL_dL, _dL_dc = self.penalty.grad(coeff[index], _gradinfo, dL_dL)
 
         assert gradinfo is not None
         _, dL_dc = self.stages.grad(coeff, gradinfo, dL_dL)
-        dL_dc += _dL_dc
+
+        if regularize:
+            dL_dc[index] += _dL_dc
+
         return dL_dc
 
     def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:

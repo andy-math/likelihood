@@ -23,7 +23,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
 
     stage1 = Linear([f"b{i}" for i in range(1, m + 1)], list(range(1, m + 1)), 1)
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
-    penalty = Lasso(1.0, (0, 1), 0)
+    penalty = Lasso(stage1.names, 1.0, (0, 1), 0)
     nll = likelihood.negLikelihood([stage1, stage2], penalty, nvars=m + 1)
 
     beta0 = numpy.zeros((beta.shape[0] + 1))
