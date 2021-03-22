@@ -76,7 +76,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     print("mle:   ", beta_mle)
     print("abserr_mle: ", abserr_mle)
     assert result.success
-    assert 2 < result.iter < 20
+    assert 2 < result.iter < 200
     assert abserr_mle < 0.05
 
 

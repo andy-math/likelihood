@@ -41,7 +41,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     def grad(x: ndarray) -> ndarray:
         return nll.grad(x, input, regularize=True)
 
-    opts = trust_region.Trust_Region_Options(max_iter=300)
+    opts = trust_region.Trust_Region_Options(max_iter=99999)
     # opts.check_iter = 20
 
     constraint = nll.get_constraint()
@@ -56,13 +56,14 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     beta_mle = result.x[:-1]
     relerr_mle = difference.relative(beta[:-1], beta_mle[:-1])
     print("result.success: ", result.success)
+    print("result.delta: ", result.delta)
     print("beta:   ", beta)
     print("decomp: ", beta_decomp)
     print("mle:    ", beta_mle)
     print("relerr_decomp: ", relerr_decomp)
     print("relerr_mle:    ", relerr_mle)
     assert result.success
-    assert 5 < result.iter < 100
+    assert 5 < result.iter < 1000
     assert relerr_decomp < 0.1
     assert relerr_mle < relerr_decomp
 

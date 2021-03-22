@@ -56,7 +56,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     print("abserr_decomp: ", abserr_decomp)
     print("abserr_mle:    ", abserr_mle)
     assert result.success
-    assert 5 < result.iter < 20
+    assert 5 < result.iter < 200
     assert abserr_decomp < 0.1
     assert abserr_mle < 2 * abserr_decomp
 

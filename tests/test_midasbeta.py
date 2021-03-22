@@ -65,6 +65,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     constraint = nll.get_constraint()
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
+    opts.tol_grad = 1e-5
 
     result = trust_region.trust_region(
         func,
@@ -76,11 +77,12 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     beta_mle = result.x[:-1]
     abserr_mle = difference.absolute(coeff, beta_mle)
     print("result.success: ", result.success)
+    print("result.delta: ", result.delta)
     print("coeff: ", coeff)
     print("mle:   ", beta_mle)
     print("abserr_mle: ", abserr_mle)
     assert result.success
-    assert 2 < result.iter < 20
+    assert 2 < result.iter < 200
     assert abserr_mle < 1.05  # (?)
 
 
