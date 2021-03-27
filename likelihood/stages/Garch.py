@@ -1,73 +1,80 @@
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Callable, Tuple
 
 import numpy
-from likelihood.stages.abc.Iterative import Iterative
+from likelihood.jit import Jitted_Function
+from likelihood.stages.abc import Iterative
 from numerical.typedefs import ndarray
 
 
-def _garch_output0_impl(coeff: ndarray) -> Tuple[ndarray, ndarray]:
-    """
-    var = c + a*var + b*var
-    c = (1-a-b)var
-    var = c/(1-a-b)
-    """
-    c, a, b = coeff[0], coeff[1], coeff[2]
-    output0 = c / (1 - a - b)
-    """
-    d0_dc = 1/(1-a-b)
-    d0_da = c * -{ 1/(1-a-b)^2 } * -1
-            = c/[ (1-a-b)*(1-a-b) ]
-    d0_db = c/[ (1-a-b)*(1-a-b) ]
-    """
-    return (
-        numpy.array([output0]),
-        numpy.array([[1.0, output0, output0]]) / (1 - a - b),
-    )
+def _garch_output0_generate() -> Callable[[ndarray], Tuple[ndarray, ndarray]]:
+    def implement(coeff: ndarray) -> Tuple[ndarray, ndarray]:
+        """
+        var = c + a*var + b*var
+        c = (1-a-b)var
+        var = c/(1-a-b)
+        """
+        c, a, b = coeff[0], coeff[1], coeff[2]
+        output0 = c / (1 - a - b)
+        """
+        d0_dc = 1/(1-a-b)
+        d0_da = c * -{ 1/(1-a-b)^2 } * -1
+                = c/[ (1-a-b)*(1-a-b) ]
+        d0_db = c/[ (1-a-b)*(1-a-b) ]
+        """
+        return (
+            numpy.array([output0]),
+            numpy.array([[1.0, output0, output0]]) / (1 - a - b),
+        )
+
+    return implement
 
 
-def _grach_eval_impl(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
-    c, a, b = coeff[0], coeff[1], coeff[2]
-    return numpy.array([c + a * input[0] * input[0] + b * lag[0]])
+def _grach_eval_generate() -> Callable[[ndarray, ndarray, ndarray], ndarray]:
+    def implement(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
+        c, a, b = coeff[0], coeff[1], coeff[2]
+        return numpy.array([c + a * input[0] * input[0] + b * lag[0]])
+
+    return implement
 
 
-def _garch_grad_impl(
-    coeff: ndarray, input: ndarray, lag: ndarray, _: ndarray, dL_do: ndarray
-) -> Tuple[ndarray, ndarray, ndarray]:
-    """
-    out = c + a*in*in + b*lag
-    dcoeff = [1, in*in, lag]
-    dinput = 2*a*in
-    dlag   = b
-    """
-    a, b = coeff[1], coeff[2]
-    _input = input[0]
-    return (
-        dL_do[0] * numpy.array([1.0, _input * _input, lag[0]]),
-        dL_do * 2.0 * a * _input,
-        dL_do * b,
-    )
+def _garch_grad_generate() -> Callable[
+    [ndarray, ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray, ndarray]
+]:
+    def implement(
+        coeff: ndarray, input: ndarray, lag: ndarray, _: ndarray, dL_do: ndarray
+    ) -> Tuple[ndarray, ndarray, ndarray]:
+        """
+        out = c + a*in*in + b*lag
+        dcoeff = [1, in*in, lag]
+        dinput = 2*a*in
+        dlag   = b
+        """
+        a, b = coeff[1], coeff[2]
+        _input = input[0]
+        return (
+            dL_do[0] * numpy.array([1.0, _input * _input, lag[0]]),
+            dL_do * 2.0 * a * _input,
+            dL_do * b,
+        )
+
+    return implement
 
 
-class Garch(Iterative):
-    def __init__(
-        self, names: Tuple[str, str, str], input: int, output: int, *, compile: bool
-    ) -> None:
+class Garch(Iterative.Iterative):
+    def __init__(_, names: Tuple[str, str, str], input: int, output: int) -> None:
 
         super().__init__(
             names,
             (input,),
             (output,),
-            _garch_output0_impl,
-            _grach_eval_impl,
-            _garch_grad_impl,
-            compile=compile,
+            Jitted_Function(Iterative.output0_signature, (), _garch_output0_generate),
+            Jitted_Function(Iterative.eval_signature, (), _grach_eval_generate),
+            Jitted_Function(Iterative.grad_signature, (), _garch_grad_generate),
         )
 
-    def get_constraint(
-        self,
-    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraint(_) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         A = numpy.array([[0.0, 1.0, 1.0]])
         b = numpy.array([1.0])
         lb = numpy.array([0.0, 0.0, 0.0])

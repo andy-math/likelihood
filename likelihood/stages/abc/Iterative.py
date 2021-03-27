@@ -5,8 +5,9 @@ from typing import Callable, Optional, Sequence, Tuple
 
 import numba  # type: ignore
 import numpy
+from likelihood.jit import Jitted_Function
 from likelihood.stages.abc.Stage import Stage
-from numba import float64, njit, optional, types
+from numba import float64, optional, types
 from numerical.typedefs import ndarray
 
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray]
@@ -19,55 +20,44 @@ grad_signature = types.UniTuple(float64[::1], 3)(
     float64[:], float64[:], float64[:], float64[:], float64[:]
 )
 
+_eval_generator_signature = types.Tuple(
+    (float64[:, :], optional(_Iterative_gradinfo_numba))
+)(float64[:], float64[:, :], numba.boolean)
+_grad_generator_signature = types.Tuple((float64[:, :], float64[:]))(
+    float64[:], _Iterative_gradinfo_numba, float64[:, :]
+)
 
-def _make_eval(
-    output0f: Callable[[ndarray], Tuple[ndarray, ndarray]],
-    evalf: Callable[[ndarray, ndarray, ndarray], ndarray],
-    *,
-    compile: bool
+
+def _eval_generator(
+    output0_func: Callable[[ndarray], Tuple[ndarray, ndarray]],
+    eval_func: Callable[[ndarray, ndarray, ndarray], ndarray],
 ) -> Callable[
     [ndarray, ndarray, bool],
     Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
 ]:
-    if compile:
-        output0f = njit(output0_signature)(output0f)
-        evalf = njit(eval_signature)(evalf)
-
-    def _eval_impl(
+    def implement(
         coeff: ndarray, inputs: ndarray, grad: bool
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
-        output0, d0_dc = output0f(coeff)
+        output0, d0_dc = output0_func(coeff)
         nSample, nOutput = inputs.shape[0], output0.shape[0]
         outputs = numpy.empty((nSample, nOutput))
-        outputs[0, :] = evalf(coeff, inputs[0, :], output0)
+        outputs[0, :] = eval_func(coeff, inputs[0, :], output0)
         for i in range(1, nSample):
-            outputs[i, :] = evalf(coeff, inputs[i, :], outputs[i - 1, :])
+            outputs[i, :] = eval_func(coeff, inputs[i, :], outputs[i - 1, :])
         if not grad:
             return outputs, None
         return outputs, (output0, inputs, outputs, d0_dc)
 
-    if compile:
-        _eval_impl = njit(
-            types.Tuple((float64[:, :], optional(_Iterative_gradinfo_numba)))(
-                float64[:], float64[:, :], numba.boolean
-            )
-        )(_eval_impl)
-
-    return _eval_impl
+    return implement
 
 
-def _make_grad(
-    gradf: Callable[
+def _grad_generator(
+    grad_func: Callable[
         [ndarray, ndarray, ndarray, ndarray, ndarray],
         Tuple[ndarray, ndarray, ndarray],
     ],
-    *,
-    compile: bool
 ) -> Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]:
-    if compile:
-        gradf = njit(grad_signature)(gradf)
-
-    def _grad_impl(
+    def implement(
         coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
     ) -> Tuple[ndarray, ndarray]:
         output0, inputs, outputs, d0_dc = gradinfo
@@ -75,36 +65,29 @@ def _make_grad(
         dL_di = numpy.empty((nSample, nInput))
         dL_dc = numpy.zeros(coeff.shape)
         for i in range(nSample - 1, 0, -1):
-            _dL_dc, dL_di[i, :], _dL_do = gradf(
+            _dL_dc, dL_di[i, :], _dL_do = grad_func(
                 coeff, inputs[i, :], outputs[i - 1, :], outputs[i, :], dL_do[i, :]
             )
             dL_dc += _dL_dc
             dL_do[i - 1, :] += _dL_do
 
-        _dL_dc, dL_di[0, :], dL_d0 = gradf(
+        _dL_dc, dL_di[0, :], dL_d0 = grad_func(
             coeff, inputs[0, :], output0, outputs[0, :], dL_do[0, :]
         )
         dL_dc += _dL_dc + dL_d0 @ d0_dc
         return dL_di, dL_dc
 
-    if compile:
-        _grad_impl = njit(
-            types.Tuple((float64[:, :], float64[:]))(
-                float64[:], _Iterative_gradinfo_numba, float64[:, :]
-            )
-        )(_grad_impl)
-
-    return _grad_impl
+    return implement
 
 
 class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
-    _eval_impl: Optional[
+    _eval_impl: Jitted_Function[
         Callable[
             [ndarray, ndarray, bool],
             Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
         ]
     ]
-    _grad_impl: Optional[
+    _grad_impl: Jitted_Function[
         Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]
     ]
 
@@ -113,27 +96,29 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
         names: Sequence[str],
         input: Sequence[int],
         output: Sequence[int],
-        output0: Callable[[ndarray], Tuple[ndarray, ndarray]],
-        eval: Callable[[ndarray, ndarray, ndarray], ndarray],
-        grad: Callable[
-            [ndarray, ndarray, ndarray, ndarray, ndarray],
-            Tuple[ndarray, ndarray, ndarray],
+        output0: Jitted_Function[Callable[[ndarray], Tuple[ndarray, ndarray]]],
+        eval: Jitted_Function[Callable[[ndarray, ndarray, ndarray], ndarray]],
+        grad: Jitted_Function[
+            Callable[
+                [ndarray, ndarray, ndarray, ndarray, ndarray],
+                Tuple[ndarray, ndarray, ndarray],
+            ]
         ],
-        *,
-        compile: bool
     ) -> None:
         super().__init__(names, input, output)
-        self._eval_impl = _make_eval(output0, eval, compile=compile)
-        self._grad_impl = _make_grad(grad, compile=compile)
+        self._eval_impl = Jitted_Function(
+            _eval_generator_signature, (output0, eval), _eval_generator
+        )
+        self._grad_impl = Jitted_Function(
+            _grad_generator_signature, (grad,), _grad_generator
+        )
 
     def _eval(
         self, coeff: ndarray, inputs: ndarray, *, grad: bool
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
-        assert self._eval_impl is not None
-        return self._eval_impl(coeff, inputs, grad)
+        return self._eval_impl.func()(coeff, inputs, grad)
 
     def _grad(
         self, coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
     ) -> Tuple[ndarray, ndarray]:
-        assert self._grad_impl is not None
-        return self._grad_impl(coeff, gradinfo, dL_do)
+        return self._grad_impl.func()(coeff, gradinfo, dL_do)
