@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pickle
-from typing import Any, Callable, Dict, Generic, List, NoReturn, Tuple, TypeVar
+from typing import Any, Callable, Dict, Generic, NoReturn, Tuple, TypeVar
 
 import numba  # type: ignore
 
