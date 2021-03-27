@@ -42,7 +42,8 @@ class negLikelihood:
         input: ndarray,
         *,
         grad: bool,
-        regularize: bool
+        regularize: bool,
+        debug: bool
     ) -> Tuple[float, ndarray, Optional[Any], Optional[Any]]:
 
         assert coeff.shape == (self.nCoeff,)
@@ -51,24 +52,30 @@ class negLikelihood:
         assertNoInfNaN(coeff)
         assertNoInfNaN(input)
 
-        output, gradinfo = self.stages.eval(coeff, input.copy(), grad=grad)
+        output, gradinfo = self.stages.eval(coeff, input.copy(), grad=grad, debug=debug)
         _gradinfo = None
         if regularize:
             assert self.penalty is not None
             assert self.penalty.index is not None
             index = self.penalty.index
-            output, _gradinfo = self.penalty.eval(coeff[index], output, grad=grad)
+            output, _gradinfo = self.penalty.eval(
+                coeff[index], output, grad=grad, debug=debug
+            )
         return -numpy.sum(output[:, 0]), output, gradinfo, _gradinfo
 
     def eval(
-        self, coeff: ndarray, input: ndarray, *, regularize: bool
+        self, coeff: ndarray, input: ndarray, *, regularize: bool, debug: bool = False
     ) -> Tuple[float, ndarray]:
-        fval, output, _, _ = self._eval(coeff, input, grad=False, regularize=regularize)
+        fval, output, _, _ = self._eval(
+            coeff, input, grad=False, regularize=regularize, debug=debug
+        )
         return fval, output
 
-    def grad(self, coeff: ndarray, input: ndarray, *, regularize: bool) -> ndarray:
+    def grad(
+        self, coeff: ndarray, input: ndarray, *, regularize: bool, debug: bool = False
+    ) -> ndarray:
         _, o, gradinfo, _gradinfo = self._eval(
-            coeff, input, grad=True, regularize=regularize
+            coeff, input, grad=True, regularize=regularize, debug=debug
         )
 
         dL_dL = numpy.zeros(o.shape)
@@ -79,10 +86,12 @@ class negLikelihood:
             assert _gradinfo is not None
             assert self.penalty.index is not None
             index = self.penalty.index
-            dL_dL, _dL_dc = self.penalty.grad(coeff[index], _gradinfo, dL_dL)
+            dL_dL, _dL_dc = self.penalty.grad(
+                coeff[index], _gradinfo, dL_dL, debug=debug
+            )
 
         assert gradinfo is not None
-        _, dL_dc = self.stages.grad(coeff, gradinfo, dL_dL)
+        _, dL_dc = self.stages.grad(coeff, gradinfo, dL_dL, debug=debug)
 
         if regularize:
             dL_dc[index] += _dL_dc

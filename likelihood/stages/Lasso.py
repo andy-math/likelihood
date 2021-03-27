@@ -21,7 +21,7 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
         assert 0 <= Lambda and math.isfinite(Lambda)
 
     def _eval(
-        self, beta: ndarray, logp_var: ndarray, *, grad: bool
+        self, beta: ndarray, logp_var: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Lasso_gradinfo_t]]:
         """
         if err[i] ~ N(0,var):
@@ -78,7 +78,7 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
         return logP, (var,)
 
     def _grad(
-        self, beta: ndarray, _var: _Lasso_gradinfo_t, dL_dlogP: ndarray
+        self, beta: ndarray, _var: _Lasso_gradinfo_t, dL_dlogP: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
         """
         d{posteriori[i]}/d{beta}   = -(L/(2var[i])) * sign(beta)

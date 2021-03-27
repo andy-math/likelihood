@@ -16,7 +16,7 @@ class Convolution(Stage[_Convolution_gradinfo_t], metaclass=ABCMeta):
         pass  # pragma: no cover
 
     def _eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
+        self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Convolution_gradinfo_t]]:
         """
         out[i] = in[i]*ker[0] + in[i-1]*ker[1] + ... + in[i-k]*ker[k]
@@ -35,7 +35,12 @@ class Convolution(Stage[_Convolution_gradinfo_t], metaclass=ABCMeta):
         return output, (input, kernel, dk_dc)
 
     def _grad(
-        self, coeff: ndarray, gradinfo: _Convolution_gradinfo_t, dL_do: ndarray
+        self,
+        coeff: ndarray,
+        gradinfo: _Convolution_gradinfo_t,
+        dL_do: ndarray,
+        *,
+        debug: bool
     ) -> Tuple[ndarray, ndarray]:
         """
         dL_di[i] = dL_do[i]*ker[0] + dL_do[i+1]*ker[1] + ... + dL_do[i+k]*ker[k]

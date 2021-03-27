@@ -114,11 +114,20 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
         )
 
     def _eval(
-        self, coeff: ndarray, inputs: ndarray, *, grad: bool
+        self, coeff: ndarray, inputs: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
+        if debug:
+            return self._eval_impl.py_func()(coeff, inputs, grad)
         return self._eval_impl.func()(coeff, inputs, grad)
 
     def _grad(
-        self, coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
+        self,
+        coeff: ndarray,
+        gradinfo: _Iterative_gradinfo_t,
+        dL_do: ndarray,
+        *,
+        debug: bool
     ) -> Tuple[ndarray, ndarray]:
+        if debug:
+            return self._grad_impl.py_func()(coeff, gradinfo, dL_do)
         return self._grad_impl.func()(coeff, gradinfo, dL_do)

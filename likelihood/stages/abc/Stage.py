@@ -26,13 +26,13 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
 
     @abstractmethod
     def _eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
+        self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
         pass  # pragma: no cover
 
     @abstractmethod
     def _grad(
-        self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray
+        self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
         pass  # pragma: no cover
 
@@ -43,10 +43,10 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         pass  # pragma: no cover
 
     def eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
+        self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
         _input: ndarray = input[:, self._input_idx]  # type: ignore
-        _output, gradinfo = self._eval(coeff, _input, grad=grad)
+        _output, gradinfo = self._eval(coeff, _input, grad=grad, debug=debug)
         assertNoInfNaN(_output)
         k = input.shape[0] - _output.shape[0]
         output = input[k:, :] if k else input
@@ -54,11 +54,11 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         return output, gradinfo
 
     def grad(
-        self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray
+        self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
         _dL_do: ndarray = dL_do[:, self._output_idx]  # type: ignore
         dL_do[:, self._output_idx] = 0.0
-        _dL_di, dL_dc = self._grad(coeff, gradinfo, _dL_do)
+        _dL_di, dL_dc = self._grad(coeff, gradinfo, _dL_do, debug=debug)
         assertNoInfNaN(_dL_di)
         assertNoInfNaN(dL_dc)
         k = _dL_di.shape[0] - dL_do.shape[0]

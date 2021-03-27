@@ -16,7 +16,7 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         super().__init__([variance_name], input, output)
 
     def _eval(
-        self, var: ndarray, mu_x: ndarray, *, grad: bool
+        self, var: ndarray, mu_x: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_LogNormpdf_gradinfo_t]]:
         """
         x ~ N(0, Var)
@@ -33,7 +33,12 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         return output, x
 
     def _grad(
-        self, var: ndarray, x: _LogNormpdf_gradinfo_t, dL_dlogP_dvar: ndarray
+        self,
+        var: ndarray,
+        x: _LogNormpdf_gradinfo_t,
+        dL_dlogP_dvar: ndarray,
+        *,
+        debug: bool
     ) -> Tuple[ndarray, ndarray]:
         """
         d/dx{log p(x)} = (-1/2) { 2x/Var } = -x/Var

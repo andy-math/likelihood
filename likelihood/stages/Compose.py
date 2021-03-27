@@ -42,27 +42,32 @@ class Compose(Stage[_Compose_gradinfo_t]):
         return numpy.split(coeff, self.packing)
 
     def _eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
+        self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Compose_gradinfo_t]]:
         coeffs = self._unpack(coeff)
         stages = self.stages
         output: ndarray = input
         gradinfo: List[Optional[Any]] = []
         for s, c in zip(stages, coeffs):
-            output, g = s.eval(c, output, grad=grad)
+            output, g = s.eval(c, output, grad=grad, debug=debug)
             gradinfo.append(g)
         if not grad:
             return output, None
         return output, gradinfo
 
     def _grad(
-        self, coeff: ndarray, gradinfo: _Compose_gradinfo_t, dL_do: ndarray
+        self,
+        coeff: ndarray,
+        gradinfo: _Compose_gradinfo_t,
+        dL_do: ndarray,
+        *,
+        debug: bool
     ) -> Tuple[ndarray, ndarray]:
         coeffs = self._unpack(coeff)
         stages = self.stages
         dL_dc: List[ndarray] = []
         for s, c, g in zip(stages[::-1], coeffs[::-1], gradinfo[::-1]):
-            dL_do, _dL_dc = s.grad(c, g, dL_do)
+            dL_do, _dL_dc = s.grad(c, g, dL_do, debug=debug)
             dL_dc.append(_dL_dc)
         return dL_do, numpy.concatenate(dL_dc[::-1])
 

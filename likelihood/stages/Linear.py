@@ -14,7 +14,7 @@ class Linear(Stage[_Linear_gradinfo_t]):
         super().__init__(names, input, (output,))
 
     def _eval(
-        self, coeff: ndarray, input: ndarray, *, grad: bool
+        self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Linear_gradinfo_t]]:
         output = (input @ coeff).reshape((-1, 1))
         if not grad:
@@ -22,7 +22,7 @@ class Linear(Stage[_Linear_gradinfo_t]):
         return output, input
 
     def _grad(
-        self, coeff: ndarray, input: _Linear_gradinfo_t, dL_do: ndarray
+        self, coeff: ndarray, input: _Linear_gradinfo_t, dL_do: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
         return dL_do * coeff, dL_do.flatten() @ input
 
