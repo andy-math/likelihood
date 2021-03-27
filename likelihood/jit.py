@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import pickle
-from typing import Any, Callable, Dict, Generic, NoReturn, Tuple, TypeVar
+from typing import Any, Callable, Dict, Generic, List, NoReturn, Tuple, TypeVar
 
 import numba  # type: ignore
 
 T2 = TypeVar("T2", covariant=True)
 
 
-_Jitted_Function_Cache: Dict[bytes, Tuple[Any, Any]] = {}
+_Jitted_Function_Cache: Dict[List[bytes], Tuple[Any, Any]] = {}
 
 
 class Jitted_Function(Generic[T2]):
     signature: numba.core.typing.templates.Signature
     dependent: Tuple[Jitted_Function[Any], ...]
-    pickled_bytecode: bytes
+    pickled_bytecode: List[bytes]
 
     def __init__(
         self,
@@ -23,7 +23,9 @@ class Jitted_Function(Generic[T2]):
         generator: Callable[..., T2],
     ) -> None:
         # picklable test
-        self.pickled_bytecode = pickle.dumps(generator)
+        self.pickled_bytecode = [pickle.dumps(generator)] + [
+            y for x in dependent for y in x.pickled_bytecode
+        ]
         self.signature = signature
         self.dependent = dependent
 
@@ -31,7 +33,7 @@ class Jitted_Function(Generic[T2]):
         if self.pickled_bytecode in _Jitted_Function_Cache:
             return _Jitted_Function_Cache[self.pickled_bytecode]
 
-        generator: Callable[..., T2] = pickle.loads(self.pickled_bytecode)
+        generator: Callable[..., T2] = pickle.loads(self.pickled_bytecode[0])
 
         func = numba.njit(self.signature)(
             generator(*[x.func() for x in self.dependent])
