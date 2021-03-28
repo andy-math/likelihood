@@ -91,6 +91,15 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
         Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]
     ]
 
+    _output0_scalar: Jitted_Function[Callable[[ndarray], Tuple[ndarray, ndarray]]]
+    _eval_scalar: Jitted_Function[Callable[[ndarray, ndarray, ndarray], ndarray]]
+    _grad_scalar: Jitted_Function[
+        Callable[
+            [ndarray, ndarray, ndarray, ndarray, ndarray],
+            Tuple[ndarray, ndarray, ndarray],
+        ]
+    ]
+
     def __init__(
         self,
         names: Sequence[str],
@@ -112,6 +121,9 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
         self._grad_impl = Jitted_Function(
             _grad_generator_signature, (grad,), _grad_generator
         )
+        self._output0_scalar = output0
+        self._eval_scalar = eval
+        self._grad_scalar = grad
 
     def _eval(
         self, coeff: ndarray, inputs: ndarray, *, grad: bool, debug: bool
