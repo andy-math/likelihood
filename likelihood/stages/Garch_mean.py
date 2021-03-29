@@ -24,9 +24,10 @@ def _garch_mean_output0_generate() -> Callable[[ndarray], Tuple[ndarray, ndarray
         d0_db = c/[ (1-a-b)*(1-a-b) ]
         """
         return (
-            numpy.array([0.0, 0.0, output0]),
+            numpy.array([0.0, 0.0, 0.0, output0]),
             numpy.array(
                 [
+                    [0.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0],
                     [1.0, output0, output0],
@@ -42,13 +43,13 @@ def _garch_mean_eval_generate() -> Callable[[ndarray, ndarray, ndarray], ndarray
     def implement(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
         c, a, b = coeff[0], coeff[1], coeff[2]
         x, mu = input[0], input[1]
-        EX, EX2 = lag[0], lag[2]
+        EX, EX2 = lag[1], lag[3]
 
         hlag = max(EX2 - EX * EX, 0.0)
         err = x - mu
         h = c + a * err * err + b * hlag
         EX, EX2 = mu, mu * mu + h  # type: ignore
-        return numpy.array([EX, hlag, EX2])
+        return numpy.array([x, EX, hlag, EX2])
 
     return implement
 
@@ -64,7 +65,7 @@ def _garch_mean_grad_generate() -> Callable[
         dL_dEX2: float
 
         x, mu = input[0], input[1]
-        dL_dmu, dL_dhlag, dL_dEX2 = dL_do[0], dL_do[1], dL_do[2]
+        dL_dx, dL_dmu, dL_dhlag, dL_dEX2 = dL_do[0], dL_do[1], dL_do[2], dL_do[3]
 
         dL_dh = dL_dEX2
         dL_dmu += dL_dEX2 * (2.0 * mu)
@@ -72,16 +73,16 @@ def _garch_mean_grad_generate() -> Callable[
         a, b = coeff[1], coeff[2]
         err = x - mu
         dL_derr = dL_dh * a * 2.0 * err
-        dL_dinput = numpy.array([dL_derr, dL_dmu - dL_derr])
+        dL_dinput = numpy.array([dL_dx + dL_derr, dL_dmu - dL_derr])
 
-        EX, EX2 = lag[0], lag[2]
+        EX, EX2 = lag[1], lag[3]
         h = max(EX2 - EX * EX, 0.0)
         dL_dcoeff = dL_dh * numpy.array([1.0, err * err, h])
 
         dL_dhlag += dL_dh * b
         dL_dEX2 = dL_dhlag
         dL_dEX = -dL_dhlag * 2 * EX
-        dL_dlag = numpy.array([dL_dEX, 0.0, dL_dEX2])
+        dL_dlag = numpy.array([0.0, dL_dEX, 0.0, dL_dEX2])
         return (dL_dcoeff, dL_dinput, dL_dlag)
 
     return implement
@@ -92,7 +93,7 @@ class Garch_mean(Iterative.Iterative):
         _,
         names: Tuple[str, str, str],
         input: Tuple[int, int],
-        output: Tuple[int, int, int],
+        output: Tuple[int, int, int, int],
     ) -> None:
 
         super().__init__(
