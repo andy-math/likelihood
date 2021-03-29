@@ -333,6 +333,7 @@ providers = {
 
 
 class MS_TVTP(Iterative.Iterative):
+    submodel: Tuple[Iterative.Iterative, Iterative.Iterative]
     mapping: List[int]
 
     def __init__(
@@ -392,6 +393,7 @@ class MS_TVTP(Iterative.Iterative):
                 _tvtp_grad_generate,
             ),
         )
+        self.submodel = submodel
         self.mapping = mapping
 
     def _eval(
@@ -413,9 +415,14 @@ class MS_TVTP(Iterative.Iterative):
             dL_dc[index] += d
         return dL_do, dL_dc
 
-    def get_constraint(_) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
-        A = numpy.empty((0, 0))  # TODO
-        b = numpy.empty((0,))
-        lb = numpy.empty((0,))
-        ub = numpy.empty((0,))
-        return A, b, lb, ub
+    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        from scipy.linalg import block_diag  # type: ignore
+
+        A, b, lb, ub = zip(*(s.get_constraint() for s in self.submodel))
+        return (
+            block_diag(*A),
+            numpy.concatenate(b),
+            numpy.concatenate(lb),
+            numpy.concatenate(ub),
+        )
+        # TODO: mapping

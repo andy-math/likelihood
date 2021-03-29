@@ -41,7 +41,7 @@ class Jitted_Function(Generic[T2]):
         py_func = generator(*[x.py_func() for x in self.dependent])
 
         _Jitted_Function_Cache[self.pickled_bytecode] = (func, py_func)
-
+        print(f"预编译 <{generator.__name__} at {generator.__module__.split('.')[-1]}> 完成")
         return func, py_func
 
     def func(self) -> T2:
