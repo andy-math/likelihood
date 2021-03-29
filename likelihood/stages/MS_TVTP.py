@@ -425,13 +425,11 @@ class MS_TVTP(Iterative.Iterative):
             numpy.concatenate(_lb),
             numpy.concatenate(_ub),
         )
+        new_A = numpy.zeros((A.shape[0], len(self.names)))
+        new_lb = numpy.full((len(self.names),), -numpy.inf)
+        new_ub = numpy.full((len(self.names),), numpy.inf)
         for j in range(len(self.mapping)):
-            A[:, self.mapping[j]] = A[:, self.mapping[j]] + A[:, j]
-            lb[self.mapping[j]] = max(lb[self.mapping[j]], lb[j])
-            ub[self.mapping[j]] = min(ub[self.mapping[j]], ub[j])
-        return (
-            A[:, : len(self.names)],
-            b,
-            lb[: len(self.names)],
-            ub[: len(self.names)],
-        )
+            new_A[:, self.mapping[j]] = new_A[:, self.mapping[j]] + A[:, j]
+            new_lb[self.mapping[j]] = max(new_lb[self.mapping[j]], lb[j])
+            new_ub[self.mapping[j]] = min(new_ub[self.mapping[j]], ub[j])
+        return new_A, b, new_lb, new_ub
