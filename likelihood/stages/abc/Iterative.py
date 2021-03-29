@@ -17,14 +17,14 @@ _Iterative_gradinfo_numba = types.Tuple(
 output0_signature = types.Tuple((float64[:], float64[:, ::1]))(float64[:])
 eval_signature = float64[:](float64[:], float64[:], float64[:])
 grad_signature = types.UniTuple(float64[::1], 3)(
-    float64[:], float64[:], float64[:], float64[:], float64[:]
+    float64[:], float64[:], float64[:], float64[:], float64[::1]
 )
 
 _eval_generator_signature = types.Tuple(
     (float64[:, :], optional(_Iterative_gradinfo_numba))
 )(float64[:], float64[:, :], numba.boolean)
 _grad_generator_signature = types.Tuple((float64[:, :], float64[:]))(
-    float64[:], _Iterative_gradinfo_numba, float64[:, :]
+    float64[:], _Iterative_gradinfo_numba, float64[:, ::1]
 )
 
 
@@ -142,4 +142,4 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
     ) -> Tuple[ndarray, ndarray]:
         if debug:
             return self._grad_impl.py_func()(coeff, gradinfo, dL_do)
-        return self._grad_impl.func()(coeff, gradinfo, dL_do)
+        return self._grad_impl.func()(coeff, gradinfo, numpy.ascontiguousarray(dL_do))
