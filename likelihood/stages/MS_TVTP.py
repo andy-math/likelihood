@@ -418,11 +418,20 @@ class MS_TVTP(Iterative.Iterative):
     def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         from scipy.linalg import block_diag  # type: ignore
 
-        A, b, lb, ub = zip(*(s.get_constraint() for s in self.submodel))
-        return (
-            block_diag(*A),
-            numpy.concatenate(b),
-            numpy.concatenate(lb),
-            numpy.concatenate(ub),
+        _A, _b, _lb, _ub = zip(*(s.get_constraint() for s in self.submodel))
+        A, b, lb, ub = (
+            block_diag(*_A),
+            numpy.concatenate(_b),
+            numpy.concatenate(_lb),
+            numpy.concatenate(_ub),
         )
-        # TODO: mapping
+        for j in range(len(self.mapping)):
+            A[:, self.mapping[j]] = A[:, self.mapping[j]] + A[:, j]
+            lb[self.mapping[j]] = max(lb[self.mapping[j]], lb[j])
+            ub[self.mapping[j]] = min(ub[self.mapping[j]], ub[j])
+        return (
+            A[:, : len(self.names)],
+            b,
+            lb[: len(self.names)],
+            ub[: len(self.names)],
+        )
