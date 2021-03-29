@@ -12,19 +12,19 @@ from numerical.typedefs import ndarray
 
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray]
 _Iterative_gradinfo_numba = types.Tuple(
-    (float64[:], float64[:, :], float64[:, :], float64[:, ::1])
+    (float64[::1], float64[:, ::1], float64[:, ::1], float64[:, ::1])
 )
-output0_signature = types.Tuple((float64[:], float64[:, ::1]))(float64[:])
-eval_signature = float64[:](float64[:], float64[:], float64[:])
+output0_signature = types.Tuple((float64[::1], float64[:, ::1]))(float64[::1])
+eval_signature = float64[::1](float64[::1], float64[::1], float64[::1])
 grad_signature = types.UniTuple(float64[::1], 3)(
-    float64[:], float64[:], float64[:], float64[:], float64[::1]
+    float64[::1], float64[::1], float64[::1], float64[::1], float64[::1]
 )
 
 _eval_generator_signature = types.Tuple(
-    (float64[:, :], optional(_Iterative_gradinfo_numba))
-)(float64[:], float64[:, :], numba.boolean)
-_grad_generator_signature = types.Tuple((float64[:, :], float64[:]))(
-    float64[:], _Iterative_gradinfo_numba, float64[:, ::1]
+    (float64[:, ::1], optional(_Iterative_gradinfo_numba))
+)(float64[::1], float64[:, ::1], numba.boolean)
+_grad_generator_signature = types.Tuple((float64[:, ::1], float64[::1]))(
+    float64[::1], _Iterative_gradinfo_numba, float64[:, ::1]
 )
 
 
@@ -130,7 +130,7 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
         if debug:
             return self._eval_impl.py_func()(coeff, inputs, grad)
-        return self._eval_impl.func()(coeff, inputs, grad)
+        return self._eval_impl.func()(coeff, numpy.ascontiguousarray(inputs), grad)
 
     def _grad(
         self,

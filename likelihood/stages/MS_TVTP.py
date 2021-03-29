@@ -99,8 +99,8 @@ def _tvtp_eval_generate(
 
         归一化stage2 = rawpost1 + rawpost2
         if 归一化stage2 == 0:
-            post1, post2, 归一化stage2 = 0.5, 0.5, 1.0
-        post1, post2 = post1 / 归一化stage2, post2 / 归一化stage2
+            rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
+        post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
 
         return numpy.concatenate(
             (
@@ -344,9 +344,11 @@ class MS_TVTP(Iterative.Iterative):
             Jitted_Function[Callable[[ndarray, float, float], ndarray]],
         ],
         input: Tuple[int, int],
-        output: Tuple[int, int],
+        output: Tuple[int, ...],
     ) -> None:
         assert isinstance(submodel[0], type(submodel[1]))
+        assert len(submodel[0]._output_idx) == len(submodel[1]._output_idx)
+        assert len(output) - 2 == len(submodel[0]._output_idx)
 
         for s in sharing:
             assert s in submodel[0].names and s in submodel[1].names
@@ -412,7 +414,7 @@ class MS_TVTP(Iterative.Iterative):
         return dL_do, dL_dc
 
     def get_constraint(_) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
-        A = numpy.empty((0, 0))
+        A = numpy.empty((0, 0))  # TODO
         b = numpy.empty((0,))
         lb = numpy.empty((0,))
         ub = numpy.empty((0,))
