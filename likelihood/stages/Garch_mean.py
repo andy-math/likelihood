@@ -42,13 +42,13 @@ def _garch_mean_eval_generate() -> Callable[[ndarray, ndarray, ndarray], ndarray
     def implement(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
         c, a, b = coeff[0], coeff[1], coeff[2]
         x, mu = input[0], input[1]
-        EX, EX2 = lag[1], lag[2]
+        EX, EX2 = lag[0], lag[2]
 
         hlag = max(EX2 - EX * EX, 0.0)
         err = x - mu
         h = c + a * err * err + b * hlag
         EX, EX2 = mu, mu * mu + h  # type: ignore
-        return numpy.array([hlag, EX, EX2])
+        return numpy.array([EX, hlag, EX2])
 
     return implement
 
@@ -64,7 +64,7 @@ def _garch_mean_grad_generate() -> Callable[
         dL_dEX2: float
 
         x, mu = input[0], input[1]
-        dL_dhlag, dL_dmu, dL_dEX2 = dL_do[0], dL_do[1], dL_do[2]
+        dL_dmu, dL_dhlag, dL_dEX2 = dL_do[0], dL_do[1], dL_do[2]
 
         dL_dh = dL_dEX2
         dL_dmu += dL_dEX2 * (2.0 * mu)
@@ -74,14 +74,14 @@ def _garch_mean_grad_generate() -> Callable[
         dL_derr = dL_dh * a * 2.0 * err
         dL_dinput = numpy.array([dL_derr, dL_dmu - dL_derr])
 
-        EX, EX2 = lag[1], lag[2]
+        EX, EX2 = lag[0], lag[2]
         h = max(EX2 - EX * EX, 0.0)
         dL_dcoeff = dL_dh * numpy.array([1.0, err * err, h])
 
         dL_dhlag += dL_dh * b
         dL_dEX2 = dL_dhlag
         dL_dEX = -dL_dhlag * 2 * EX
-        dL_dlag = numpy.array([0.0, dL_dEX, dL_dEX2])
+        dL_dlag = numpy.array([dL_dEX, 0.0, dL_dEX2])
         return (dL_dcoeff, dL_dinput, dL_dlag)
 
     return implement
