@@ -56,7 +56,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = numpy.concatenate(
         (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 16))), axis=1
     )
-    beta0 = numpy.array([1.0, 1.0, 1.0e-6, 0.099, 0.89, 1.0, 1.0e-6, 1.0e-6])
+    beta0 = numpy.array([1.0, 1.0, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0])
 
     stage1 = Linear(["p11b1"], (2,), 3)
     stage2 = Linear(["p22b1"], (2,), 4)
@@ -106,13 +106,11 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         return nll.grad(x, input, regularize=False)
 
     constraint = nll.get_constraint()
-    # 限制转移概率区间
-    # constraint[2][:2] = 1.0
-    # constraint[3][:2] = 3.0
 
     opts = trust_region.Trust_Region_Options(max_iter=99999)
-    opts.check_iter = 40
-    opts.check_rel = 0.05
+    opts.check_iter = 50
+    opts.abstol_fval = 1.0e-2
+    opts.max_stall_iter = 100
 
     result = trust_region.trust_region(
         func,
@@ -122,15 +120,14 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         opts,
     )
     beta_mle = result.x
-    relerr_mle = difference.relative(coeff, beta_mle)
+    abserr_mle = difference.absolute(coeff, beta_mle)
     print("result.success: ", result.success)
     print("coeff: ", coeff)
     print("mle:   ", [round(x, 6) for x in beta_mle])
-    print("abserr_mle: ", relerr_mle)
-    return
+    print("abserr_mle: ", abserr_mle)
     assert result.success
-    assert 5 < result.iter < 200
-    assert relerr_mle < 0.1
+    assert 5 < result.iter < 1000
+    assert abserr_mle < 0.5
 
 
 class Test_1:
