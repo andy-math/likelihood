@@ -29,7 +29,7 @@ class Convolution(Stage[_Convolution_gradinfo_t], metaclass=ABCMeta):
         assert input.shape[0] > k
         output = numpy.empty((input.shape[0] - k, input.shape[1]))
         for i in range(input.shape[1]):
-            output[:, i] = numpy.convolve(input[:, i], kernel, "valid")  # type: ignore
+            output[:, i] = numpy.convolve(input[:, i], kernel, "valid")
         if not grad:
             return output, None
         return output, (input, kernel, dk_dc)
@@ -53,6 +53,6 @@ class Convolution(Stage[_Convolution_gradinfo_t], metaclass=ABCMeta):
         dL_di = numpy.empty((dL_do.shape[0] + k, dL_do.shape[1]))
         dL_dk = numpy.zeros(kernel.shape)
         for i in range(dL_di.shape[1]):
-            dL_di[:, i] = numpy.convolve(dL_do[:, i], kernel, "full")  # type: ignore
-            dL_dk += numpy.convolve(input[:, i], dL_do[:, i], "valid")  # type: ignore
+            dL_di[:, i] = numpy.convolve(dL_do[:, i], kernel, "full")
+            dL_dk += numpy.convolve(input[:, i], dL_do[:, i], "valid")
         return dL_di, dL_dk @ dk_dc

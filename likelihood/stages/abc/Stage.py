@@ -45,7 +45,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
-        _input: ndarray = input[:, self._input_idx]  # type: ignore
+        _input: ndarray = input[:, self._input_idx]
         _output, gradinfo = self._eval(coeff, _input, grad=grad, debug=debug)
         assertNoInfNaN(_output)
         k = input.shape[0] - _output.shape[0]
@@ -56,7 +56,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def grad(
         self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
-        _dL_do: ndarray = dL_do[:, self._output_idx]  # type: ignore
+        _dL_do: ndarray = dL_do[:, self._output_idx]
         dL_do[:, self._output_idx] = 0.0
         _dL_di, dL_dc = self._grad(coeff, gradinfo, _dL_do, debug=debug)
         assertNoInfNaN(_dL_di)
@@ -67,5 +67,5 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
             dL_di[k:, :] = dL_do
         else:
             dL_di = dL_do
-        dL_di[:, self._input_idx] += _dL_di  # type: ignore
+        dL_di[:, self._input_idx] += _dL_di
         return dL_di, dL_dc

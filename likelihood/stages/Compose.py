@@ -39,7 +39,7 @@ class Compose(Stage[_Compose_gradinfo_t]):
         self.stages = stages
 
     def _unpack(self, coeff: ndarray) -> List[ndarray]:
-        return numpy.split(coeff, self.packing)
+        return numpy.split(coeff, self.packing)  # type: ignore
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool

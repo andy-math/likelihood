@@ -64,8 +64,8 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
 
         log priori[i] = -len(beta)*log(var[i]) - L/(2var[i]) * sum[j](|beta[j]|)
         """
-        logP: ndarray = logp_var[:, [0]]  # type: ignore
-        var: ndarray = logp_var[:, [1]]  # type: ignore
+        logP: ndarray = logp_var[:, [0]]
+        var: ndarray = logp_var[:, [1]]
 
         logP = (
             logP

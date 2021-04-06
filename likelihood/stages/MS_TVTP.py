@@ -102,7 +102,7 @@ def _tvtp_eval_generate(
             rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
         post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
 
-        return numpy.concatenate(
+        return numpy.concatenate(  # type:ignore
             (
                 out_1,
                 out_2,

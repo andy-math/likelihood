@@ -48,7 +48,7 @@ def _garch_mean_eval_generate() -> Callable[[ndarray, ndarray, ndarray], ndarray
         hlag = max(EX2 - EX * EX, 0.0)
         err = x - mu
         h = c + a * err * err + b * hlag
-        EX, EX2 = mu, mu * mu + h  # type: ignore
+        EX, EX2 = mu, mu * mu + h
         return numpy.array([x, EX, hlag, EX2])
 
     return implement

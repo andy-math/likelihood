@@ -23,7 +23,7 @@ class LogNormpdf_var(Logpdf[_LogNormpdfVar_gradinfo_t]):
         log p(x) = -1/2{ log(Var) + log(2pi) } - (x*x)/(2Var)
                  = (-1/2) { log(Var) + log(2pi) + (x*x)/Var }
         """
-        x: ndarray = x_var[:, [0]]  # type: ignore
+        x: ndarray = x_var[:, [0]]
         var: ndarray = x_var[:, [1]]  # type: ignore
         constant = math.log(2.0) + math.log(math.pi)
         logP = (-1.0 / 2.0) * (numpy.log(var) + (x * x) / var + constant)
@@ -47,8 +47,8 @@ class LogNormpdf_var(Logpdf[_LogNormpdfVar_gradinfo_t]):
         """
         x, var = x_var
         z = x / var
-        dL_dlogP: ndarray = dL_dlogP_dvar[:, [0]]  # type: ignore
-        dL_dvar: ndarray = dL_dlogP_dvar[:, [1]]  # type: ignore
+        dL_dlogP: ndarray = dL_dlogP_dvar[:, [0]]
+        dL_dvar: ndarray = dL_dlogP_dvar[:, [1]]
         dL_dx = dL_dlogP * -z
         dL_dvar = dL_dvar + dL_dlogP * ((1.0 / 2.0) * (z * z - 1.0 / var))
         return numpy.concatenate((dL_dx, dL_dvar), axis=1), numpy.ndarray((0,))

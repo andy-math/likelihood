@@ -16,7 +16,7 @@ class Residual(Stage[_Residual_gradinfo_t]):
     def _eval(
         self, _: ndarray, x_mu: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Residual_gradinfo_t]]:
-        return x_mu[:, [0]] - x_mu[:, [1]], None  # type: ignore
+        return x_mu[:, [0]] - x_mu[:, [1]], None
 
     def _grad(
         self, var: ndarray, _: _Residual_gradinfo_t, dL_dR: ndarray, *, debug: bool
