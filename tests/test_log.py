@@ -14,7 +14,7 @@ from optimizer import trust_region
 def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     numpy.random.seed(seed)
     x = numpy.concatenate((numpy.random.rand(n, 1) + 0.01, numpy.ones((n, 1))), axis=1)
-    y = numpy.log(x @ coeff) + numpy.random.randn(n)
+    y = numpy.log(x @ coeff) + numpy.random.randn(n) / 3
     y = y.reshape((-1, 1))
     return numpy.concatenate((y, x), axis=1)  # type: ignore
 
