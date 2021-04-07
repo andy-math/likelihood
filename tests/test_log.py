@@ -3,8 +3,8 @@
 import numpy
 import numpy.linalg
 from likelihood import likelihood
-from likelihood.stages.Exp import Exp
 from likelihood.stages.Linear import Linear
+from likelihood.stages.Log import Log
 from likelihood.stages.LogNormpdf import LogNormpdf
 from numerical import difference
 from numerical.typedefs import ndarray
@@ -13,18 +13,20 @@ from optimizer import trust_region
 
 def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     numpy.random.seed(seed)
-    x = numpy.concatenate((numpy.random.rand(n, 1), numpy.ones((n, 1))), axis=1)
-    y = numpy.exp(x @ coeff) + numpy.random.randn(n)
+    x = numpy.concatenate(
+        (10 * numpy.random.rand(n, 1) + 1, numpy.ones((n, 1))), axis=1
+    )
+    y = numpy.log(x @ coeff) + numpy.random.randn(n)
     y = y.reshape((-1, 1))
     return numpy.concatenate((y, x), axis=1)  # type: ignore
 
 
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = generate(coeff, n, seed=seed)
-    beta0 = numpy.array([0.0, 0.0, 1.0])
+    beta0 = numpy.array([1.0, 1.0, 1.0])
 
     stage1 = Linear(["b1", "b0"], (1, 2), 1)
-    stage2 = Exp(1, 1)
+    stage2 = Log(1, 1)
     stage3 = LogNormpdf("var", (0, 1), (0, 1))
 
     nll = likelihood.negLikelihood([stage1, stage2, stage3], None, nvars=3)
@@ -45,6 +47,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         return nll.grad(x, input, regularize=False)
 
     constraint = nll.get_constraint()
+    constraint[2][:-1] = 0.0
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
     opts.check_rel = 0.02
@@ -64,12 +67,12 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("abserr_mle: ", relerr_mle)
     assert result.success
     assert 5 < result.iter < 200
-    assert relerr_mle < 0.05
+    assert relerr_mle < 0.5  # (?)
 
 
 class Test_1:
     def test_1(_) -> None:
-        run_once(numpy.array([6.0, -3.0]), 1000)
+        run_once(numpy.array([6.0, 3.0]), 1000)
 
 
 if __name__ == "__main__":
