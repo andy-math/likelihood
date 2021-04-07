@@ -78,7 +78,7 @@ class Midas_beta(Convolution):
         drphi_doRight = rphi * numpy.log(stage1)
         drphi_doRight[stage1 == 0] = 0.0
         drphi_do = drphi_dstage1 * dstage1_do
-        drphi_do[:, [1]] += drphi_doRight  # type: ignore
+        drphi_do[:, [1]] += drphi_doRight
 
         sum = numpy.sum(rphi)
         dsum_do = numpy.sum(drphi_do, axis=0, keepdims=True)
