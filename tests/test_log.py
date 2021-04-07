@@ -13,9 +13,7 @@ from optimizer import trust_region
 
 def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     numpy.random.seed(seed)
-    x = numpy.concatenate(
-        (10 * numpy.random.rand(n, 1) + 1, numpy.ones((n, 1))), axis=1
-    )
+    x = numpy.concatenate((numpy.random.rand(n, 1) + 0.01, numpy.ones((n, 1))), axis=1)
     y = numpy.log(x @ coeff) + numpy.random.randn(n)
     y = y.reshape((-1, 1))
     return numpy.concatenate((y, x), axis=1)  # type: ignore
@@ -67,12 +65,12 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("abserr_mle: ", relerr_mle)
     assert result.success
     assert 5 < result.iter < 200
-    assert relerr_mle < 0.5  # (?)
+    assert relerr_mle < 0.1  # (?)
 
 
 class Test_1:
     def test_1(_) -> None:
-        run_once(numpy.array([6.0, 3.0]), 1000)
+        run_once(numpy.array([6.0, 3.0]), 10000)
 
 
 if __name__ == "__main__":
