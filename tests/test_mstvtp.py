@@ -9,6 +9,7 @@ from likelihood.stages.Iterize import Iterize
 from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
 from likelihood.stages.LogNormpdf import LogNormpdf
+from likelihood.stages.Merge import Merge
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from numerical import difference
 from numerical.typedefs import ndarray
@@ -46,7 +47,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
 
     stage1 = Linear(["p11b1"], (2,), 3)
     stage2 = Linear(["p22b1"], (2,), 4)
-    stage3 = Logistic((3, 4), (3, 4))
+    stage3 = Merge([Logistic((3,), (3,)), Logistic((4,), (4,))])
     stage4 = Copy((0, 1, 2), (5, 6, 7))
     stage5 = Copy((0, 2), (8, 9))
     stage6 = Copy((2,), (10,))

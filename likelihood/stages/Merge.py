@@ -7,6 +7,13 @@ from likelihood.stages.abc.Stage import Constraints, Stage
 from numerical.typedefs import ndarray
 
 
+def _make_packing(idx: List[Sequence[int]]) -> List[int]:
+    packing: List[int] = []
+    for i in idx:
+        packing.append(len(i))
+    return numpy.cumsum(packing).tolist()[:-1]  # type: ignore
+
+
 def _make_names(*stages: Stage[Any]) -> Tuple[List[str], List[int]]:
     names: List[str] = []
     packing: List[int] = []
@@ -17,59 +24,74 @@ def _make_names(*stages: Stage[Any]) -> Tuple[List[str], List[int]]:
     return names, numpy.cumsum(packing).tolist()
 
 
-_Compose_gradinfo_t = List[Any]
+_Merge_gradinfo_t = List[Any]
 
 
-class Compose(Stage[_Compose_gradinfo_t]):
+class Merge(Stage[_Merge_gradinfo_t]):
     len_coeff: int
     packing: List[int]
+    packing_input: List[int]
+    packing_output: List[int]
     stages: List[Stage[Any]]
 
-    def __init__(
-        self, stages: List[Stage[Any]], input: Sequence[int], output: Sequence[int]
-    ) -> None:
+    def __init__(self, stages: List[Stage[Any]]) -> None:
         names, packing = _make_names(*stages)
-        super().__init__(names, input, output)
-        assert len(input) == len(output)
+        input: List[int] = []
+        output: List[int] = []
         for s in stages:
-            assert max(s._input_idx) < len(input)
-            assert max(s._output_idx) < len(output)
+            input.extend(s._input_idx)
+            output.extend(s._output_idx)
+        super().__init__(names, input, output)
         self.len_coeff = packing[-1]
         self.packing = packing[:-1]
         self.stages = stages
+        self.packing_input = _make_packing([s._input_idx for s in stages])
+        self.packing_output = _make_packing([s._output_idx for s in stages])
 
     def _unpack(self, coeff: ndarray) -> List[ndarray]:
         return numpy.split(coeff, self.packing)  # type: ignore
 
+    def _unpack_input(self, input: ndarray) -> List[ndarray]:
+        return numpy.split(input, self.packing_input, axis=1)  # type: ignore
+
+    def _unpack_output(self, output: ndarray) -> List[ndarray]:
+        return numpy.split(output, self.packing_input, axis=1)  # type: ignore
+
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
-    ) -> Tuple[ndarray, Optional[_Compose_gradinfo_t]]:
+    ) -> Tuple[ndarray, Optional[_Merge_gradinfo_t]]:
         coeffs = self._unpack(coeff)
         stages = self.stages
-        output: ndarray = input
+        output: List[ndarray] = []
         gradinfo: List[Optional[Any]] = []
-        for s, c in zip(stages, coeffs):
-            output, g = s.eval(c, output, grad=grad, debug=debug)
+        for s, c, _input in zip(stages, coeffs, self._unpack_input(input)):
+            _output, g = s._eval(c, _input, grad=grad, debug=debug)
+            output.append(_output)
             gradinfo.append(g)
+        output_ = numpy.concatenate(output, axis=1)
         if not grad:
-            return output, None
-        return output, gradinfo
+            return output_, None
+        return output_, gradinfo
 
     def _grad(
         self,
         coeff: ndarray,
-        gradinfo: _Compose_gradinfo_t,
+        gradinfo: _Merge_gradinfo_t,
         dL_do: ndarray,
         *,
         debug: bool
     ) -> Tuple[ndarray, ndarray]:
         coeffs = self._unpack(coeff)
         stages = self.stages
+        dL_di: List[ndarray] = []
         dL_dc: List[ndarray] = []
-        for s, c, g in zip(stages[::-1], coeffs[::-1], gradinfo[::-1]):
-            dL_do, _dL_dc = s.grad(c, g, dL_do, debug=debug)
+        for s, c, g, _dL_do in zip(
+            stages, coeffs, gradinfo, self._unpack_output(dL_do)
+        ):
+            _dL_di, _dL_dc = s._grad(c, g, _dL_do, debug=debug)
+            dL_di.append(_dL_di)
             dL_dc.append(_dL_dc)
-        return dL_do, numpy.concatenate(dL_dc[::-1])
+        return numpy.concatenate(dL_di, axis=1), numpy.concatenate(dL_dc)
 
     def get_constraint(self) -> Constraints:
         from scipy.linalg import block_diag  # type: ignore
