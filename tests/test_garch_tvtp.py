@@ -4,6 +4,7 @@ import math
 import numpy
 import numpy.linalg
 from likelihood import likelihood
+from likelihood.stages.Copy import Copy
 from likelihood.stages.Garch_mean import Garch_mean
 from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
@@ -61,21 +62,25 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     stage1 = Linear(["p11b1"], (2,), 3)
     stage2 = Linear(["p22b1"], (2,), 4)
     stage3 = Logistic((3, 4), (3, 4))
+    stage4 = Copy((0, 1), (5, 6))
+    stage5 = Copy((0, 1), (9, 10))
     # x mu var EX2
-    submodel1 = Garch_mean(("c1", "a1", "b1"), (0, 1), (5, 6, 7, 8))
-    submodel2 = Garch_mean(("c2", "a2", "b2"), (0, 1), (9, 10, 11, 12))
-    stage4 = MS_TVTP(
+    submodel1 = Garch_mean(("c1", "a1", "b1"), (5, 6), (5, 6, 7, 8))
+    submodel2 = Garch_mean(("c2", "a2", "b2"), (9, 10), (9, 10, 11, 12))
+    stage6 = MS_TVTP(
         (submodel1, submodel2),
         [],
         providers["normpdf"],
         (3, 4),
         (13, 14, 15, 16, 17, 18),
     )
-    stage5 = Residual((0, 14), 0)
-    stage6 = LogNormpdf_var((0, 15), (0, 15))
+    stage7 = Residual((0, 14), 0)
+    stage8 = LogNormpdf_var((0, 15), (0, 15))
 
     nll = likelihood.negLikelihood(
-        [stage1, stage2, stage3, stage4, stage5, stage6], None, nvars=19
+        [stage1, stage2, stage3, stage4, stage5, stage6, stage7, stage8],
+        None,
+        nvars=19,
     )
 
     assert (

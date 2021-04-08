@@ -4,6 +4,7 @@ import math
 import numpy
 import numpy.linalg
 from likelihood import likelihood
+from likelihood.stages.Copy import Copy
 from likelihood.stages.Iterize import Iterize
 from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
@@ -46,15 +47,20 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     stage1 = Linear(["p11b1"], (2,), 3)
     stage2 = Linear(["p22b1"], (2,), 4)
     stage3 = Logistic((3, 4), (3, 4))
-    submodel1 = Iterize((0, 1, 2), (5, 6, 7))
-    submodel2 = Iterize((0, 2, 2), (8, 9, 10))
-    stage4 = MS_TVTP(
+    stage4 = Copy((0, 1, 2), (5, 6, 7))
+    stage5 = Copy((0, 2), (8, 9))
+    stage6 = Copy((2,), (10,))
+    submodel1 = Iterize((5, 6, 7), (5, 6, 7))
+    submodel2 = Iterize((8, 9, 10), (8, 9, 10))
+    stage7 = MS_TVTP(
         (submodel1, submodel2), [], providers["normpdf"], (3, 4), (11, 12, 13, 14, 15)
     )
-    stage5 = LogNormpdf("var", (0, 12), (0, 1))
+    stage8 = LogNormpdf("var", (0, 12), (0, 1))
 
     nll = likelihood.negLikelihood(
-        [stage1, stage2, stage3, stage4, stage5], None, nvars=16
+        [stage1, stage2, stage3, stage4, stage5, stage6, stage7, stage8],
+        None,
+        nvars=16,
     )
 
     assert (
