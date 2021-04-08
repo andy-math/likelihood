@@ -3,6 +3,7 @@ from typing import Sequence, Tuple
 import numpy
 from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.abc.Convolution import Convolution
+from likelihood.stages.abc.Stage import Constraints
 from numerical.typedefs import ndarray
 
 
@@ -99,9 +100,9 @@ class Midas_beta(Convolution):
         else:
             return phi, dphi_do[:, ::-1]
 
-    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraint(self) -> Constraints:
         A = numpy.empty((0, 2))
         b = numpy.empty((0,))
         lb = numpy.array([1.0, 1.0])
         ub = numpy.array([numpy.inf, numpy.inf])
-        return A, b, lb, ub
+        return Constraints(A, b, lb, ub)

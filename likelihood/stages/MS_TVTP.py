@@ -6,6 +6,7 @@ from typing import Callable, List, Optional, Tuple
 import numpy
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative
+from likelihood.stages.abc.Stage import Constraints
 from numba import float64  # type: ignore
 from numerical.typedefs import ndarray
 
@@ -415,7 +416,7 @@ class MS_TVTP(Iterative.Iterative):
             dL_dc[index] += d
         return dL_do, dL_dc
 
-    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraint(self) -> Constraints:
         from scipy.linalg import block_diag  # type: ignore
 
         _A, _b, _lb, _ub = zip(*(s.get_constraint() for s in self.submodel))
@@ -432,4 +433,4 @@ class MS_TVTP(Iterative.Iterative):
             new_A[:, self.mapping[j]] = new_A[:, self.mapping[j]] + A[:, j]
             new_lb[self.mapping[j]] = max(new_lb[self.mapping[j]], lb[j])
             new_ub[self.mapping[j]] = min(new_ub[self.mapping[j]], ub[j])
-        return new_A, b, new_lb, new_ub
+        return Constraints(new_A, b, new_lb, new_ub)

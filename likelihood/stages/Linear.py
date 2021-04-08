@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Optional, Sequence, Tuple
 
 import numpy
-from likelihood.stages.abc.Stage import Stage
+from likelihood.stages.abc.Stage import Constraints, Stage
 from numerical.typedefs import ndarray
 
 _Linear_gradinfo_t = ndarray
@@ -26,9 +26,9 @@ class Linear(Stage[_Linear_gradinfo_t]):
     ) -> Tuple[ndarray, ndarray]:
         return dL_do * coeff, dL_do.flatten() @ input
 
-    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraint(self) -> Constraints:
         A = numpy.empty((0, len(self.names)))
         b = numpy.empty((0,))
         lb = numpy.full((len(self.names),), -numpy.inf)
         ub = numpy.full((len(self.names),), numpy.inf)
-        return A, b, lb, ub
+        return Constraints(A, b, lb, ub)

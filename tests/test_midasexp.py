@@ -30,7 +30,7 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
         stop = i
         x[i] = x[start:stop, 0] @ kernel + numpy.random.randn()
     start = k * 10
-    return x[start:]
+    return x[start:]  # type: ignore
 
 
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:

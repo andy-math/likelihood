@@ -16,7 +16,7 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     x = numpy.concatenate((numpy.random.rand(n, 1), numpy.ones((n, 1))), axis=1)
     y = 1.0 / (numpy.exp(-x @ coeff) + 1.0) + numpy.random.randn(n)
     y = y.reshape((-1, 1))
-    return numpy.concatenate((y, x), axis=1)
+    return numpy.concatenate((y, x), axis=1)  # type: ignore
 
 
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:

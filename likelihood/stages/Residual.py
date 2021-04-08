@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 import numpy
-from likelihood.stages.abc.Stage import Stage
+from likelihood.stages.abc.Stage import Constraints, Stage
 from numerical.typedefs import ndarray
 
 _Residual_gradinfo_t = type(None)
@@ -23,9 +23,9 @@ class Residual(Stage[_Residual_gradinfo_t]):
     ) -> Tuple[ndarray, ndarray]:
         return dL_dR * numpy.array([[1.0, -1.0]]), numpy.ndarray((0,))
 
-    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraint(self) -> Constraints:
         A = numpy.empty((0, 0))
         b = numpy.empty((0,))
         lb = numpy.empty((0,))
         ub = numpy.empty((0,))
-        return A, b, lb, ub
+        return Constraints(A, b, lb, ub)

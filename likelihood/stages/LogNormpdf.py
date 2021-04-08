@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 
 import numpy
 from likelihood.stages.abc.Logpdf import Logpdf
+from likelihood.stages.abc.Stage import Constraints
 from numerical.typedefs import ndarray
 
 _LogNormpdf_gradinfo_t = ndarray
@@ -53,9 +54,9 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         dL_dc = dL_dlogP @ ((1.0 / 2.0) * (z * z - 1.0 / var)) + numpy.sum(dL_dvar)
         return dL_di * numpy.array([[-1.0, 1.0]]), dL_dc
 
-    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraint(self) -> Constraints:
         A = numpy.empty((0, 1))
         b = numpy.empty((0,))
         lb = numpy.array([0.0])
         ub = numpy.array([numpy.inf])
-        return A, b, lb, ub
+        return Constraints(A, b, lb, ub)

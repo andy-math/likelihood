@@ -5,6 +5,7 @@ from typing import Callable, Tuple, Union
 import numpy
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative
+from likelihood.stages.abc.Stage import Constraints
 from numerical.typedefs import ndarray
 
 
@@ -72,9 +73,9 @@ class Iterize(Iterative.Iterative):
             Jitted_Function(Iterative.grad_signature, (), _iterize_grad_generate),
         )
 
-    def get_constraint(_) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraint(_) -> Constraints:
         A = numpy.empty((0, 0))
         b = numpy.empty((0,))
         lb = numpy.empty((0,))
         ub = numpy.empty((0,))
-        return A, b, lb, ub
+        return Constraints(A, b, lb, ub)

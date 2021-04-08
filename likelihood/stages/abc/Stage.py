@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Generic, List, Optional, Sequence, Tuple, TypeVar
+from typing import Generic, List, NamedTuple, Optional, Sequence, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
 from overloads.shortcuts import assertNoInfNaN
+
+
+class Constraints(NamedTuple):
+    A: ndarray
+    b: ndarray
+    lb: ndarray
+    ub: ndarray
+
 
 _gradinfo_t = TypeVar("_gradinfo_t", contravariant=True)
 
@@ -39,7 +47,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     @abstractmethod
     def get_constraint(
         self,
-    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    ) -> Constraints:
         pass  # pragma: no cover
 
     def eval(

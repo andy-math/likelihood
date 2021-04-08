@@ -1,8 +1,7 @@
 from abc import ABCMeta
-from typing import List, Optional, Sequence, Tuple, TypeVar
+from typing import List, Optional, Sequence, TypeVar
 
-from likelihood.stages.abc.Stage import Stage
-from numerical.typedefs import ndarray
+from likelihood.stages.abc.Stage import Constraints, Stage
 
 _Penalty_gradinfo_t = TypeVar("_Penalty_gradinfo_t")
 
@@ -30,5 +29,5 @@ class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
                 assert False  # pragma: no cover
         self.index = index
 
-    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraint(self) -> Constraints:
         assert False  # pragma: no cover
