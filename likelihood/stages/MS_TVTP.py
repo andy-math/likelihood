@@ -7,6 +7,7 @@ import numpy
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative
 from likelihood.stages.abc.Stage import Constraints
+from likelihood.utilities import compose_constraints, compose_names
 from numba import float64  # type: ignore
 from numerical.typedefs import ndarray
 
@@ -352,27 +353,7 @@ class MS_TVTP(Iterative.Iterative):
         assert len(submodel[0]._output_idx) == len(submodel[1]._output_idx)
         assert len(output) - 2 == len(submodel[0]._output_idx)
 
-        for s in sharing:
-            assert s in submodel[0].names and s in submodel[1].names
-        for s in submodel[0].names:
-            assert s in sharing or s not in submodel[1].names
-        for s in submodel[1].names:
-            assert s in sharing or s not in submodel[0].names
-
-        names: List[str] = []
-
-        mapping: List[int] = []
-        for sub in submodel:
-            for s in sub.names:
-                found = False
-                for index, n in enumerate(names):
-                    if s == n:
-                        mapping.append(index)
-                        found = True
-                        break
-                if not found:
-                    names.append(s)
-                    mapping.append(len(names) - 1)
+        names, mapping = compose_names(sharing, submodel[0].names, submodel[1].names)
 
         super().__init__(
             names,
@@ -417,20 +398,8 @@ class MS_TVTP(Iterative.Iterative):
         return dL_do, dL_dc
 
     def get_constraint(self) -> Constraints:
-        from scipy.linalg import block_diag  # type: ignore
-
-        _A, _b, _lb, _ub = zip(*(s.get_constraint() for s in self.submodel))
-        A, b, lb, ub = (
-            block_diag(*_A),
-            numpy.concatenate(_b),
-            numpy.concatenate(_lb),
-            numpy.concatenate(_ub),
+        return compose_constraints(
+            self.mapping,
+            self.submodel[0].get_constraint(),
+            self.submodel[1].get_constraint(),
         )
-        new_A = numpy.zeros((A.shape[0], len(self.names)))
-        new_lb = numpy.full((len(self.names),), -numpy.inf)
-        new_ub = numpy.full((len(self.names),), numpy.inf)
-        for j in range(len(self.mapping)):
-            new_A[:, self.mapping[j]] = new_A[:, self.mapping[j]] + A[:, j]
-            new_lb[self.mapping[j]] = max(new_lb[self.mapping[j]], lb[j])
-            new_ub[self.mapping[j]] = min(new_ub[self.mapping[j]], ub[j])
-        return Constraints(new_A, b, new_lb, new_ub)
