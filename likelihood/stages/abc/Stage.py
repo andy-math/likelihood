@@ -27,6 +27,8 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         self, names: Sequence[str], input: Sequence[int], output: Sequence[int]
     ) -> None:
         assert len(set(names)) == len(names)
+        assert len(set(input)) == len(input)
+        assert len(set(output)) == len(output)
         super().__init__()
         self.names = list(names)
         self._input_idx = input
