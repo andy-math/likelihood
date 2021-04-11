@@ -6,10 +6,9 @@ import numpy.linalg
 from likelihood import likelihood
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Garch_mean import Garch_mean
-from likelihood.stages.Linear import Linear
-from likelihood.stages.Logistic import Logistic
 from likelihood.stages.LogNormpdf_var import LogNormpdf_var
-from likelihood.stages.MS_TVTP import MS_TVTP, providers
+from likelihood.stages.MS_FTP import MS_FTP
+from likelihood.stages.MS_TVTP import providers
 from likelihood.stages.Residual import Residual
 from numerical import difference
 from numerical.typedefs import ndarray
@@ -22,8 +21,7 @@ def normpdf(err: float, var: float) -> float:
 
 def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     numpy.random.seed(seed)
-    p11b1, p22b1, c1, a1, b1, c2, a2, b2 = coeff
-    p11, p22 = 1.0 / (math.exp(-p11b1) + 1.0), 1.0 / (math.exp(-p22b1) + 1.0)
+    p11, p22, c1, a1, b1, c2, a2, b2 = coeff
     p1, p2 = 0.5, 0.5
     var1 = c1 / (1.0 - a1 - b1)
     var2 = c2 / (1.0 - a2 - b2)
@@ -57,28 +55,25 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = numpy.concatenate(
         (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 16))), axis=1
     )
-    beta0 = numpy.array([1.0, 1.0, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0])
+    beta0 = numpy.array([0.8, 0.8, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0])
 
-    stage1 = Linear(["p11b1"], (2,), 3)
-    stage2 = Linear(["p22b1"], (2,), 4)
-    stage3 = Logistic((3, 4), (3, 4))
     stage4 = Copy((0, 1), (5, 6))
     stage5 = Copy((0, 1), (9, 10))
     # x mu var EX2
     submodel1 = Garch_mean(("c1", "a1", "b1"), (5, 6), (5, 6, 7, 8))
     submodel2 = Garch_mean(("c2", "a2", "b2"), (9, 10), (9, 10, 11, 12))
-    stage6 = MS_TVTP(
+    stage6 = MS_FTP(
+        ("p11", "p22"),
         (submodel1, submodel2),
         [],
         providers["normpdf"],
-        (3, 4),
         (13, 14, 15, 16, 17, 18),
     )
     stage7 = Residual((0, 14), 0)
     stage8 = LogNormpdf_var((0, 15), (0, 15))
 
     nll = likelihood.negLikelihood(
-        [stage1, stage2, stage3, stage4, stage5, stage6, stage7, stage8],
+        [stage4, stage5, stage6, stage7, stage8],
         None,
         nvars=19,
     )
@@ -132,12 +127,12 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("abserr_mle: ", abserr_mle)
     assert result.success
     assert 5 < result.iter < 1000
-    assert abserr_mle < 0.4
+    assert abserr_mle < 0.2
 
 
 class Test_1:
     def test_1(_) -> None:
-        run_once(numpy.array([1.0, 1.0, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0]), 1000)
+        run_once(numpy.array([0.8, 0.8, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0]), 1000)
 
 
 if __name__ == "__main__":
