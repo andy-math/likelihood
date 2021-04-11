@@ -6,11 +6,9 @@ import numpy.linalg
 from likelihood import likelihood
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Iterize import Iterize
-from likelihood.stages.Linear import Linear
-from likelihood.stages.Logistic import Logistic
 from likelihood.stages.LogNormpdf import LogNormpdf
-from likelihood.stages.Merge import Merge
-from likelihood.stages.MS_TVTP import MS_TVTP, providers
+from likelihood.stages.MS_FTP import MS_FTP
+from likelihood.stages.MS_TVTP import providers
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -22,8 +20,7 @@ def normpdf(err: float) -> float:
 
 def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     numpy.random.seed(seed)
-    p11b1, p22b1 = coeff
-    p11, p22 = 1.0 / (math.exp(-p11b1) + 1.0), 1.0 / (math.exp(-p22b1) + 1.0)
+    p11, p22 = coeff
     p1, p2 = 0.5, 0.5
     x = numpy.zeros((n, 1))
     for i in range(n):
@@ -43,23 +40,24 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = numpy.concatenate(
         (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 13))), axis=1
     )
-    beta0 = numpy.array([0.0, 0.0, 1.0])
+    beta0 = numpy.array([0.8, 0.8, 1.0])
 
-    stage1 = Linear(["p11b1"], (2,), 3)
-    stage2 = Linear(["p22b1"], (2,), 4)
-    stage3 = Merge([Logistic((3,), (3,)), Logistic((4,), (4,))])
     stage4 = Copy((0, 1, 2), (5, 6, 7))
     stage5 = Copy((0, 2), (8, 9))
     stage6 = Copy((2,), (10,))
     submodel1 = Iterize((5, 6, 7), (5, 6, 7))
     submodel2 = Iterize((8, 9, 10), (8, 9, 10))
-    stage7 = MS_TVTP(
-        (submodel1, submodel2), [], providers["normpdf"], (3, 4), (11, 12, 13, 14, 15)
+    stage7 = MS_FTP(
+        ("p11", "p22"),
+        (submodel1, submodel2),
+        [],
+        providers["normpdf"],
+        (11, 12, 13, 14, 15),
     )
     stage8 = LogNormpdf("var", (0, 12), (0, 1))
 
     nll = likelihood.negLikelihood(
-        [stage1, stage2, stage3, stage4, stage5, stage6, stage7, stage8],
+        [stage4, stage5, stage6, stage7, stage8],
         None,
         nvars=16,
     )
@@ -107,12 +105,12 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("relerr_mle: ", relerr_mle)
     assert result.success
     assert 5 < result.iter < 200
-    assert relerr_mle < 0.1
+    assert relerr_mle < 0.05
 
 
 class Test_1:
     def test_1(_) -> None:
-        run_once(numpy.array([1.0, 1.0]), 1000)
+        run_once(numpy.array([0.8, 0.8]), 1000)
 
 
 if __name__ == "__main__":

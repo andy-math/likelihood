@@ -32,8 +32,8 @@ class Compose(Stage[_Compose_gradinfo_t]):
         super().__init__(names, input, output)
         assert len(input) == len(output)
         for s in stages:
-            assert max(s._input_idx) < len(input)
-            assert max(s._output_idx) < len(output)
+            assert not len(s._input_idx) or max(s._input_idx) < len(input)
+            assert not len(s._output_idx) or max(s._output_idx) < len(output)
         self.len_coeff = packing[-1]
         self.packing = packing[:-1]
         self.stages = stages

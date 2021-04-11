@@ -62,7 +62,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("result.success: ", result.success)
     print("coeff: ", coeff)
     print("mle:   ", beta_mle)
-    print("abserr_mle: ", relerr_mle)
+    print("relerr_mle: ", relerr_mle)
     assert result.success
     assert 5 < result.iter < 200
     assert relerr_mle < 0.1  # (?)
