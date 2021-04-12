@@ -130,7 +130,9 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
     ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
         if debug:
             return self._eval_impl.py_func()(coeff, inputs, grad)
-        return self._eval_impl.func()(coeff, numpy.ascontiguousarray(inputs), grad)
+        if numpy.isfortran(inputs):
+            inputs = numpy.ascontiguousarray(inputs)
+        return self._eval_impl.func()(coeff, inputs, grad)
 
     def _grad(
         self,
@@ -142,4 +144,6 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
     ) -> Tuple[ndarray, ndarray]:
         if debug:
             return self._grad_impl.py_func()(coeff, gradinfo, dL_do)
-        return self._grad_impl.func()(coeff, gradinfo, numpy.ascontiguousarray(dL_do))
+        if numpy.isfortran(dL_do):
+            dL_do = numpy.ascontiguousarray(dL_do)
+        return self._grad_impl.func()(coeff, gradinfo, dL_do)
