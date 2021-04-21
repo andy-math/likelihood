@@ -32,14 +32,14 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> None:
     x = generate(coeff, n + times * k, k, seed=seed)[times * k :]  # noqa: E203
     x, y = x[:-1, :], x[1:, :]
-    input = numpy.concatenate((y, x, x * x), axis=1)
+    input = numpy.concatenate((y, x, x * x, numpy.zeros(y.shape)), axis=1)
     beta0 = numpy.array([0.8, 0.1, 0.1, 0.8])
 
     stage1 = Midas_exp("omega", (2,), (2,), k=k)
-    stage2 = GarchMidas(("c", "a", "b"), (1, 2), (1, 2))
+    stage2 = GarchMidas(("c", "a", "b"), (0, 1, 2), (0, 3, 1, 2))
     stage3 = LogNormpdf_var((0, 1), (0, 1))
 
-    nll = likelihood.negLikelihood([stage1, stage2, stage3], None, nvars=3)
+    nll = likelihood.negLikelihood([stage1, stage2, stage3], None, nvars=4)
 
     assert (
         nll.eval(beta0, input, regularize=False, debug=True)[0]

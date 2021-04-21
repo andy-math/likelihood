@@ -25,8 +25,16 @@ def _garch_midas_output0_generate() -> Callable[[ndarray], Tuple[ndarray, ndarra
         d0_db = c/[ (1-a-b)*(1-a-b) ]
         """
         return (
-            numpy.array([0.0, output0]),
-            numpy.array([[0.0, 0.0, 0.0], [1.0, output0, output0]]) / (1 - a - b),
+            numpy.array([0.0, 0.0, 0.0, output0]),
+            numpy.array(
+                [
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [1.0, output0, output0],
+                ]
+            )
+            / (1.0 - a - b),
         )
 
     return implement
@@ -35,10 +43,10 @@ def _garch_midas_output0_generate() -> Callable[[ndarray], Tuple[ndarray, ndarra
 def _grach_midas_eval_generate() -> Callable[[ndarray, ndarray, ndarray], ndarray]:
     def implement(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
         c, a, b = coeff[0], coeff[1], coeff[2]
-        err, long_turn = input[0], input[1]
+        x, err, long_turn = input[0], input[1], input[2]
         z2 = (err * err) / long_turn
-        short_turn = c + a * z2 + b * lag[1]
-        return numpy.array([short_turn * long_turn, short_turn])
+        short_turn = c + a * z2 + b * lag[3]
+        return numpy.array([x, 0.0, short_turn * long_turn, short_turn])
 
     return implement
 
@@ -50,11 +58,11 @@ def _garch_midas_grad_generate() -> Callable[
         coeff: ndarray, input: ndarray, lag: ndarray, _: ndarray, dL_do: ndarray
     ) -> Tuple[ndarray, ndarray, ndarray]:
         c, a, b = coeff[0], coeff[1], coeff[2]
-        err, long_turn = input[0], input[1]
+        err, long_turn = input[1], input[2]
         z2 = (err * err) / long_turn
-        short_turn = c + a * z2 + b * lag[1]
+        short_turn = c + a * z2 + b * lag[3]
 
-        dL_dcompose, dL_dshort = dL_do[0], dL_do[1]
+        dL_dx, dL_dcompose, dL_dshort = dL_do[0], dL_do[2], dL_do[3]
         dL_dshort += dL_dcompose * long_turn
         dL_dlong = dL_dcompose * short_turn
 
@@ -63,9 +71,9 @@ def _garch_midas_grad_generate() -> Callable[
         dL_dlong -= dL_dz2 * (z2 / long_turn)
 
         return (
-            dL_dshort * numpy.array([1.0, z2, lag[1]]),
-            numpy.array([dL_derr, dL_dlong]),
-            numpy.array([0.0, dL_dshort * b]),
+            dL_dshort * numpy.array([1.0, z2, lag[3]]),
+            numpy.array([dL_dx, dL_derr, dL_dlong]),
+            numpy.array([0.0, 0.0, 0.0, dL_dshort * b]),
         )
 
     return implement
@@ -73,7 +81,10 @@ def _garch_midas_grad_generate() -> Callable[
 
 class GarchMidas(Iterative.Iterative):
     def __init__(
-        _, names: Tuple[str, str, str], input: Tuple[int, int], output: Tuple[int, int]
+        _,
+        names: Tuple[str, str, str],
+        input: Tuple[int, int, int],
+        output: Tuple[int, int, int, int],
     ) -> None:
 
         super().__init__(
