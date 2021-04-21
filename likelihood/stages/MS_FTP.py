@@ -28,7 +28,13 @@ class MS_FTP(Compose):
         stage1 = Assign(names[0], output[-2], 0.0, 1.0)
         stage2 = Assign(names[1], output[-1], 0.0, 1.0)
         stage3 = MS_TVTP(submodel, sharing, provider, (output[-2], output[-1]), output)
-        maxinput = max(output)
+        maxinput = max(
+            max(submodel[0]._input_idx),
+            max(submodel[0]._output_idx),
+            max(submodel[1]._input_idx),
+            max(submodel[1]._output_idx),
+            max(output),
+        )
         super().__init__(
             [stage1, stage2, stage3],
             list(range(maxinput + 1)),
