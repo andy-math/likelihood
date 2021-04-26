@@ -1,27 +1,27 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy
 from likelihood.stages.abc.Stage import Constraints, Stage
 from numerical.typedefs import ndarray
 
 
-def _make_packing(idx: List[Sequence[int]]) -> List[int]:
+def _make_packing(idx: List[Tuple[int, ...]]) -> Tuple[int, ...]:
     packing: List[int] = []
     for i in idx:
         packing.append(len(i))
-    return numpy.cumsum(packing).tolist()[:-1]  # type: ignore
+    return tuple(numpy.cumsum(packing).tolist()[:-1])
 
 
-def _make_names(*stages: Stage[Any]) -> Tuple[List[str], List[int]]:
+def _make_names(*stages: Stage[Any]) -> Tuple[Tuple[str, ...], Tuple[int, ...]]:
     names: List[str] = []
     packing: List[int] = []
     for s in stages:
         names.extend(s.names)
         packing.append(len(s.names))
     assert len(set(names)) == len(names)
-    return names, numpy.cumsum(packing).tolist()
+    return tuple(names), tuple(numpy.cumsum(packing).tolist())
 
 
 _Merge_gradinfo_t = List[Any]
@@ -29,9 +29,9 @@ _Merge_gradinfo_t = List[Any]
 
 class Merge(Stage[_Merge_gradinfo_t]):
     len_coeff: int
-    packing: List[int]
-    packing_input: List[int]
-    packing_output: List[int]
+    packing: Tuple[int, ...]
+    packing_input: Tuple[int, ...]
+    packing_output: Tuple[int, ...]
     stages: List[Stage[Any]]
 
     def __init__(self, stages: List[Stage[Any]]) -> None:
@@ -41,7 +41,7 @@ class Merge(Stage[_Merge_gradinfo_t]):
         for s in stages:
             input.extend(s._input_idx)
             output.extend(s._output_idx)
-        super().__init__(names, input, output)
+        super().__init__(names, tuple(input), tuple(output))
         self.len_coeff = packing[-1]
         self.packing = packing[:-1]
         self.stages = stages

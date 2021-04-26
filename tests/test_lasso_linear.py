@@ -21,7 +21,9 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)  # type: ignore
     relerr_decomp = difference.relative(beta[:-1], beta_decomp[:-1])
 
-    stage1 = Linear([f"b{i}" for i in range(1, m + 1)], list(range(1, m + 1)), 1)
+    stage1 = Linear(
+        tuple([f"b{i}" for i in range(1, m + 1)]), tuple(range(1, m + 1)), 1
+    )
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
     penalty = Lasso(stage1.names, 1.0, (0, 1), 0)
     nll = likelihood.negLikelihood([stage1, stage2], penalty, nvars=m + 1)

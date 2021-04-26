@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple
+from typing import Tuple
 
 import numpy
 from likelihood.KnownIssue import KnownIssue
@@ -11,7 +11,7 @@ class Midas_exp(Convolution):
     K: int
 
     def __init__(
-        self, names: str, input: Sequence[int], output: Sequence[int], *, k: int
+        self, names: str, input: Tuple[int, ...], output: Tuple[int, ...], *, k: int
     ) -> None:
         assert len(input) == len(output)
         super().__init__((names,), input, output)

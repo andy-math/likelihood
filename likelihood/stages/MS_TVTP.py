@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 import numpy
 from likelihood.jit import Jitted_Function
@@ -336,12 +336,12 @@ providers = {
 
 class MS_TVTP(Iterative.Iterative):
     submodel: Tuple[Iterative.Iterative, Iterative.Iterative]
-    mapping: List[int]
+    mapping: Tuple[int, ...]
 
     def __init__(
         self,
         submodel: Tuple[Iterative.Iterative, Iterative.Iterative],
-        sharing: List[str],
+        sharing: Tuple[str, ...],
         provider: Tuple[
             Jitted_Function[Callable[[ndarray], float]],
             Jitted_Function[Callable[[ndarray, float, float], ndarray]],

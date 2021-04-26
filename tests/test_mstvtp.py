@@ -45,8 +45,8 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([0.0, 0.0, 1.0])
 
-    stage1 = Linear(["p11b1"], (2,), 3)
-    stage2 = Linear(["p22b1"], (2,), 4)
+    stage1 = Linear(("p11b1",), (2,), 3)
+    stage2 = Linear(("p22b1",), (2,), 4)
     stage3 = Merge([Logistic((3,), (3,)), Logistic((4,), (4,))])
     stage4 = Copy((0, 1, 2), (5, 6, 7))
     stage5 = Copy((0, 2), (8, 9))
@@ -54,7 +54,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     submodel1 = Iterize((5, 6, 7), (5, 6, 7))
     submodel2 = Iterize((8, 9, 10), (8, 9, 10))
     stage7 = MS_TVTP(
-        (submodel1, submodel2), [], providers["normpdf"], (3, 4), (11, 12, 13, 14, 15)
+        (submodel1, submodel2), (), providers["normpdf"], (3, 4), (11, 12, 13, 14, 15)
     )
     stage8 = LogNormpdf("var", (0, 12), (0, 1))
 

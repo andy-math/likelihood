@@ -40,7 +40,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([2.0, 2.0, 1.0])
 
-    stage1 = Midas_beta(("omega1", "omega2"), [1], [1], k=k)
+    stage1 = Midas_beta(("omega1", "omega2"), (1,), (1,), k=k)
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
 
     kernel_reldiff = difference.relative(stage1.kernel(coeff)[0], kkkk[::-1])
@@ -92,7 +92,7 @@ def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([1.0e308, 1.0e308, 1.0])
 
-    stage1 = Midas_beta(("omega1", "omega2"), [1], [1], k=k)
+    stage1 = Midas_beta(("omega1", "omega2"), (1,), (1,), k=k)
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
 
     ce: Optional[BaseException] = None

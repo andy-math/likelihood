@@ -14,7 +14,7 @@ class Assign(Stage[_Assign_gradinfo_t]):
     ub: float
 
     def __init__(self, name: str, output: int, lb: float, ub: float) -> None:
-        super().__init__([name], (), (output,))
+        super().__init__((name,), (), (output,))
         self.lb = float(lb)
         self.ub = float(ub)
 

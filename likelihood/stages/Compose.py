@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy
 from likelihood.stages.abc.Stage import Constraints, Stage
 from numerical.typedefs import ndarray
 
 
-def _make_names(*stages: Stage[Any]) -> Tuple[List[str], List[int]]:
+def _make_names(*stages: Stage[Any]) -> Tuple[Tuple[str, ...], Tuple[int, ...]]:
     names: List[str] = []
     packing: List[int] = []
     for s in stages:
         names.extend(s.names)
         packing.append(len(s.names))
     assert len(set(names)) == len(names)
-    return names, numpy.cumsum(packing).tolist()
+    return tuple(names), tuple(numpy.cumsum(packing).tolist())
 
 
 _Compose_gradinfo_t = List[Any]
@@ -22,11 +22,11 @@ _Compose_gradinfo_t = List[Any]
 
 class Compose(Stage[_Compose_gradinfo_t]):
     len_coeff: int
-    packing: List[int]
+    packing: Tuple[int, ...]
     stages: List[Stage[Any]]
 
     def __init__(
-        self, stages: List[Stage[Any]], input: Sequence[int], output: Sequence[int]
+        self, stages: List[Stage[Any]], input: Tuple[int, ...], output: Tuple[int, ...]
     ) -> None:
         names, packing = _make_names(*stages)
         super().__init__(names, input, output)

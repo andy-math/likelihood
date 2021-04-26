@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Generic, List, NamedTuple, Optional, Sequence, Tuple, TypeVar
+from typing import Generic, NamedTuple, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
@@ -19,18 +19,18 @@ _gradinfo_t = TypeVar("_gradinfo_t", contravariant=True)
 
 
 class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
-    names: List[str]
-    _input_idx: Sequence[int]
-    _output_idx: Sequence[int]
+    names: Tuple[str, ...]
+    _input_idx: Tuple[int, ...]
+    _output_idx: Tuple[int, ...]
 
     def __init__(
-        self, names: Sequence[str], input: Sequence[int], output: Sequence[int]
+        self, names: Tuple[str, ...], input: Tuple[int, ...], output: Tuple[int, ...]
     ) -> None:
         assert len(set(names)) == len(names)
         assert len(set(input)) == len(input)
         assert len(set(output)) == len(output)
         super().__init__()
-        self.names = list(names)
+        self.names = names
         self._input_idx = input
         self._output_idx = output
 

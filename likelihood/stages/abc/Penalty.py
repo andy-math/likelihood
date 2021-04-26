@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from typing import List, Optional, Sequence, TypeVar
+from typing import List, Optional, Tuple, TypeVar
 
 from likelihood.stages.abc.Stage import Constraints, Stage
 
@@ -7,16 +7,19 @@ _Penalty_gradinfo_t = TypeVar("_Penalty_gradinfo_t")
 
 
 class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
-    coeff_names: List[str]
-    index: Optional[List[int]]
+    coeff_names: Tuple[str, ...]
+    index: Optional[Tuple[int, ...]]
 
     def __init__(
-        self, coeff_names: List[str], input: Sequence[int], output: Sequence[int]
+        self,
+        coeff_names: Tuple[str, ...],
+        input: Tuple[int, ...],
+        output: Tuple[int, ...],
     ) -> None:
         super().__init__((), input, output)
         self.coeff_names = coeff_names
 
-    def make_index(self, names: List[str]) -> None:
+    def make_index(self, names: Tuple[str, ...]) -> None:
         index: List[int] = []
         for c in self.coeff_names:
             found = False
@@ -27,7 +30,7 @@ class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
                     break
             if not found:
                 assert False  # pragma: no cover
-        self.index = index
+        self.index = tuple(index)
 
     def get_constraint(self) -> Constraints:
         assert False  # pragma: no cover

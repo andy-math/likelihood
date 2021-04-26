@@ -14,7 +14,7 @@ from likelihood.stages.Compose import Compose
 
 def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
     for s in stages:
-        assert max(s._input_idx) < nvars
+        assert not len(s._input_idx) or max(s._input_idx) < nvars
     assert isinstance(stages[-1], Logpdf)
     assert stages[-1]._output_idx[0] == 0
 
@@ -29,7 +29,7 @@ class negLikelihood:
         self, stages: List[Stage[Any]], penalty: Optional[Penalty[Any]], *, nvars: int
     ) -> None:
         _check_stages(stages, nvars)
-        self.stages = Compose(stages, list(range(nvars)), list(range(nvars)))
+        self.stages = Compose(stages, tuple(range(nvars)), tuple(range(nvars)))
         self.penalty = penalty
         self.nCoeff = self.stages.len_coeff
         self.nInput = nvars

@@ -13,7 +13,7 @@ _LogNormpdfVar_gradinfo_t = Tuple[ndarray, ndarray]
 
 class LogNormpdf_var(Logpdf[_LogNormpdfVar_gradinfo_t]):
     def __init__(self, input: Tuple[int, int], output: Tuple[int, int]) -> None:
-        super().__init__([], input, output)
+        super().__init__((), input, output)
 
     def _eval(
         self, var: ndarray, x_var: ndarray, *, grad: bool, debug: bool

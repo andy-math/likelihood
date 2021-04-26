@@ -14,7 +14,7 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
     def __init__(
         self, variance_name: str, input: Tuple[int, int], output: Tuple[int, int]
     ) -> None:
-        super().__init__([variance_name], input, output)
+        super().__init__((variance_name,), input, output)
 
     def _eval(
         self, var: ndarray, mu_x: ndarray, *, grad: bool, debug: bool

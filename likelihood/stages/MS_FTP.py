@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Tuple
+from typing import Callable, Tuple
 
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative
@@ -15,7 +15,7 @@ class MS_FTP(Compose):
         _,
         names: Tuple[str, str],
         submodel: Tuple[Iterative.Iterative, Iterative.Iterative],
-        sharing: List[str],
+        sharing: Tuple[str, ...],
         provider: Tuple[
             Jitted_Function[Callable[[ndarray], float]],
             Jitted_Function[Callable[[ndarray, float, float], ndarray]],
@@ -37,6 +37,6 @@ class MS_FTP(Compose):
         )
         super().__init__(
             [stage1, stage2, stage3],
-            list(range(maxinput + 1)),
-            list(range(maxinput + 1)),
+            tuple(range(maxinput + 1)),
+            tuple(range(maxinput + 1)),
         )

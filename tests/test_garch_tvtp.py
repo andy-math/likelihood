@@ -59,8 +59,8 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([1.0, 1.0, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0])
 
-    stage1 = Linear(["p11b1"], (2,), 3)
-    stage2 = Linear(["p22b1"], (2,), 4)
+    stage1 = Linear(("p11b1",), (2,), 3)
+    stage2 = Linear(("p22b1",), (2,), 4)
     stage3 = Logistic((3, 4), (3, 4))
     stage4 = Copy((0, 1), (5, 6))
     stage5 = Copy((0, 1), (9, 10))
@@ -69,7 +69,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     submodel2 = Garch_mean(("c2", "a2", "b2"), (9, 10), (9, 10, 11, 12))
     stage6 = MS_TVTP(
         (submodel1, submodel2),
-        [],
+        (),
         providers["normpdf"],
         (3, 4),
         (13, 14, 15, 16, 17, 18),

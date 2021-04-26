@@ -65,7 +65,7 @@ class Iterize(Iterative.Iterative):
         else:
             assert False  # pragma: no cover
         super().__init__(
-            [],
+            (),
             input,
             output,
             Jitted_Function(Iterative.output0_signature, (), _iterize_output0_generate),

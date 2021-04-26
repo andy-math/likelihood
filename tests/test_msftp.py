@@ -50,7 +50,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     stage7 = MS_FTP(
         ("p11", "p22"),
         (submodel1, submodel2),
-        [],
+        (),
         providers["normpdf"],
         (11, 12, 13, 14, 15),
     )

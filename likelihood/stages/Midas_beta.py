@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple
+from typing import Tuple
 
 import numpy
 from likelihood.KnownIssue import KnownIssue
@@ -13,8 +13,8 @@ class Midas_beta(Convolution):
     def __init__(
         self,
         names: Tuple[str, str],
-        input: Sequence[int],
-        output: Sequence[int],
+        input: Tuple[int, ...],
+        output: Tuple[int, ...],
         *,
         k: int
     ) -> None:

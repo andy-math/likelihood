@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy
 from likelihood.stages.abc.Penalty import Penalty
@@ -14,7 +14,11 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
     Lambda: float
 
     def __init__(
-        self, coeff_names: List[str], Lambda: float, input: Tuple[int, int], output: int
+        self,
+        coeff_names: Tuple[str, ...],
+        Lambda: float,
+        input: Tuple[int, int],
+        output: int,
     ) -> None:
         super().__init__(coeff_names, input, (output,))
         self.Lambda = Lambda

@@ -6,10 +6,10 @@ from likelihood.stages.abc.Stage import Constraints
 
 
 def compose_names(
-    shared_names: List[str],
-    left_names: List[str],
-    right_names: List[str],
-) -> Tuple[List[str], List[int]]:
+    shared_names: Tuple[str, ...],
+    left_names: Tuple[str, ...],
+    right_names: Tuple[str, ...],
+) -> Tuple[Tuple[str, ...], Tuple[int, ...]]:
     # names没有内部重名
     assert len(shared_names) == len(set(shared_names))
     assert len(left_names) == len(set(left_names))
@@ -35,11 +35,11 @@ def compose_names(
             expand_mapping.append(len(compose_names) - 1)
         else:
             expand_mapping.append(compose_names.index(name))
-    return compose_names, expand_mapping
+    return tuple(compose_names), tuple(expand_mapping)
 
 
 def compose_constraints(
-    expand_mapping: List[int],
+    expand_mapping: Tuple[int, ...],
     left_constraints: Constraints,
     right_constraints: Constraints,
 ) -> Constraints:

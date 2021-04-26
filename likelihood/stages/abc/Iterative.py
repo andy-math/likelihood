@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Callable, Optional, Tuple
 
 import numba  # type: ignore
 import numpy
@@ -102,9 +102,9 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
 
     def __init__(
         self,
-        names: Sequence[str],
-        input: Sequence[int],
-        output: Sequence[int],
+        names: Tuple[str, ...],
+        input: Tuple[int, ...],
+        output: Tuple[int, ...],
         output0: Jitted_Function[Callable[[ndarray], Tuple[ndarray, ndarray]]],
         eval: Jitted_Function[Callable[[ndarray, ndarray, ndarray], ndarray]],
         grad: Jitted_Function[
