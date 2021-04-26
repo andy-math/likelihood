@@ -8,7 +8,7 @@ _Penalty_gradinfo_t = TypeVar("_Penalty_gradinfo_t")
 
 class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
     coeff_names: Tuple[str, ...]
-    index: Optional[Tuple[int, ...]]
+    index: Optional[List[int]]
 
     def __init__(
         self,
@@ -30,7 +30,7 @@ class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
                     break
             if not found:
                 assert False  # pragma: no cover
-        self.index = tuple(index)
+        self.index = index
 
     def get_constraint(self) -> Constraints:
         assert False  # pragma: no cover
