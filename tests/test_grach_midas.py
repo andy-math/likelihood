@@ -11,6 +11,8 @@ from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
 
+from tests.common import nll2func
+
 
 def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
     omega, c, a, b = coeff
@@ -41,29 +43,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> 
 
     nll = likelihood.negLikelihood([stage1, stage2, stage3], None, nvars=4)
 
-    assert (
-        nll.eval(beta0, input, regularize=False, debug=True)[0]
-        == nll.eval(beta0, input, regularize=False, debug=True)[0]
-    )
-    assert numpy.all(
-        nll.grad(beta0, input, regularize=False, debug=True)
-        == nll.grad(beta0, input, regularize=False, debug=True)
-    )
-
-    assert (
-        nll.eval(beta0, input, regularize=False)[0]
-        == nll.eval(beta0, input, regularize=False)[0]
-    )
-    assert numpy.all(
-        nll.grad(beta0, input, regularize=False)
-        == nll.grad(beta0, input, regularize=False)
-    )
-
-    def func(x: ndarray) -> float:
-        return nll.eval(x, input, regularize=False)[0]
-
-    def grad(x: ndarray) -> ndarray:
-        return nll.grad(x, input, regularize=False)
+    func, grad = nll2func(nll, beta0, input, regularize=False)
 
     constraint = nll.get_constraint()
 

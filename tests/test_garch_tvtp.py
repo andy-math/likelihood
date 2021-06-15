@@ -15,6 +15,8 @@ from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
 
+from tests.common import nll2func
+
 
 def normpdf(err: float, var: float) -> float:
     return 1.0 / math.sqrt(2.0 * math.pi * var) * math.exp(-(err * err) / (2.0 * var))
@@ -83,29 +85,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         nvars=19,
     )
 
-    assert (
-        nll.eval(beta0, input, regularize=False, debug=True)[0]
-        == nll.eval(beta0, input, regularize=False, debug=True)[0]
-    )
-    assert numpy.all(
-        nll.grad(beta0, input, regularize=False, debug=True)
-        == nll.grad(beta0, input, regularize=False, debug=True)
-    )
-
-    assert (
-        nll.eval(beta0, input, regularize=False)[0]
-        == nll.eval(beta0, input, regularize=False)[0]
-    )
-    assert numpy.all(
-        nll.grad(beta0, input, regularize=False)
-        == nll.grad(beta0, input, regularize=False)
-    )
-
-    def func(x: ndarray) -> float:
-        return nll.eval(x, input, regularize=False)[0]
-
-    def grad(x: ndarray) -> ndarray:
-        return nll.grad(x, input, regularize=False)
+    func, grad = nll2func(nll, beta0, input, regularize=False)
 
     constraint = nll.get_constraint()
 

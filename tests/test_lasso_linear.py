@@ -6,8 +6,9 @@ from likelihood.stages.Lasso import Lasso
 from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
 from numerical import difference
-from numerical.typedefs import ndarray
 from optimizer import trust_region
+
+from tests.common import nll2func
 
 
 def run_once(n: int, m: int, seed: int = 0) -> None:
@@ -32,19 +33,9 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     beta0[-1] = 1.0
     input = numpy.concatenate((y.reshape((-1, 1)), x), axis=1)
 
-    assert (
-        nll.eval(beta0, input, regularize=True)[0]
-        == nll.eval(beta0, input, regularize=True)[0]
-    )
-
-    def func(x: ndarray) -> float:
-        return nll.eval(x, input, regularize=True)[0]
-
-    def grad(x: ndarray) -> ndarray:
-        return nll.grad(x, input, regularize=True)
+    func, grad = nll2func(nll, beta0, input, regularize=True)
 
     opts = trust_region.Trust_Region_Options(max_iter=99999)
-    # opts.check_iter = 20
 
     constraint = nll.get_constraint()
 
