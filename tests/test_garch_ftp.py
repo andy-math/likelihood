@@ -4,11 +4,11 @@ import math
 import numpy
 import numpy.linalg
 from likelihood import likelihood
+from likelihood.stages.Assign import Assign
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Garch_mean import Garch_mean
 from likelihood.stages.LogNormpdf_var import LogNormpdf_var
-from likelihood.stages.MS_FTP import MS_FTP
-from likelihood.stages.MS_TVTP import providers
+from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from likelihood.stages.Residual import Residual
 from numerical import difference
 from numerical.typedefs import ndarray
@@ -64,18 +64,20 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     # x mu var EX2
     submodel1 = Garch_mean(("c1", "a1", "b1"), (5, 6), (5, 6, 7, 8))
     submodel2 = Garch_mean(("c2", "a2", "b2"), (9, 10), (9, 10, 11, 12))
-    stage6 = MS_FTP(
-        ("p11", "p22"),
+    assign1 = Assign("p11", 17, 0.0, 1.0)
+    assign2 = Assign("p22", 18, 0.0, 1.0)
+    stage6 = MS_TVTP(
         (submodel1, submodel2),
         (),
         providers["normpdf"],
+        (17, 18),
         (13, 14, 15, 16, 17, 18),
     )
     stage7 = Residual((0, 14), 0)
     stage8 = LogNormpdf_var((0, 15), (0, 15))
 
     nll = likelihood.negLikelihood(
-        [stage4, stage5, stage6, stage7, stage8],
+        [stage4, stage5, assign1, assign2, stage6, stage7, stage8],
         None,
         nvars=19,
     )

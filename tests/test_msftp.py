@@ -4,11 +4,11 @@ import math
 import numpy
 import numpy.linalg
 from likelihood import likelihood
+from likelihood.stages.Assign import Assign
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Iterize import Iterize
 from likelihood.stages.LogNormpdf import LogNormpdf
-from likelihood.stages.MS_FTP import MS_FTP
-from likelihood.stages.MS_TVTP import providers
+from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -49,17 +49,15 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     stage6 = Copy((2,), (10,))
     submodel1 = Iterize((5, 6, 7), (5, 6, 7))
     submodel2 = Iterize((8, 9, 10), (8, 9, 10))
-    stage7 = MS_FTP(
-        ("p11", "p22"),
-        (submodel1, submodel2),
-        (),
-        providers["normpdf"],
-        (11, 12, 13, 14, 15),
+    assign1 = Assign("p11", 14, 0.0, 1.0)
+    assign2 = Assign("p22", 15, 0.0, 1.0)
+    stage7 = MS_TVTP(
+        (submodel1, submodel2), (), providers["normpdf"], (14, 15), (11, 12, 13, 14, 15)
     )
     stage8 = LogNormpdf("var", (0, 12), (0, 1))
 
     nll = likelihood.negLikelihood(
-        [stage4, stage5, stage6, stage7, stage8],
+        [stage4, stage5, stage6, assign1, assign2, stage7, stage8],
         None,
         nvars=16,
     )
