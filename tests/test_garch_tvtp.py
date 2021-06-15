@@ -92,9 +92,6 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         == nll.grad(beta0, input, regularize=False, debug=True)
     )
 
-    # print(nll.grad(beta0, input, regularize=False, debug=True).reshape((-1, 1)))
-    # return
-
     assert (
         nll.eval(beta0, input, regularize=False)[0]
         == nll.eval(beta0, input, regularize=False)[0]
