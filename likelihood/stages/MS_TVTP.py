@@ -357,8 +357,8 @@ class MS_TVTP(Iterative.Iterative):
 
         super().__init__(
             names,
-            tuple(submodel[0]._input_idx) + tuple(submodel[1]._input_idx) + input,
-            tuple(submodel[0]._output_idx) + tuple(submodel[1]._output_idx) + output,
+            submodel[0]._input_idx + submodel[1]._input_idx + input,
+            submodel[0]._output_idx + submodel[1]._output_idx + output,
             Jitted_Function(
                 Iterative.output0_signature,
                 tuple(x._output0_scalar for x in submodel),
