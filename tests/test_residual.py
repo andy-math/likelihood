@@ -6,8 +6,9 @@ from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.stages.Residual import Residual
 from numerical import difference
-from numerical.typedefs import ndarray
 from optimizer import trust_region
+
+from tests.common import nll2func
 
 
 def run_once(n: int, m: int, seed: int = 0) -> None:
@@ -27,16 +28,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     beta0[-1] = 1.0
     input = numpy.concatenate((y.reshape((-1, 1)), x, numpy.zeros((n, 1))), axis=1)
 
-    assert (
-        nll.eval(beta0, input, regularize=False)[0]
-        == nll.eval(beta0, input, regularize=False)[0]
-    )
-
-    def func(x: ndarray) -> float:
-        return nll.eval(x, input, regularize=False)[0]
-
-    def grad(x: ndarray) -> ndarray:
-        return nll.grad(x, input, regularize=False)
+    func, grad = nll2func(nll, beta0, input, regularize=False)
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
 
