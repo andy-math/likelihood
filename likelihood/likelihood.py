@@ -6,10 +6,10 @@ import numpy
 from numerical.typedefs import ndarray
 from overloads.shortcuts import assertNoInfNaN
 
+from likelihood.Compose import Compose
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Penalty import Penalty
 from likelihood.stages.abc.Stage import Stage
-from likelihood.stages.Compose import Compose
 
 
 def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
@@ -29,7 +29,7 @@ class negLikelihood:
         self, stages: List[Stage[Any]], penalty: Optional[Penalty[Any]], *, nvars: int
     ) -> None:
         _check_stages(stages, nvars)
-        self.stages = Compose(stages, tuple(range(nvars)), tuple(range(nvars)))
+        self.stages = Compose(stages, nvars)
         self.penalty = penalty
         self.nCoeff = self.stages.len_coeff
         self.nInput = nvars

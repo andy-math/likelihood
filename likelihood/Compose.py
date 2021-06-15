@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Any, List, Optional, Tuple
 
 import numpy
-from likelihood.stages.abc.Stage import Constraints, Stage
 from numerical.typedefs import ndarray
+
+from likelihood.stages.abc.Stage import Constraints, Stage
 
 
 def _make_names(*stages: Stage[Any]) -> Tuple[Tuple[str, ...], Tuple[int, ...]]:
@@ -20,20 +21,18 @@ def _make_names(*stages: Stage[Any]) -> Tuple[Tuple[str, ...], Tuple[int, ...]]:
 _Compose_gradinfo_t = List[Any]
 
 
-class Compose(Stage[_Compose_gradinfo_t]):
+class Compose:
+    names: Tuple[str, ...]
     len_coeff: int
     packing: Tuple[int, ...]
     stages: List[Stage[Any]]
 
-    def __init__(
-        self, stages: List[Stage[Any]], input: Tuple[int, ...], output: Tuple[int, ...]
-    ) -> None:
+    def __init__(self, stages: List[Stage[Any]], nvars: int) -> None:
         names, packing = _make_names(*stages)
-        super().__init__(names, input, output)
-        assert len(input) == len(output)
+        self.names = names
         for s in stages:
-            assert not len(s._input_idx) or max(s._input_idx) < len(input)
-            assert not len(s._output_idx) or max(s._output_idx) < len(output)
+            assert not len(s._input_idx) or max(s._input_idx) < nvars
+            assert not len(s._output_idx) or max(s._output_idx) < nvars
         self.len_coeff = packing[-1]
         self.packing = packing[:-1]
         self.stages = stages
@@ -41,7 +40,7 @@ class Compose(Stage[_Compose_gradinfo_t]):
     def _unpack(self, coeff: ndarray) -> List[ndarray]:
         return numpy.split(coeff, self.packing)  # type: ignore
 
-    def _eval(
+    def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Compose_gradinfo_t]]:
         coeffs = self._unpack(coeff)
@@ -55,7 +54,7 @@ class Compose(Stage[_Compose_gradinfo_t]):
             return output, None
         return output, gradinfo
 
-    def _grad(
+    def grad(
         self,
         coeff: ndarray,
         gradinfo: _Compose_gradinfo_t,
