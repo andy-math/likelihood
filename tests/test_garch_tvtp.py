@@ -8,9 +8,7 @@ from likelihood.stages.Copy import Copy
 from likelihood.stages.Garch_mean import Garch_mean
 from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
-from likelihood.stages.LogNormpdf_var import LogNormpdf_var
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
-from likelihood.stages.Residual import Residual
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -74,13 +72,11 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         (),
         providers["normpdf"],
         (3, 4),
-        (13, 14, 15, 16, 17, 18),
+        (0, 17, 18),
     )
-    stage7 = Residual((0, 14), 0)
-    stage8 = LogNormpdf_var((0, 15), (0, 15))
 
     nll = likelihood.negLikelihood(
-        [stage1, stage2, stage3, stage4, stage5, stage6, stage7, stage8],
+        [stage1, stage2, stage3, stage4, stage5, stage6],
         None,
         nvars=19,
     )
@@ -109,7 +105,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("abserr_mle: ", abserr_mle)
     assert result.success
     assert 5 < result.iter < 1000
-    assert abserr_mle < 0.4
+    assert abserr_mle < 2
 
 
 class Test_1:

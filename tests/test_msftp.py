@@ -7,7 +7,6 @@ from likelihood import likelihood
 from likelihood.stages.Assign import Assign
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Iterize import Iterize
-from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from numerical import difference
 from numerical.typedefs import ndarray
@@ -42,7 +41,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = numpy.concatenate(
         (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 13))), axis=1
     )
-    beta0 = numpy.array([0.8, 0.8, 1.0])
+    beta0 = numpy.array([0.8, 0.8])
 
     stage4 = Copy((0, 1, 2), (5, 6, 7))
     stage5 = Copy((0, 2), (8, 9))
@@ -52,12 +51,11 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     assign1 = Assign("p11", 14, 0.0, 1.0)
     assign2 = Assign("p22", 15, 0.0, 1.0)
     stage7 = MS_TVTP(
-        (submodel1, submodel2), (), providers["normpdf"], (14, 15), (11, 12, 13, 14, 15)
+        (submodel1, submodel2), (), providers["normpdf"], (14, 15), (0, 11, 12)
     )
-    stage8 = LogNormpdf("var", (0, 12), (0, 1))
 
     nll = likelihood.negLikelihood(
-        [stage4, stage5, stage6, assign1, assign2, stage7, stage8],
+        [stage4, stage5, stage6, assign1, assign2, stage7],
         None,
         nvars=16,
     )
@@ -74,7 +72,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         *constraint,
         opts,
     )
-    beta_mle = result.x[:-1]
+    beta_mle = result.x
     relerr_mle = difference.relative(coeff, beta_mle)
     print("result.success: ", result.success)
     print("coeff: ", coeff)
@@ -82,7 +80,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("relerr_mle: ", relerr_mle)
     assert result.success
     assert 5 < result.iter < 200
-    assert relerr_mle < 0.05
+    assert relerr_mle < 0.15
 
 
 class Test_1:

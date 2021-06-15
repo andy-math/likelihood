@@ -5,7 +5,7 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy
 from likelihood.jit import Jitted_Function
-from likelihood.stages.abc import Iterative
+from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
 from likelihood.utilities import compose_constraints, compose_names
 from numba import float64  # type: ignore
@@ -24,18 +24,14 @@ def _tvtp_output0_generate(
         out0_1, dout_1 = out0_f1(coeff[:halfCoeff])
         out0_2, dout_2 = out0_f2(coeff[halfCoeff:])
 
-        out0 = numpy.concatenate(
-            (out0_1, out0_2, (out0_1 + out0_2) / 2.0, numpy.array([0.5, 0.5]))
-        )
+        out0 = numpy.concatenate((numpy.array([0.0, 0.5, 0.5]), out0_1, out0_2))
 
         (nOut,) = out0_1.shape
 
-        dout = numpy.zeros((nOut * 3 + 2, halfCoeff * 2))
+        dout = numpy.zeros((nOut * 2 + 3, halfCoeff * 2))
 
-        dout[:nOut, :halfCoeff] = dout_1
-        dout[nOut : 2 * nOut, halfCoeff:] = dout_2  # noqa: E203
-        dout[2 * nOut : 3 * nOut, :halfCoeff] = dout_1 / 2.0  # noqa: E203
-        dout[2 * nOut : 3 * nOut, halfCoeff:] = dout_2 / 2.0  # noqa: E203
+        dout[3 : (nOut + 3), :halfCoeff] = dout_1
+        dout[(nOut + 3) : (2 * nOut + 3), halfCoeff:] = dout_2  # noqa: E203
 
         return out0, dout
 
@@ -54,17 +50,17 @@ def _tvtp_eval_generate(
 
         p11: float
         p22: float
-        input, p11, p22 = input[:-2], input[-2], input[-1]
+        p11, p22, input = input[0], input[1], input[2:]
         (nInput,) = input.shape
         halfInput = nInput // 2
         assert halfInput * 2 == nInput
 
         lag_post1: float
         lag_post2: float
-        lag, lag_post1, lag_post2 = lag[:-2], lag[-2], lag[-1]
+        _, lag_post1, lag_post2, lag = lag[0], lag[1], lag[2], lag[3:]
         (nLag,) = lag.shape
-        halfLag = nLag // 3
-        assert halfLag * 3 == nLag
+        halfLag = nLag // 2
+        assert halfLag * 2 == nLag
 
         rawpath11: float
         rawpath22: float
@@ -85,7 +81,7 @@ def _tvtp_eval_generate(
         contrib22 = path22 / prior2 if prior2 else 0.5
 
         rawlag1 = lag[:halfLag]
-        rawlag2 = lag[halfLag : 2 * halfLag]  # noqa: E203
+        rawlag2 = lag[halfLag:]
 
         lag1 = contrib11 * rawlag1 + (1.0 - contrib11) * rawlag2
         lag2 = (1.0 - contrib22) * rawlag1 + contrib22 * rawlag2
@@ -106,10 +102,9 @@ def _tvtp_eval_generate(
 
         return numpy.concatenate(  # type:ignore
             (
+                numpy.array([math.log(rawpost1 + rawpost2), post1, post2]),
                 out_1,
                 out_2,
-                (prior1 * out_1 + prior2 * out_2),
-                numpy.array([post1, post2]),
             )
         )
 
@@ -137,36 +132,36 @@ def _tvtp_grad_generate(
 
         p11: float
         p22: float
-        input, p11, p22 = input[:-2], input[-2], input[-1]
+        p11, p22, input = input[0], input[1], input[2:]
         (nInput,) = input.shape
         halfInput = nInput // 2
         assert halfInput * 2 == nInput
 
         lag_post1: float
         lag_post2: float
-        lag, lag_post1, lag_post2 = lag[:-2], lag[-2], lag[-1]
+        _, lag_post1, lag_post2, lag = lag[0], lag[1], lag[2], lag[3:]
         (nLag,) = lag.shape
-        halfLag = nLag // 3
-        assert halfLag * 3 == nLag
+        halfLag = nLag // 2
+        assert halfLag * 2 == nLag
 
         dL_dpost1: float
         dL_dpost2: float
-        output, dL_do, dL_dpost1, dL_dpost2 = (
-            output[:-2],
-            dL_do[:-2],
-            dL_do[-2],
-            dL_do[-1],
+        output, dL_dlike, dL_dpost1, dL_dpost2, dL_do = (
+            output[3:],
+            dL_do[0],
+            dL_do[1],
+            dL_do[2],
+            dL_do[3:],
         )
         (nOutput,) = output.shape
-        halfOutput = nOutput // 3
-        assert halfOutput * 3 == nOutput
+        halfOutput = nOutput // 2
+        assert halfOutput * 2 == nOutput
 
         out1 = output[:halfOutput]
-        out2 = output[halfOutput : 2 * halfOutput]  # noqa: E203
+        out2 = output[halfOutput:]
 
         dL_dout1 = dL_do[:halfOutput]
-        dL_dout2 = dL_do[halfOutput : 2 * halfOutput]  # noqa: E203
-        dL_dout3 = dL_do[2 * halfOutput : 3 * halfOutput]  # noqa: E203
+        dL_dout2 = dL_do[halfOutput:]
 
         likeli1: float = likeli_provider(out1)
         likeli2: float = likeli_provider(out2)
@@ -203,20 +198,18 @@ def _tvtp_grad_generate(
             rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
         post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
 
+        dL_dlike /= rawpost1 + rawpost2
         dL_dstage2 = -dL_dpost1 * (post1 / 归一化stage2) - dL_dpost2 * (post2 / 归一化stage2)
-        dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2
-        dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2
+        dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2 + dL_dlike
+        dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2 + dL_dlike
         if rawpost1 + rawpost2 == 0:
             dL_drawpost1, dL_drawpost2 = 0.0, 0.0
 
-        dL_dprior1 = dL_drawpost1 * likeli1 + float(dL_dout3 @ out1)
-        dL_dprior2 = dL_drawpost2 * likeli2 + float(dL_dout3 @ out2)
+        dL_dprior1 = dL_drawpost1 * likeli1
+        dL_dprior2 = dL_drawpost2 * likeli2
 
         dL_dlikeli1 = dL_drawpost1 * prior1
         dL_dlikeli2 = dL_drawpost2 * prior2
-
-        dL_dout1 += dL_dout3 * prior1
-        dL_dout2 += dL_dout3 * prior2
 
         dL_dout1 += likeli_gradient(out1, likeli1, dL_dlikeli1)
         dL_dout2 += likeli_gradient(out2, likeli2, dL_dlikeli2)
@@ -262,14 +255,13 @@ def _tvtp_grad_generate(
 
         dL_dcoeff = numpy.concatenate((dL_dcoeff1, dL_dcoeff2))
         dL_dinput = numpy.concatenate(
-            (dL_dinput1, dL_dinput2, numpy.array([dL_dp11, dL_dp22]))
+            (numpy.array([dL_dp11, dL_dp22]), dL_dinput1, dL_dinput2)
         )
         dL_drawlag = numpy.concatenate(
             (
+                numpy.array([0.0, dL_dlagpost1, dL_dlagpost2]),
                 dL_drawlag1,
                 dL_drawlag2,
-                numpy.zeros((halfLag,)),
-                numpy.array([dL_dlagpost1, dL_dlagpost2]),
             )
         )
 
@@ -334,7 +326,7 @@ providers = {
 }
 
 
-class MS_TVTP(Iterative.Iterative):
+class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t]):
     submodel: Tuple[Iterative.Iterative, Iterative.Iterative]
     mapping: List[int]
 
@@ -347,18 +339,17 @@ class MS_TVTP(Iterative.Iterative):
             Jitted_Function[Callable[[ndarray, float, float], ndarray]],
         ],
         input: Tuple[int, int],
-        output: Tuple[int, ...],
+        output: Tuple[int, int, int],
     ) -> None:
         assert isinstance(submodel[0], type(submodel[1]))
         assert len(submodel[0]._output_idx) == len(submodel[1]._output_idx)
-        assert len(output) - 2 == len(submodel[0]._output_idx)
 
         names, mapping = compose_names(sharing, submodel[0].names, submodel[1].names)
 
         super().__init__(
             names,
-            submodel[0]._input_idx + submodel[1]._input_idx + input,
-            submodel[0]._output_idx + submodel[1]._output_idx + output,
+            input + submodel[0]._input_idx + submodel[1]._input_idx,
+            output + submodel[0]._output_idx + submodel[1]._output_idx,
             Jitted_Function(
                 Iterative.output0_signature,
                 tuple(x._output0_scalar for x in submodel),

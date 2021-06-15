@@ -8,7 +8,6 @@ from likelihood.stages.Copy import Copy
 from likelihood.stages.Iterize import Iterize
 from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
-from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.stages.Merge import Merge
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from numerical import difference
@@ -43,9 +42,9 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
     input = numpy.concatenate(
-        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 13))), axis=1
+        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 10))), axis=1
     )
-    beta0 = numpy.array([0.0, 0.0, 1.0])
+    beta0 = numpy.array([0.0, 0.0])
 
     stage1 = Linear(("p11b1",), (2,), 3)
     stage2 = Linear(("p22b1",), (2,), 4)
@@ -56,14 +55,13 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     submodel1 = Iterize((5, 6, 7), (5, 6, 7))
     submodel2 = Iterize((8, 9, 10), (8, 9, 10))
     stage7 = MS_TVTP(
-        (submodel1, submodel2), (), providers["normpdf"], (3, 4), (11, 12, 13, 14, 15)
+        (submodel1, submodel2), (), providers["normpdf"], (3, 4), (0, 11, 12)
     )
-    stage8 = LogNormpdf("var", (0, 12), (0, 1))
 
     nll = likelihood.negLikelihood(
-        [stage1, stage2, stage3, stage4, stage5, stage6, stage7, stage8],
+        [stage1, stage2, stage3, stage4, stage5, stage6, stage7],
         None,
-        nvars=16,
+        nvars=13,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
@@ -79,7 +77,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         *constraint,
         opts,
     )
-    beta_mle = result.x[:-1]
+    beta_mle = result.x
     relerr_mle = difference.relative(coeff, beta_mle)
     print("result.success: ", result.success)
     print("coeff: ", coeff)
@@ -87,7 +85,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("relerr_mle: ", relerr_mle)
     assert result.success
     assert 5 < result.iter < 200
-    assert relerr_mle < 0.1
+    assert relerr_mle < 0.6
 
 
 class Test_1:
