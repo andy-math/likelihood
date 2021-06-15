@@ -17,6 +17,7 @@ from optimizer import trust_region
 
 from tests.common import nll2func
 
+
 def normpdf(err: float) -> float:
     return 1.0 / math.sqrt(2.0 * math.pi) * math.exp(-err * err / 2.0)
 
