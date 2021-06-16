@@ -14,37 +14,44 @@ from numerical.typedefs import ndarray
 
 
 def _tvtp_output0_generate(
-    out0_f1: Callable[[ndarray], Tuple[ndarray, ndarray]],
-    out0_f2: Callable[[ndarray], Tuple[ndarray, ndarray]],
-) -> Callable[[ndarray], Tuple[ndarray, ndarray]]:
-    def implement(coeff: ndarray) -> Tuple[ndarray, ndarray]:
+    out0_f1: Callable[[ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]],
+    out0_f2: Callable[[ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]],
+) -> Callable[[ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]]:
+    def implement(coeff: ndarray) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         (nCoeff,) = coeff.shape
         halfCoeff = nCoeff // 2
         assert halfCoeff * 2 == nCoeff
 
-        out0_1, dout_1 = out0_f1(coeff[:halfCoeff])
-        out0_2, dout_2 = out0_f2(coeff[halfCoeff:])
+        out0_1, dout_1, pre_1, dpre_1 = out0_f1(coeff[:halfCoeff])
+        out0_2, dout_2, pre_2, dpre_2 = out0_f2(coeff[halfCoeff:])
 
         out0 = numpy.concatenate((numpy.array([0.0, 0.5, 0.5]), out0_1, out0_2))
+        pre = numpy.concatenate((pre_1, pre_2))
 
         (nOut,) = out0_1.shape
+        (nPre,) = pre_1.shape
 
         dout = numpy.zeros((nOut * 2 + 3, halfCoeff * 2))
-
         dout[3 : (nOut + 3), :halfCoeff] = dout_1
-        dout[(nOut + 3) : (2 * nOut + 3), halfCoeff:] = dout_2  # noqa: E203
+        dout[(nOut + 3) : (2 * nOut + 3), halfCoeff:] = dout_2
 
-        return out0, dout
+        dpre = numpy.zeros((nPre * 2, halfCoeff * 2))
+        dpre[:nPre, :halfCoeff] = dpre_1
+        dpre[nPre:, halfCoeff:] = dpre_2
+
+        return out0, dout, pre, dpre
 
     return implement
 
 
 def _tvtp_eval_generate(
-    eval_f1: Callable[[ndarray, ndarray, ndarray], ndarray],
-    eval_f2: Callable[[ndarray, ndarray, ndarray], ndarray],
+    eval_f1: Callable[[ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]],
+    eval_f2: Callable[[ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]],
     likeli_provider: Callable[[ndarray], float],
-) -> Callable[[ndarray, ndarray, ndarray], ndarray]:
-    def implement(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
+) -> Callable[[ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]:
+    def implement(
+        coeff: ndarray, input: ndarray, lag: ndarray, pre: ndarray
+    ) -> Tuple[ndarray, ndarray]:
         (nCoeff,) = coeff.shape
         halfCoeff = nCoeff // 2
         assert halfCoeff * 2 == nCoeff
@@ -62,6 +69,10 @@ def _tvtp_eval_generate(
         (nLag,) = lag.shape
         halfLag = nLag // 2
         assert halfLag * 2 == nLag
+
+        (nPre,) = pre.shape
+        halfPre = nPre // 2
+        assert halfPre * 2 == nPre
 
         rawpath11: float
         rawpath22: float
@@ -87,8 +98,12 @@ def _tvtp_eval_generate(
         lag1 = contrib11 * rawlag1 + (1.0 - contrib11) * rawlag2
         lag2 = (1.0 - contrib22) * rawlag1 + contrib22 * rawlag2
 
-        out_1 = eval_f1(coeff[:halfCoeff], input[:halfInput], lag1)
-        out_2 = eval_f2(coeff[halfCoeff:], input[halfInput:], lag2)
+        out_1, pre[:halfPre] = eval_f1(
+            coeff[:halfCoeff], input[:halfInput], lag1, pre[:halfPre]
+        )
+        out_2, pre[halfPre:] = eval_f2(
+            coeff[halfCoeff:], input[halfInput:], lag2, pre[halfPre:]
+        )
 
         likeli1: float = likeli_provider(out_1)
         likeli2: float = likeli_provider(out_2)
@@ -101,12 +116,15 @@ def _tvtp_eval_generate(
             rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
         post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
 
-        return numpy.concatenate(  # type:ignore
-            (
-                numpy.array([math.log(rawpost1 + rawpost2), post1, post2]),
-                out_1,
-                out_2,
-            )
+        return (
+            numpy.concatenate(
+                (
+                    numpy.array([math.log(rawpost1 + rawpost2), post1, post2]),
+                    out_1,
+                    out_2,
+                )
+            ),
+            pre,
         )
 
     return implement
@@ -114,19 +132,27 @@ def _tvtp_eval_generate(
 
 def _tvtp_grad_generate(
     grad_f1: Callable[
-        [ndarray, ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray, ndarray]
+        [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
+        Tuple[ndarray, ndarray, ndarray, ndarray],
     ],
     grad_f2: Callable[
-        [ndarray, ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray, ndarray]
+        [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
+        Tuple[ndarray, ndarray, ndarray, ndarray],
     ],
     likeli_provider: Callable[[ndarray], float],
     likeli_gradient: Callable[[ndarray, float, float], ndarray],
 ) -> Callable[
-    [ndarray, ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray, ndarray]
+    [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
+    Tuple[ndarray, ndarray, ndarray, ndarray],
 ]:
     def implement(
-        coeff: ndarray, input: ndarray, lag: ndarray, output: ndarray, dL_do: ndarray
-    ) -> Tuple[ndarray, ndarray, ndarray]:
+        coeff: ndarray,
+        input: ndarray,
+        lag: ndarray,
+        output: ndarray,
+        dL_do: ndarray,
+        dL_dpre: ndarray,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         (nCoeff,) = coeff.shape
         halfCoeff = nCoeff // 2
         assert halfCoeff * 2 == nCoeff
@@ -157,6 +183,10 @@ def _tvtp_grad_generate(
         (nOutput,) = output.shape
         halfOutput = nOutput // 2
         assert halfOutput * 2 == nOutput
+
+        (nPre,) = dL_dpre.shape
+        halfPre = nPre // 2
+        assert halfPre * 2 == nPre
 
         out1 = output[:halfOutput]
         out2 = output[halfOutput:]
@@ -215,11 +245,21 @@ def _tvtp_grad_generate(
         dL_dout1 += likeli_gradient(out1, likeli1, dL_dlikeli1)
         dL_dout2 += likeli_gradient(out2, likeli2, dL_dlikeli2)
 
-        dL_dcoeff1, dL_dinput1, dL_dlag1 = grad_f1(
-            coeff[:halfCoeff], input[:halfInput], lag1, out1, dL_dout1
+        dL_dcoeff1, dL_dinput1, dL_dlag1, dL_dpre[:halfPre] = grad_f1(
+            coeff[:halfCoeff],
+            input[:halfInput],
+            lag1,
+            out1,
+            dL_dout1,
+            dL_dpre[:halfPre],
         )
-        dL_dcoeff2, dL_dinput2, dL_dlag2 = grad_f2(
-            coeff[halfCoeff:], input[halfInput:], lag2, out2, dL_dout2
+        dL_dcoeff2, dL_dinput2, dL_dlag2, dL_dpre[halfPre:] = grad_f2(
+            coeff[halfCoeff:],
+            input[halfInput:],
+            lag2,
+            out2,
+            dL_dout2,
+            dL_dpre[halfPre:],
         )
 
         dL_drawlag1 = dL_dlag1 * contrib11 + dL_dlag2 * (1.0 - contrib22)
@@ -266,7 +306,7 @@ def _tvtp_grad_generate(
             )
         )
 
-        return (dL_dcoeff, dL_dinput, dL_drawlag)
+        return (dL_dcoeff, dL_dinput, dL_drawlag, dL_dpre)
 
     return implement
 

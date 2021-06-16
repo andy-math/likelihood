@@ -9,41 +9,72 @@ from likelihood.stages.abc.Stage import Constraints
 from numerical.typedefs import ndarray
 
 
-def _iterize_output0_generate_1() -> Callable[[ndarray], Tuple[ndarray, ndarray]]:
-    def implement(_: ndarray) -> Tuple[ndarray, ndarray]:
-        return (numpy.empty((1,)), numpy.empty((1, 0)))
+def _iterize_output0_generate_1() -> Callable[
+    [ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]
+]:
+    def implement(_: ndarray) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        return (
+            numpy.empty((1,)),
+            numpy.empty((1, 0)),
+            numpy.empty((0,)),
+            numpy.empty((0, 0)),
+        )
 
     return implement
 
 
-def _iterize_output0_generate_2() -> Callable[[ndarray], Tuple[ndarray, ndarray]]:
-    def implement(_: ndarray) -> Tuple[ndarray, ndarray]:
-        return (numpy.empty((2,)), numpy.empty((2, 0)))
+def _iterize_output0_generate_2() -> Callable[
+    [ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]
+]:
+    def implement(_: ndarray) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        return (
+            numpy.empty((2,)),
+            numpy.empty((2, 0)),
+            numpy.empty((0,)),
+            numpy.empty((0, 0)),
+        )
 
     return implement
 
 
-def _iterize_output0_generate_3() -> Callable[[ndarray], Tuple[ndarray, ndarray]]:
-    def implement(_: ndarray) -> Tuple[ndarray, ndarray]:
-        return (numpy.empty((3,)), numpy.empty((3, 0)))
+def _iterize_output0_generate_3() -> Callable[
+    [ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]
+]:
+    def implement(_: ndarray) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        return (
+            numpy.empty((3,)),
+            numpy.empty((3, 0)),
+            numpy.empty((0,)),
+            numpy.empty((0, 0)),
+        )
 
     return implement
 
 
-def _iterize_eval_generate() -> Callable[[ndarray, ndarray, ndarray], ndarray]:
-    def implement(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
-        return input
+def _iterize_eval_generate() -> Callable[
+    [ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]
+]:
+    def implement(
+        coeff: ndarray, input: ndarray, lag: ndarray, pre: ndarray
+    ) -> Tuple[ndarray, ndarray]:
+        return input, pre
 
     return implement
 
 
 def _iterize_grad_generate() -> Callable[
-    [ndarray, ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray, ndarray]
+    [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
+    Tuple[ndarray, ndarray, ndarray, ndarray],
 ]:
     def implement(
-        coeff: ndarray, input: ndarray, lag: ndarray, _: ndarray, dL_do: ndarray
-    ) -> Tuple[ndarray, ndarray, ndarray]:
-        return (numpy.empty((0,)), dL_do, numpy.zeros(lag.shape))
+        coeff: ndarray,
+        input: ndarray,
+        lag: ndarray,
+        _: ndarray,
+        dL_do: ndarray,
+        dL_dpre: ndarray,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        return (numpy.empty((0,)), dL_do, numpy.zeros(lag.shape), dL_dpre)
 
     return implement
 

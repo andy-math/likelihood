@@ -9,8 +9,10 @@ from likelihood.stages.abc.Stage import Constraints
 from numerical.typedefs import ndarray
 
 
-def _garch_midas_output0_generate() -> Callable[[ndarray], Tuple[ndarray, ndarray]]:
-    def implement(coeff: ndarray) -> Tuple[ndarray, ndarray]:
+def _garch_midas_output0_generate() -> Callable[
+    [ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]
+]:
+    def implement(coeff: ndarray) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         """
         var = c + a*var + b*var
         c = (1-a-b)var
@@ -35,28 +37,40 @@ def _garch_midas_output0_generate() -> Callable[[ndarray], Tuple[ndarray, ndarra
                 ]
             )
             / (1.0 - a - b),
+            numpy.empty((0,)),
+            numpy.empty((0, 3)),
         )
 
     return implement
 
 
-def _grach_midas_eval_generate() -> Callable[[ndarray, ndarray, ndarray], ndarray]:
-    def implement(coeff: ndarray, input: ndarray, lag: ndarray) -> ndarray:
+def _grach_midas_eval_generate() -> Callable[
+    [ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]
+]:
+    def implement(
+        coeff: ndarray, input: ndarray, lag: ndarray, pre: ndarray
+    ) -> Tuple[ndarray, ndarray]:
         c, a, b = coeff[0], coeff[1], coeff[2]
         x, err, long_turn = input[0], input[1], input[2]
         z2 = (err * err) / long_turn
         short_turn = c + a * z2 + b * lag[3]
-        return numpy.array([x, 0.0, short_turn * long_turn, short_turn])
+        return numpy.array([x, 0.0, short_turn * long_turn, short_turn]), pre
 
     return implement
 
 
 def _garch_midas_grad_generate() -> Callable[
-    [ndarray, ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray, ndarray]
+    [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
+    Tuple[ndarray, ndarray, ndarray, ndarray],
 ]:
     def implement(
-        coeff: ndarray, input: ndarray, lag: ndarray, _: ndarray, dL_do: ndarray
-    ) -> Tuple[ndarray, ndarray, ndarray]:
+        coeff: ndarray,
+        input: ndarray,
+        lag: ndarray,
+        _: ndarray,
+        dL_do: ndarray,
+        dL_dpre: ndarray,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         c, a, b = coeff[0], coeff[1], coeff[2]
         err, long_turn = input[1], input[2]
         z2 = (err * err) / long_turn
@@ -74,6 +88,7 @@ def _garch_midas_grad_generate() -> Callable[
             dL_dshort * numpy.array([1.0, z2, lag[3]]),
             numpy.array([dL_dx, dL_derr, dL_dlong]),
             numpy.array([0.0, 0.0, 0.0, dL_dshort * b]),
+            dL_dpre,
         )
 
     return implement
