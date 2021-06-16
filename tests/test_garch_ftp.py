@@ -86,6 +86,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     opts.check_iter = 50
     opts.abstol_fval = 1.0e-2
     opts.max_stall_iter = 100
+    opts.border_abstol = 1e-10
 
     result = trust_region.trust_region(
         func,
