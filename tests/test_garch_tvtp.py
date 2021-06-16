@@ -106,7 +106,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("abserr_mle: ", abserr_mle)
     assert result.success
     assert 5 < result.iter < 3000
-    assert abserr_mle < 2
+    assert abserr_mle < 3
 
 
 class Test_1:
