@@ -7,7 +7,8 @@ import numpy
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
-from likelihood.utilities import compose_constraints, compose_names
+from likelihood.utilities.compose_constraints import compose_constraints
+from likelihood.utilities.compose_names import compose_names
 from numba import float64  # type: ignore
 from numerical.typedefs import ndarray
 
