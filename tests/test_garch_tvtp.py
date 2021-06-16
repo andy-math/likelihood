@@ -105,7 +105,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("mle:   ", [round(x, 6) for x in beta_mle])
     print("abserr_mle: ", abserr_mle)
     assert result.success
-    assert 5 < result.iter < 1000
+    assert 5 < result.iter < 3000
     assert abserr_mle < 2
 
 
