@@ -53,7 +53,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
     input = numpy.concatenate(
-        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 16))), axis=1
+        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 12))), axis=1
     )
     beta0 = numpy.array([0.8, 0.8, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0])
 
@@ -62,20 +62,20 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     # x mu var EX2
     submodel1 = Garch_mean(("c1", "a1", "b1"), (5, 6), (5, 6, 7, 8))
     submodel2 = Garch_mean(("c2", "a2", "b2"), (9, 10), (9, 10, 11, 12))
-    assign1 = Assign("p11", 17, 0.0, 1.0)
-    assign2 = Assign("p22", 18, 0.0, 1.0)
+    assign1 = Assign("p11", 13, 0.0, 1.0)
+    assign2 = Assign("p22", 14, 0.0, 1.0)
     stage6 = MS_TVTP(
         (submodel1, submodel2),
         (),
         providers["normpdf"],
-        (17, 18),
-        (0, 17, 18),
+        (13, 14),
+        (0, 13, 14),
     )
 
     nll = likelihood.negLikelihood(
         [stage4, stage5, assign1, assign2, stage6],
         None,
-        nvars=19,
+        nvars=15,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)

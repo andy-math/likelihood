@@ -55,7 +55,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
     input = numpy.concatenate(
-        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 16))), axis=1
+        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 12))), axis=1
     )
     beta0 = numpy.array([1.0, 1.0, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0])
 
@@ -72,13 +72,13 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         (),
         providers["normpdf"],
         (3, 4),
-        (0, 17, 18),
+        (0, 13, 14),
     )
 
     nll = likelihood.negLikelihood(
         [stage1, stage2, stage3, stage4, stage5, stage6],
         None,
-        nvars=19,
+        nvars=15,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
@@ -87,6 +87,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
 
     opts = trust_region.Trust_Region_Options(max_iter=99999)
     opts.check_iter = 50
+    opts.check_rel = 5e-2
     opts.abstol_fval = 1.0e-2
     opts.max_stall_iter = 100
 

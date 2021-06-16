@@ -39,7 +39,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
     input = numpy.concatenate(
-        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 13))), axis=1
+        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 10))), axis=1
     )
     beta0 = numpy.array([0.8, 0.8])
 
@@ -48,16 +48,16 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     stage6 = Copy((2,), (10,))
     submodel1 = Iterize((5, 6, 7), (5, 6, 7))
     submodel2 = Iterize((8, 9, 10), (8, 9, 10))
-    assign1 = Assign("p11", 14, 0.0, 1.0)
-    assign2 = Assign("p22", 15, 0.0, 1.0)
+    assign1 = Assign("p11", 11, 0.0, 1.0)
+    assign2 = Assign("p22", 12, 0.0, 1.0)
     stage7 = MS_TVTP(
-        (submodel1, submodel2), (), providers["normpdf"], (14, 15), (0, 11, 12)
+        (submodel1, submodel2), (), providers["normpdf"], (11, 12), (0, 11, 12)
     )
 
     nll = likelihood.negLikelihood(
         [stage4, stage5, stage6, assign1, assign2, stage7],
         None,
-        nvars=16,
+        nvars=13,
     )
     func, grad = nll2func(nll, beta0, input, regularize=False)
 
