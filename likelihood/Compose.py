@@ -31,8 +31,8 @@ class Compose:
         names, packing = _make_names(*stages)
         self.names = names
         for s in stages:
-            assert not len(s._input_idx) or max(s._input_idx) < nvars
-            assert not len(s._output_idx) or max(s._output_idx) < nvars
+            assert not len(s.data_in_index) or max(s.data_in_index) < nvars
+            assert not len(s.data_out_index) or max(s.data_out_index) < nvars
         self.len_coeff = packing[-1]
         self.packing = packing[:-1]
         self.stages = stages

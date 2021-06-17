@@ -20,19 +20,22 @@ _gradinfo_t = TypeVar("_gradinfo_t", contravariant=True)
 
 class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     names: Tuple[str, ...]
-    _input_idx: Tuple[int, ...]
-    _output_idx: Tuple[int, ...]
+    data_in_index: Tuple[int, ...]
+    data_out_index: Tuple[int, ...]
 
     def __init__(
-        self, names: Tuple[str, ...], input: Tuple[int, ...], output: Tuple[int, ...]
+        self,
+        coeff_names: Tuple[str, ...],
+        data_in_index: Tuple[int, ...],
+        data_out_index: Tuple[int, ...],
     ) -> None:
-        assert len(set(names)) == len(names)
-        assert len(set(input)) == len(input)
-        assert len(set(output)) == len(output)
+        assert len(set(coeff_names)) == len(coeff_names)
+        assert len(set(data_in_index)) == len(data_in_index)
+        assert len(set(data_out_index)) == len(data_out_index)
         super().__init__()
-        self.names = names
-        self._input_idx = input
-        self._output_idx = output
+        self.names = coeff_names
+        self.data_in_index = data_in_index
+        self.data_out_index = data_out_index
 
     @abstractmethod
     def _eval(
@@ -55,19 +58,19 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
-        _input: ndarray = input[:, self._input_idx]
+        _input: ndarray = input[:, self.data_in_index]
         _output, gradinfo = self._eval(coeff, _input, grad=grad, debug=debug)
         assertNoInfNaN(_output)
         k = input.shape[0] - _output.shape[0]
         output = input[k:, :] if k else input
-        output[:, self._output_idx] = _output
+        output[:, self.data_out_index] = _output
         return output, gradinfo
 
     def grad(
         self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
-        _dL_do: ndarray = dL_do[:, self._output_idx]
-        dL_do[:, self._output_idx] = 0.0
+        _dL_do: ndarray = dL_do[:, self.data_out_index]
+        dL_do[:, self.data_out_index] = 0.0
         _dL_di, dL_dc = self._grad(coeff, gradinfo, _dL_do, debug=debug)
         assertNoInfNaN(_dL_di)
         assertNoInfNaN(dL_dc)
@@ -77,5 +80,5 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
             dL_di[k:, :] = dL_do
         else:
             dL_di = dL_do
-        dL_di[:, self._input_idx] += _dL_di
+        dL_di[:, self.data_in_index] += _dL_di
         return dL_di, dL_dc

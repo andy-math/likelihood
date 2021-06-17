@@ -39,14 +39,14 @@ class Merge(Stage[_Merge_gradinfo_t]):
         input: List[int] = []
         output: List[int] = []
         for s in stages:
-            input.extend(s._input_idx)
-            output.extend(s._output_idx)
+            input.extend(s.data_in_index)
+            output.extend(s.data_out_index)
         super().__init__(names, tuple(input), tuple(output))
         self.len_coeff = packing[-1]
         self.packing = packing[:-1]
         self.stages = stages
-        self.packing_input = _make_packing([s._input_idx for s in stages])
-        self.packing_output = _make_packing([s._output_idx for s in stages])
+        self.packing_input = _make_packing([s.data_in_index for s in stages])
+        self.packing_output = _make_packing([s.data_out_index for s in stages])
 
     def _unpack(self, coeff: ndarray) -> List[ndarray]:
         return numpy.split(coeff, self.packing)  # type: ignore

@@ -14,9 +14,9 @@ from likelihood.stages.abc.Stage import Stage
 
 def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
     for s in stages:
-        assert not len(s._input_idx) or max(s._input_idx) < nvars
+        assert not len(s.data_in_index) or max(s.data_in_index) < nvars
     assert isinstance(stages[-1], Logpdf)
-    assert stages[-1]._output_idx[0] == 0
+    assert stages[-1].data_out_index[0] == 0
 
 
 class negLikelihood:

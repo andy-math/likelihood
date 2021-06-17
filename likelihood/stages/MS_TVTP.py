@@ -383,14 +383,14 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
         output: Tuple[int, int, int],
     ) -> None:
         assert isinstance(submodel[0], type(submodel[1]))
-        assert len(submodel[0]._output_idx) == len(submodel[1]._output_idx)
+        assert len(submodel[0].data_out_index) == len(submodel[1].data_out_index)
 
         names, mapping = compose_names(sharing, submodel[0].names, submodel[1].names)
 
         super().__init__(
             names,
-            input + submodel[0]._input_idx + submodel[1]._input_idx,
-            output + submodel[0]._output_idx + submodel[1]._output_idx,
+            input + submodel[0].data_in_index + submodel[1].data_in_index,
+            output + submodel[0].data_out_index + submodel[1].data_out_index,
             Jitted_Function(
                 Iterative.output0_signature,
                 tuple(x._output0_scalar for x in submodel),
