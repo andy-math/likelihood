@@ -11,13 +11,13 @@ from likelihood.stages.abc.Stage import Stage
 class Compose:
     def eval(
         self,
-        stages: List[Stage[Any]],
+        stages: Tuple[Stage[Any], ...],
         coeff: ndarray,
         input: ndarray,
         *,
         grad: bool,
         debug: bool
-    ) -> Tuple[ndarray, Optional[List[Any]]]:
+    ) -> Tuple[ndarray, Optional[Tuple[Any, ...]]]:
         output: ndarray = input
         gradinfo: List[Optional[Any]] = []
         for s in stages:
@@ -26,13 +26,13 @@ class Compose:
             gradinfo.append(g)
         if not grad:
             return output, None
-        return output, gradinfo
+        return output, tuple(gradinfo)
 
     def grad(
         self,
-        stages: List[Stage[Any]],
+        stages: Tuple[Stage[Any], ...],
         coeff: ndarray,
-        gradinfo: List[Any],
+        gradinfo: Tuple[Any, ...],
         dL_do: ndarray,
         *,
         debug: bool

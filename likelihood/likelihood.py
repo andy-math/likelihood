@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy
 from numerical.typedefs import ndarray
@@ -12,7 +12,7 @@ from likelihood.stages.abc.Penalty import Penalty
 from likelihood.stages.abc.Stage import Constraints, Stage
 
 
-def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
+def _check_stages(stages: Tuple[Stage[Any], ...], nvars: int) -> None:
     for s in stages:
         assert not len(s.data_in_index) or max(s.data_in_index) < nvars
     assert isinstance(stages[-1], Logpdf)
@@ -22,14 +22,14 @@ def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
 class negLikelihood:
     coeff_names: Tuple[str, ...]
     nInput: int
-    stages: List[Stage[Any]]
+    stages: Tuple[Stage[Any], ...]
     penalty: Optional[Penalty[Any]]
     constraints: Constraints
 
     def __init__(
         self,
         coeff_names: Tuple[str, ...],
-        stages: List[Stage[Any]],
+        stages: Tuple[Stage[Any], ...],
         penalty: Optional[Penalty[Any]],
         *,
         nvars: int
@@ -50,10 +50,10 @@ class negLikelihood:
         if penalty is not None:
             penalty.register_coeff(coeff_names, self.register_constraints)
 
-    def _get_stages(self, *, regularize: bool) -> List[Stage[Any]]:
+    def _get_stages(self, *, regularize: bool) -> Tuple[Stage[Any], ...]:
         if regularize:
             assert self.penalty is not None
-            return self.stages + [self.penalty]
+            return self.stages + (self.penalty,)
         else:
             return self.stages
 
@@ -65,7 +65,7 @@ class negLikelihood:
         grad: bool,
         regularize: bool,
         debug: bool
-    ) -> Tuple[float, ndarray, Optional[List[Any]]]:
+    ) -> Tuple[float, ndarray, Optional[Tuple[Any, ...]]]:
 
         assert coeff.shape == (len(self.coeff_names),)
         assert input.shape[1] == self.nInput
