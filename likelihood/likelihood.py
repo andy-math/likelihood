@@ -1,15 +1,50 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy
 from numerical.typedefs import ndarray
 from overloads.shortcuts import assertNoInfNaN, isunique
 
-from likelihood.Compose import Compose
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Penalty import Penalty
 from likelihood.stages.abc.Stage import Constraints, Stage
+
+
+def _eval_loop(
+    stages: Tuple[Stage[Any], ...],
+    coeff: ndarray,
+    input: ndarray,
+    *,
+    grad: bool,
+    debug: bool
+) -> Tuple[ndarray, Optional[Tuple[Any, ...]]]:
+    output: ndarray = input
+    gradinfo: List[Optional[Any]] = []
+    for s in stages:
+        assert s.coeff_index is not None
+        output, g = s.eval(coeff[s.coeff_index], output, grad=grad, debug=debug)
+        gradinfo.append(g)
+    if not grad:
+        return output, None
+    return output, tuple(gradinfo)
+
+
+def _grad_loop(
+    stages: Tuple[Stage[Any], ...],
+    coeff: ndarray,
+    gradinfo: Tuple[Any, ...],
+    dL_do: ndarray,
+    *,
+    debug: bool
+) -> Tuple[ndarray, ndarray]:
+    dL_dc = numpy.zeros(coeff.shape)
+    for s, g in zip(stages[::-1], gradinfo[::-1]):
+        assert s.coeff_index is not None
+        dL_do, _dL_dc = s.grad(coeff[s.coeff_index], g, dL_do, debug=debug)
+        for i, ci in enumerate(s.coeff_index):
+            dL_dc[ci] += _dL_dc[i]
+    return dL_do, dL_dc
 
 
 def _check_stages(stages: Tuple[Stage[Any], ...], nvars: int) -> None:
@@ -74,7 +109,7 @@ class negLikelihood:
         assertNoInfNaN(coeff)
         assertNoInfNaN(input)
 
-        output, gradinfo = Compose().eval(
+        output, gradinfo = _eval_loop(
             self._get_stages(regularize=regularize),
             coeff,
             input.copy(),
@@ -102,7 +137,7 @@ class negLikelihood:
         dL_dL[:, 0] = -1.0
 
         assert gradinfo is not None
-        _, dL_dc = Compose().grad(
+        _, dL_dc = _grad_loop(
             self._get_stages(regularize=regularize), coeff, gradinfo, dL_dL, debug=debug
         )
 
