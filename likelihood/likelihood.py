@@ -22,7 +22,7 @@ def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
 class negLikelihood:
     coeff_names: Tuple[str, ...]
     nInput: int
-    stages: Compose
+    stages: List[Stage[Any]]
     penalty: Optional[Penalty[Any]]
     constraints: Constraints
 
@@ -36,11 +36,9 @@ class negLikelihood:
     ) -> None:
         _check_stages(stages, nvars)
         self.coeff_names = coeff_names
-        self.stages = Compose(stages, nvars)
+        self.stages = stages
         self.penalty = penalty
         self.nInput = nvars
-        if penalty is not None:
-            penalty.make_index(coeff_names)
         self.constraints = Constraints(
             numpy.empty((0, len(coeff_names))),
             numpy.empty((0,)),
@@ -49,6 +47,15 @@ class negLikelihood:
         )
         for s in stages:
             s.register_coeff(coeff_names, self.register_constraints)
+        if penalty is not None:
+            penalty.register_coeff(coeff_names, self.register_constraints)
+
+    def _get_stages(self, *, regularize: bool) -> List[Stage[Any]]:
+        if regularize:
+            assert self.penalty is not None
+            return self.stages + [self.penalty]
+        else:
+            return self.stages
 
     def _eval(
         self: negLikelihood,
@@ -58,7 +65,7 @@ class negLikelihood:
         grad: bool,
         regularize: bool,
         debug: bool
-    ) -> Tuple[float, ndarray, Optional[Any], Optional[Any]]:
+    ) -> Tuple[float, ndarray, Optional[List[Any]]]:
 
         assert coeff.shape == (len(self.coeff_names),)
         assert input.shape[1] == self.nInput
@@ -66,21 +73,19 @@ class negLikelihood:
         assertNoInfNaN(coeff)
         assertNoInfNaN(input)
 
-        output, gradinfo = self.stages.eval(coeff, input.copy(), grad=grad, debug=debug)
-        _gradinfo = None
-        if regularize:
-            assert self.penalty is not None
-            assert self.penalty.index is not None
-            index = self.penalty.index
-            output, _gradinfo = self.penalty.eval(
-                coeff[index], output, grad=grad, debug=debug
-            )
-        return -numpy.sum(output[:, 0]), output, gradinfo, _gradinfo
+        output, gradinfo = Compose().eval(
+            self._get_stages(regularize=regularize),
+            coeff,
+            input.copy(),
+            grad=grad,
+            debug=debug,
+        )
+        return -numpy.sum(output[:, 0]), output, gradinfo
 
     def eval(
         self, coeff: ndarray, input: ndarray, *, regularize: bool, debug: bool = False
     ) -> Tuple[float, ndarray]:
-        fval, output, _, _ = self._eval(
+        fval, output, _ = self._eval(
             coeff, input, grad=False, regularize=regularize, debug=debug
         )
         return fval, output
@@ -88,27 +93,17 @@ class negLikelihood:
     def grad(
         self, coeff: ndarray, input: ndarray, *, regularize: bool, debug: bool = False
     ) -> ndarray:
-        _, o, gradinfo, _gradinfo = self._eval(
+        _, o, gradinfo = self._eval(
             coeff, input, grad=True, regularize=regularize, debug=debug
         )
 
         dL_dL = numpy.zeros(o.shape)
         dL_dL[:, 0] = -1.0
 
-        if regularize:
-            assert self.penalty is not None
-            assert _gradinfo is not None
-            assert self.penalty.index is not None
-            index = self.penalty.index
-            dL_dL, _dL_dc = self.penalty.grad(
-                coeff[index], _gradinfo, dL_dL, debug=debug
-            )
-
         assert gradinfo is not None
-        _, dL_dc = self.stages.grad(coeff, gradinfo, dL_dL, debug=debug)
-
-        if regularize:
-            dL_dc[index] += _dL_dc
+        _, dL_dc = Compose().grad(
+            self._get_stages(regularize=regularize), coeff, gradinfo, dL_dL, debug=debug
+        )
 
         return dL_dc
 
@@ -131,9 +126,4 @@ class negLikelihood:
         self.constraints = Constraints(self_A, self_b, self_lb, self_ub)
 
     def get_constraints(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
-        const = self.stages.get_constraints()
-        assert numpy.all(const.A == self.constraints.A)
-        assert numpy.all(const.b == self.constraints.b)
-        assert numpy.all(const.lb == self.constraints.lb)
-        assert numpy.all(const.ub == self.constraints.ub)
-        return const
+        return self.constraints
