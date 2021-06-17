@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import math
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Tuple
 
 import numpy
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
-from likelihood.utilities.compose_constraints import compose_constraints
-from likelihood.utilities.compose_names import compose_names
 from numba import float64  # type: ignore
 from numerical.typedefs import ndarray
 
@@ -369,7 +367,6 @@ providers = {
 
 class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t]):
     submodel: Tuple[Iterative.Iterative, Iterative.Iterative]
-    mapping: List[int]
 
     def __init__(
         self,
@@ -385,12 +382,8 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
         assert isinstance(submodel[0], type(submodel[1]))
         assert len(submodel[0].data_out_index) == len(submodel[1].data_out_index)
 
-        names, mapping = compose_names(
-            sharing, submodel[0].coeff_names, submodel[1].coeff_names
-        )
-
         super().__init__(
-            names,
+            (),
             input + submodel[0].data_in_index + submodel[1].data_in_index,
             output + submodel[0].data_out_index + submodel[1].data_out_index,
             Jitted_Function(
@@ -410,30 +403,17 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
             ),
         )
         self.submodel = submodel
-        self.mapping = mapping
-
-    def _eval(
-        self, coeff: ndarray, inputs: ndarray, *, grad: bool, debug: bool
-    ) -> Tuple[ndarray, Optional[Iterative._Iterative_gradinfo_t]]:
-        return super()._eval(coeff[self.mapping], inputs, grad=grad, debug=debug)
-
-    def _grad(
-        self,
-        coeff: ndarray,
-        gradinfo: Iterative._Iterative_gradinfo_t,
-        dL_do: ndarray,
-        *,
-        debug: bool
-    ) -> Tuple[ndarray, ndarray]:
-        dL_do, _dL_dc = super()._grad(coeff[self.mapping], gradinfo, dL_do, debug=debug)
-        dL_dc = numpy.zeros(coeff.shape)
-        for (index, d) in zip(self.mapping, _dL_dc):
-            dL_dc[index] += d
-        return dL_do, dL_dc
 
     def get_constraints(self) -> Constraints:
-        return compose_constraints(
-            self.mapping,
-            self.submodel[0].get_constraints(),
-            self.submodel[1].get_constraints(),
+        assert False
+
+    def register_coeff(
+        self,
+        likeli_names: Tuple[str, ...],
+        register_constraints: Callable[[ndarray, Constraints], None],
+    ) -> None:
+        self.submodel[0].register_coeff(likeli_names, register_constraints)
+        self.submodel[1].register_coeff(likeli_names, register_constraints)
+        self.coeff_index = numpy.concatenate(
+            (self.submodel[0].coeff_index, self.submodel[1].coeff_index)
         )

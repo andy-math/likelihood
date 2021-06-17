@@ -41,5 +41,6 @@ class Compose:
         for s, g in zip(stages[::-1], gradinfo[::-1]):
             assert s.coeff_index is not None
             dL_do, _dL_dc = s.grad(coeff[s.coeff_index], g, dL_do, debug=debug)
-            dL_dc[s.coeff_index] += _dL_dc
+            for i, ci in enumerate(s.coeff_index):
+                dL_dc[ci] += _dL_dc[i]
         return dL_do, dL_dc
