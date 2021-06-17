@@ -4,7 +4,7 @@ from typing import Any, Optional, Tuple
 
 import numpy
 from numerical.typedefs import ndarray
-from overloads.shortcuts import assertNoInfNaN
+from overloads.shortcuts import assertNoInfNaN, isunique
 
 from likelihood.Compose import Compose
 from likelihood.stages.abc.Logpdf import Logpdf
@@ -34,6 +34,7 @@ class negLikelihood:
         *,
         nvars: int
     ) -> None:
+        assert isunique(coeff_names)
         _check_stages(stages, nvars)
         self.coeff_names = coeff_names
         self.stages = stages
