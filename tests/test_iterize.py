@@ -32,7 +32,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
 
-    constraint = nll.get_constraint()
+    constraint = nll.get_constraints()
 
     result = trust_region.trust_region(
         func,

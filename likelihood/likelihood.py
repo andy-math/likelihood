@@ -98,5 +98,5 @@ class negLikelihood:
 
         return dL_dc
 
-    def get_constraint(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
-        return self.stages.get_constraint()
+    def get_constraints(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+        return self.stages.get_constraints()

@@ -71,7 +71,7 @@ class Compose:
             dL_dc.append(_dL_dc)
         return dL_do, numpy.concatenate(dL_dc[::-1])
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         from scipy.linalg import block_diag  # type: ignore
 
         A, b, lb, ub = zip(*(s.get_constraints() for s in self.stages))
