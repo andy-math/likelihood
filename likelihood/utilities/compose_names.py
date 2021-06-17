@@ -1,5 +1,7 @@
 from typing import List, Tuple
 
+from overloads.shortcuts import isunique
+
 
 def compose_names(
     shared_names: Tuple[str, ...],
@@ -11,9 +13,9 @@ def compose_names(
     输出组合的完整参数列表（Tuple）和展开索引式idx: tup[idx] => [left, right]
     """
     # names没有内部重名
-    assert len(shared_names) == len(set(shared_names))
-    assert len(left_names) == len(set(left_names))
-    assert len(right_names) == len(set(right_names))
+    assert isunique(shared_names)
+    assert isunique(left_names)
+    assert isunique(right_names)
 
     for name in shared_names:  # sharing的内容同时出现于两端
         assert name in left_names and name in right_names

@@ -5,6 +5,7 @@ from typing import Any, List, Optional, Tuple
 import numpy
 from likelihood.stages.abc.Stage import Constraints, Stage
 from numerical.typedefs import ndarray
+from overloads.shortcuts import isunique
 
 
 def _make_packing(idx: List[Tuple[int, ...]]) -> Tuple[int, ...]:
@@ -15,13 +16,13 @@ def _make_packing(idx: List[Tuple[int, ...]]) -> Tuple[int, ...]:
 
 
 def _make_names(*stages: Stage[Any]) -> Tuple[Tuple[str, ...], Tuple[int, ...]]:
-    names: List[str] = []
+    coeff_names: List[str] = []
     packing: List[int] = []
     for s in stages:
-        names.extend(s.coeff_names)
+        coeff_names.extend(s.coeff_names)
         packing.append(len(s.coeff_names))
-    assert len(set(names)) == len(names)
-    return tuple(names), tuple(numpy.cumsum(packing).tolist())
+    assert isunique(coeff_names)
+    return tuple(coeff_names), tuple(numpy.cumsum(packing).tolist())
 
 
 _Merge_gradinfo_t = List[Any]
