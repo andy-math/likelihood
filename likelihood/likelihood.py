@@ -40,7 +40,7 @@ class negLikelihood:
         self.penalty = penalty
         self.nInput = nvars
         if penalty is not None:
-            penalty.make_index(self.stages.names)
+            penalty.make_index(coeff_names)
         self.constraints = Constraints(
             numpy.empty((0, len(coeff_names))),
             numpy.empty((0,)),

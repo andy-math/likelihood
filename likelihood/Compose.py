@@ -4,43 +4,22 @@ from typing import Any, List, Optional, Tuple
 
 import numpy
 from numerical.typedefs import ndarray
-from overloads.shortcuts import isunique
 
 from likelihood.stages.abc.Stage import Constraints, Stage
 
 
-def _make_names(*stages: Stage[Any]) -> Tuple[Tuple[str, ...], Tuple[int, ...]]:
-    coeff_names: List[str] = []
-    packing: List[int] = []
-    for s in stages:
-        coeff_names.extend(s.coeff_names)
-        packing.append(len(s.coeff_names))
-    assert isunique(coeff_names)
-    return tuple(coeff_names), tuple(numpy.cumsum(packing).tolist())
-
-
-_Compose_gradinfo_t = List[Any]
-
-
 class Compose:
-    names: Tuple[str, ...]
-    len_coeff: int
-    packing: Tuple[int, ...]
     stages: List[Stage[Any]]
 
     def __init__(self, stages: List[Stage[Any]], nvars: int) -> None:
-        names, packing = _make_names(*stages)
-        self.names = names
         for s in stages:
             assert not len(s.data_in_index) or max(s.data_in_index) < nvars
             assert not len(s.data_out_index) or max(s.data_out_index) < nvars
-        self.len_coeff = packing[-1]
-        self.packing = packing[:-1]
         self.stages = stages
 
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
-    ) -> Tuple[ndarray, Optional[_Compose_gradinfo_t]]:
+    ) -> Tuple[ndarray, Optional[List[Any]]]:
         stages = self.stages
         output: ndarray = input
         gradinfo: List[Optional[Any]] = []
@@ -53,12 +32,7 @@ class Compose:
         return output, gradinfo
 
     def grad(
-        self,
-        coeff: ndarray,
-        gradinfo: _Compose_gradinfo_t,
-        dL_do: ndarray,
-        *,
-        debug: bool
+        self, coeff: ndarray, gradinfo: List[Any], dL_do: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
         stages = self.stages
         dL_dc: List[ndarray] = []
