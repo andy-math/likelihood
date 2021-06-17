@@ -48,7 +48,9 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     kernel_reldiff = difference.relative(stage1.kernel(coeff)[0], kkkk[::-1])
     assert kernel_reldiff < 1e-8
 
-    nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
+    nll = likelihood.negLikelihood(
+        ("omega1", "omega2", "var"), [stage1, stage2], None, nvars=2
+    )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 
@@ -87,7 +89,9 @@ def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
 
     ce: Optional[BaseException] = None
     try:
-        nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
+        nll = likelihood.negLikelihood(
+            ("omega1", "omega2", "var"), [stage1, stage2], None, nvars=2
+        )
         nll.eval(beta0, input, regularize=False)
     except BaseException as e:
         ce = e

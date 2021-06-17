@@ -41,7 +41,9 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> 
     stage2 = GarchMidas(("c", "a", "b"), (0, 1, 2), (0, 3, 1, 2))
     stage3 = LogNormpdf_var((0, 1), (0, 1))
 
-    nll = likelihood.negLikelihood([stage1, stage2, stage3], None, nvars=4)
+    nll = likelihood.negLikelihood(
+        ("omega", "c", "a", "b"), [stage1, stage2, stage3], None, nvars=4
+    )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 

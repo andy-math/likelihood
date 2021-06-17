@@ -22,7 +22,12 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     stage1 = Linear(("b1", "b2", "b3", "b4", "b5", "b0"), tuple(range(1, 7)), 1)
     stage2 = Residual((0, 1), 1)
     stage3 = LogNormpdf("var", (1, 7), (0, 1))
-    nll = likelihood.negLikelihood([stage1, stage2, stage3], None, nvars=8)
+    nll = likelihood.negLikelihood(
+        ("b1", "b2", "b3", "b4", "b5", "b0", "var"),
+        [stage1, stage2, stage3],
+        None,
+        nvars=8,
+    )
 
     beta0 = numpy.zeros((beta.shape[0] + 1,))
     beta0[-1] = 1.0

@@ -9,7 +9,7 @@ from overloads.shortcuts import assertNoInfNaN
 from likelihood.Compose import Compose
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Penalty import Penalty
-from likelihood.stages.abc.Stage import Stage
+from likelihood.stages.abc.Stage import Constraints, Stage
 
 
 def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
@@ -20,21 +20,37 @@ def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
 
 
 class negLikelihood:
+    coeff_names: Tuple[str, ...]
     nCoeff: int
     nInput: int
     stages: Compose
     penalty: Optional[Penalty[Any]]
+    constraints: Constraints
 
     def __init__(
-        self, stages: List[Stage[Any]], penalty: Optional[Penalty[Any]], *, nvars: int
+        self,
+        coeff_names: Tuple[str, ...],
+        stages: List[Stage[Any]],
+        penalty: Optional[Penalty[Any]],
+        *,
+        nvars: int
     ) -> None:
         _check_stages(stages, nvars)
+        self.coeff_names = coeff_names
         self.stages = Compose(stages, nvars)
         self.penalty = penalty
         self.nCoeff = self.stages.len_coeff
         self.nInput = nvars
         if penalty is not None:
             penalty.make_index(self.stages.names)
+        self.constraints = Constraints(
+            numpy.empty((0, len(coeff_names))),
+            numpy.empty((0,)),
+            numpy.full((len(coeff_names),), -numpy.inf),
+            numpy.full((len(coeff_names),), numpy.inf),
+        )
+        for s in stages:
+            s.register_coeff(coeff_names, self.register_constraints)
 
     def _eval(
         self: negLikelihood,
@@ -98,5 +114,28 @@ class negLikelihood:
 
         return dL_dc
 
+    def register_constraints(
+        self, coeff_index: ndarray, constraints: Constraints
+    ) -> None:
+        if not coeff_index.shape[0]:
+            return
+        self_A, self_b, self_lb, self_ub = self.constraints
+
+        self_A = numpy.concatenate(
+            (self_A, numpy.zeros((constraints.A.shape[0], len(self.coeff_names)))),
+            axis=0,
+        )
+        self_A[-constraints.A.shape[0] :, coeff_index] = constraints.A
+        self_b = numpy.concatenate((self_b, constraints.b))
+        self_lb[coeff_index] = numpy.maximum(self_lb[coeff_index], constraints.lb)
+        self_ub[coeff_index] = numpy.minimum(self_ub[coeff_index], constraints.ub)
+
+        self.constraints = Constraints(self_A, self_b, self_lb, self_ub)
+
     def get_constraints(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
-        return self.stages.get_constraints()
+        const = self.stages.get_constraints()
+        assert numpy.all(const.A == self.constraints.A)
+        assert numpy.all(const.b == self.constraints.b)
+        assert numpy.all(const.lb == self.constraints.lb)
+        assert numpy.all(const.ub == self.constraints.ub)
+        return const

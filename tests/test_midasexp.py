@@ -44,7 +44,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     stage1 = Midas_exp("omega", (1,), (1,), k=k)
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
 
-    nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
+    nll = likelihood.negLikelihood(("omega", "var"), [stage1, stage2], None, nvars=2)
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 
@@ -81,7 +81,9 @@ def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
 
     ce: Optional[BaseException] = None
     try:
-        nll = likelihood.negLikelihood([stage1, stage2], None, nvars=2)
+        nll = likelihood.negLikelihood(
+            ("omega", "var"), [stage1, stage2], None, nvars=2
+        )
         nll.eval(beta0, input, regularize=False)
     except BaseException as e:
         ce = e

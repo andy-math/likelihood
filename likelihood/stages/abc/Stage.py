@@ -105,6 +105,8 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
             if x not in self_names:
                 assert False, f"模块{type(self).__name__}所使用的参数{x}未在似然函数中声明。"
 
-        coeff_index = numpy.array([likeli_names.index(x) for x in self_names])
+        coeff_index = numpy.array(
+            [likeli_names.index(x) for x in self_names], dtype=numpy.int64
+        )
         self.coeff_index = coeff_index
         register_constraints(coeff_index, self.get_constraints())
