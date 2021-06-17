@@ -21,7 +21,6 @@ def _check_stages(stages: List[Stage[Any]], nvars: int) -> None:
 
 class negLikelihood:
     coeff_names: Tuple[str, ...]
-    nCoeff: int
     nInput: int
     stages: Compose
     penalty: Optional[Penalty[Any]]
@@ -39,7 +38,6 @@ class negLikelihood:
         self.coeff_names = coeff_names
         self.stages = Compose(stages, nvars)
         self.penalty = penalty
-        self.nCoeff = self.stages.len_coeff
         self.nInput = nvars
         if penalty is not None:
             penalty.make_index(self.stages.names)
@@ -62,7 +60,7 @@ class negLikelihood:
         debug: bool
     ) -> Tuple[float, ndarray, Optional[Any], Optional[Any]]:
 
-        assert coeff.shape == (self.nCoeff,)
+        assert coeff.shape == (len(self.coeff_names),)
         assert input.shape[1] == self.nInput
 
         assertNoInfNaN(coeff)

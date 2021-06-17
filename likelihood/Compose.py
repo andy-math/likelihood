@@ -38,18 +38,15 @@ class Compose:
         self.packing = packing[:-1]
         self.stages = stages
 
-    def _unpack(self, coeff: ndarray) -> List[ndarray]:
-        return numpy.split(coeff, self.packing)  # type: ignore
-
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Compose_gradinfo_t]]:
-        coeffs = self._unpack(coeff)
         stages = self.stages
         output: ndarray = input
         gradinfo: List[Optional[Any]] = []
-        for s, c in zip(stages, coeffs):
-            output, g = s.eval(c, output, grad=grad, debug=debug)
+        for s in stages:
+            assert s.coeff_index is not None
+            output, g = s.eval(coeff[s.coeff_index], output, grad=grad, debug=debug)
             gradinfo.append(g)
         if not grad:
             return output, None
@@ -63,11 +60,11 @@ class Compose:
         *,
         debug: bool
     ) -> Tuple[ndarray, ndarray]:
-        coeffs = self._unpack(coeff)
         stages = self.stages
         dL_dc: List[ndarray] = []
-        for s, c, g in zip(stages[::-1], coeffs[::-1], gradinfo[::-1]):
-            dL_do, _dL_dc = s.grad(c, g, dL_do, debug=debug)
+        for s, g in zip(stages[::-1], gradinfo[::-1]):
+            assert s.coeff_index is not None
+            dL_do, _dL_dc = s.grad(coeff[s.coeff_index], g, dL_do, debug=debug)
             dL_dc.append(_dL_dc)
         return dL_do, numpy.concatenate(dL_dc[::-1])
 
