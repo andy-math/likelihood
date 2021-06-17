@@ -84,7 +84,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         assertNoInfNaN(_dL_di)
         assertNoInfNaN(dL_dc)
         k = _dL_di.shape[0] - dL_do.shape[0]
-        assert k > 0
+        assert k >= 0
         if k:
             dL_di = numpy.zeros((_dL_di.shape[0], dL_do.shape[1]))
             dL_di[k:, :] = dL_do
