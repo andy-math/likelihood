@@ -26,7 +26,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
         tuple([f"b{i}" for i in range(1, m + 1)]), tuple(range(1, m + 1)), 1
     )
     stage2 = LogNormpdf("var", (0, 1), (0, 1))
-    penalty = Lasso(stage1.names, 1.0, (0, 1), 0)
+    penalty = Lasso(stage1.coeff_names, 1.0, (0, 1), 0)
     nll = likelihood.negLikelihood([stage1, stage2], penalty, nvars=m + 1)
 
     beta0 = numpy.zeros((beta.shape[0] + 1))

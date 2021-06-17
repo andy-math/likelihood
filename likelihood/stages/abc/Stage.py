@@ -5,7 +5,7 @@ from typing import Generic, NamedTuple, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
-from overloads.shortcuts import assertNoInfNaN
+from overloads.shortcuts import assertNoInfNaN, isunique
 
 
 class Constraints(NamedTuple):
@@ -19,7 +19,7 @@ _gradinfo_t = TypeVar("_gradinfo_t", contravariant=True)
 
 
 class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
-    names: Tuple[str, ...]
+    coeff_names: Tuple[str, ...]
     data_in_index: Tuple[int, ...]
     data_out_index: Tuple[int, ...]
 
@@ -29,11 +29,11 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         data_in_index: Tuple[int, ...],
         data_out_index: Tuple[int, ...],
     ) -> None:
-        assert len(set(coeff_names)) == len(coeff_names)
-        assert len(set(data_in_index)) == len(data_in_index)
-        assert len(set(data_out_index)) == len(data_out_index)
+        assert isunique(coeff_names)
+        assert isunique(data_in_index)
+        assert isunique(data_out_index)
         super().__init__()
-        self.names = coeff_names
+        self.coeff_names = coeff_names
         self.data_in_index = data_in_index
         self.data_out_index = data_out_index
 

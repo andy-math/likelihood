@@ -18,8 +18,8 @@ def _make_names(*stages: Stage[Any]) -> Tuple[Tuple[str, ...], Tuple[int, ...]]:
     names: List[str] = []
     packing: List[int] = []
     for s in stages:
-        names.extend(s.names)
-        packing.append(len(s.names))
+        names.extend(s.coeff_names)
+        packing.append(len(s.coeff_names))
     assert len(set(names)) == len(names)
     return tuple(names), tuple(numpy.cumsum(packing).tolist())
 

@@ -385,7 +385,9 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
         assert isinstance(submodel[0], type(submodel[1]))
         assert len(submodel[0].data_out_index) == len(submodel[1].data_out_index)
 
-        names, mapping = compose_names(sharing, submodel[0].names, submodel[1].names)
+        names, mapping = compose_names(
+            sharing, submodel[0].coeff_names, submodel[1].coeff_names
+        )
 
         super().__init__(
             names,
