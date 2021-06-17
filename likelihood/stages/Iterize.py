@@ -82,6 +82,8 @@ def _iterize_grad_generate() -> Callable[
 class Iterize(Iterative.Iterative):
     def __init__(
         _,
+        data_in_names: Union[Tuple[str], Tuple[str, str], Tuple[str, str, str]],
+        data_out_names: Union[Tuple[str], Tuple[str, str], Tuple[str, str, str]],
         input: Union[Tuple[int], Tuple[int, int], Tuple[int, int, int]],
         output: Union[Tuple[int], Tuple[int, int], Tuple[int, int, int]],
     ) -> None:
@@ -97,6 +99,8 @@ class Iterize(Iterative.Iterative):
             assert False  # pragma: no cover
         super().__init__(
             (),
+            data_in_names,
+            data_out_names,
             input,
             output,
             Jitted_Function(Iterative.output0_signature, (), _iterize_output0_generate),

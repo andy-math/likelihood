@@ -41,10 +41,12 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([0.5, 1.0])
 
-    stage1 = Midas_exp("omega", (1,), (1,), k=k)
-    stage2 = LogNormpdf("var", (0, 1), (0, 1))
+    stage1 = Midas_exp("omega", ("X",), ("X",), (1,), (1,), k=k)
+    stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"), (0, 1), (0, 1))
 
-    nll = likelihood.negLikelihood(("omega", "var"), (stage1, stage2), None, nvars=2)
+    nll = likelihood.negLikelihood(
+        ("omega", "var"), ("Y", "X"), (stage1, stage2), None, nvars=2
+    )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 
@@ -76,13 +78,13 @@ def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([0.0, 1.0])
 
-    stage1 = Midas_exp("omega", (1,), (1,), k=k)
-    stage2 = LogNormpdf("var", (0, 1), (0, 1))
+    stage1 = Midas_exp("omega", ("X",), ("X",), (1,), (1,), k=k)
+    stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"), (0, 1), (0, 1))
 
     ce: Optional[BaseException] = None
     try:
         nll = likelihood.negLikelihood(
-            ("omega", "var"), (stage1, stage2), None, nvars=2
+            ("omega", "var"), ("Y", "X"), (stage1, stage2), None, nvars=2
         )
         nll.eval(beta0, input, regularize=False)
     except BaseException as e:

@@ -31,10 +31,12 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([numpy.std(input[:, 0]) ** 2 * 0.1, 0.1, 0.8])
 
-    stage1 = Garch(("c", "a", "b"), 1, 1)
-    stage2 = LogNormpdf_var((0, 1), (0, 1))
+    stage1 = Garch(("c", "a", "b"), "X", "X", 1, 1)
+    stage2 = LogNormpdf_var(("Y", "X"), ("Y", "X"), (0, 1), (0, 1))
 
-    nll = likelihood.negLikelihood(("c", "a", "b"), (stage1, stage2), None, nvars=2)
+    nll = likelihood.negLikelihood(
+        ("c", "a", "b"), ("Y", "X"), (stage1, stage2), None, nvars=2
+    )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 

@@ -10,8 +10,10 @@ _Log_gradinfo_t = ndarray
 
 
 class Log(Stage[_Log_gradinfo_t]):
-    def __init__(self, input: int, output: int) -> None:
-        super().__init__((), (input,), (output,))
+    def __init__(
+        self, data_in_name: str, data_out_name: str, input: int, output: int
+    ) -> None:
+        super().__init__((), (data_in_name,), (data_out_name,), (input,), (output,))
 
     def _eval(
         self, _: ndarray, x: ndarray, *, grad: bool, debug: bool

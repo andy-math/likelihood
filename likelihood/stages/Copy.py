@@ -10,9 +10,15 @@ _Copy_gradinfo_t = type(None)
 
 
 class Copy(Stage[_Copy_gradinfo_t]):
-    def __init__(self, input: Tuple[int, ...], output: Tuple[int, ...]) -> None:
+    def __init__(
+        self,
+        data_in_names: Tuple[str, ...],
+        data_out_names: Tuple[str, ...],
+        input: Tuple[int, ...],
+        output: Tuple[int, ...],
+    ) -> None:
         assert len(input) == len(output)
-        super().__init__((), input, output)
+        super().__init__((), data_in_names, data_out_names, input, output)
 
     def _eval(
         self, _: ndarray, input: ndarray, *, grad: bool, debug: bool

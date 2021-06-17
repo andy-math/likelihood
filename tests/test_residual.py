@@ -19,11 +19,18 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)  # type: ignore
     abserr_decomp = difference.absolute(beta, beta_decomp)
 
-    stage1 = Linear(("b1", "b2", "b3", "b4", "b5", "b0"), tuple(range(1, 7)), 1)
-    stage2 = Residual((0, 1), 1)
-    stage3 = LogNormpdf("var", (1, 7), (0, 1))
+    stage1 = Linear(
+        ("b1", "b2", "b3", "b4", "b5", "b0"),
+        ("var1", "var2", "var3", "var4", "var5", "ones"),
+        ("var1"),
+        tuple(range(1, 7)),
+        1,
+    )
+    stage2 = Residual(("Y", "var1"), "var1", (0, 1), 1)
+    stage3 = LogNormpdf("var", ("var1", "zeros"), ("Y", "var1"), (1, 7), (0, 1))
     nll = likelihood.negLikelihood(
         ("b1", "b2", "b3", "b4", "b5", "b0", "var"),
+        ("Y", "var1", "var2", "var3", "var4", "var5", "ones", "zeros"),
         (stage1, stage2, stage3),
         None,
         nvars=8,

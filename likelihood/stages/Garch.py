@@ -79,10 +79,19 @@ def _garch_grad_generate() -> Callable[
 
 
 class Garch(Iterative.Iterative):
-    def __init__(_, names: Tuple[str, str, str], input: int, output: int) -> None:
+    def __init__(
+        _,
+        names: Tuple[str, str, str],
+        data_in_name: str,
+        data_out_name: str,
+        input: int,
+        output: int,
+    ) -> None:
 
         super().__init__(
             names,
+            (data_in_name,),
+            (data_out_name,),
             (input,),
             (output,),
             Jitted_Function(Iterative.output0_signature, (), _garch_output0_generate),

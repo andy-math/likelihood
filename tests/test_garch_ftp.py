@@ -53,30 +53,52 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
     input = numpy.concatenate(
-        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 12))), axis=1
+        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 10))), axis=1
     )
     beta0 = numpy.array([0.8, 0.8, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0])
 
-    stage4 = Copy((0, 1), (5, 6))
-    stage5 = Copy((0, 1), (9, 10))
+    using_var_names = (
+        *("Y", "zeros", "ones"),
+        *("Y1", "mean1", "var1", "EX2_1"),
+        *("Y2", "mean2", "var2", "EX2_2"),
+        *("p11col", "p22col"),
+    )
+
+    stage4 = Copy(("Y", "zeros"), ("Y1", "mean1"), (0, 1), (3, 4))
+    stage5 = Copy(("Y", "zeros"), ("Y2", "mean2"), (0, 1), (7, 8))
     # x mu var EX2
-    submodel1 = Garch_mean(("c1", "a1", "b1"), (5, 6), (5, 6, 7, 8))
-    submodel2 = Garch_mean(("c2", "a2", "b2"), (9, 10), (9, 10, 11, 12))
-    assign1 = Assign("p11", 13, 0.0, 1.0)
-    assign2 = Assign("p22", 14, 0.0, 1.0)
+    submodel1 = Garch_mean(
+        ("c1", "a1", "b1"),
+        ("Y1", "mean1"),
+        ("Y1", "mean1", "var1", "EX2_1"),
+        (3, 4),
+        (3, 4, 5, 6),
+    )
+    submodel2 = Garch_mean(
+        ("c2", "a2", "b2"),
+        ("Y2", "mean2"),
+        ("Y2", "mean2", "var2", "EX2_2"),
+        (7, 8),
+        (7, 8, 9, 10),
+    )
+    assign1 = Assign("p11", "p11col", 11, 0.0, 1.0)
+    assign2 = Assign("p22", "p22col", 12, 0.0, 1.0)
     stage6 = MS_TVTP(
         (submodel1, submodel2),
         (),
         providers["normpdf"],
-        (13, 14),
-        (0, 13, 14),
+        ("p11col", "p22col"),
+        ("Y", "p11col", "p22col"),
+        (11, 12),
+        (0, 11, 12),
     )
 
     nll = likelihood.negLikelihood(
         ("p11", "p22", "c1", "a1", "b1", "c2", "a2", "b2"),
+        using_var_names,
         (stage4, stage5, assign1, assign2, stage6),
         None,
-        nvars=15,
+        nvars=13,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)

@@ -21,21 +21,29 @@ _gradinfo_t = TypeVar("_gradinfo_t", contravariant=True)
 class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     coeff_names: Tuple[str, ...]
     coeff_index: Optional[ndarray] = None
+    data_in_names: Tuple[str, ...]
     data_in_index: Tuple[int, ...]
+    data_out_names: Tuple[str, ...]
     data_out_index: Tuple[int, ...]
 
     def __init__(
         self,
         coeff_names: Tuple[str, ...],
+        data_in_names: Tuple[str, ...],
+        data_out_names: Tuple[str, ...],
         data_in_index: Tuple[int, ...],
         data_out_index: Tuple[int, ...],
     ) -> None:
         assert isunique(coeff_names)
+        assert isunique(data_in_names)
+        assert isunique(data_out_names)
         assert isunique(data_in_index)
         assert isunique(data_out_index)
         super().__init__()
         self.coeff_names = coeff_names
+        self.data_in_names = data_in_names
         self.data_in_index = data_in_index
+        self.data_out_names = data_out_names
         self.data_out_index = data_out_index
 
     @abstractmethod
@@ -96,6 +104,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def register_coeff(
         self,
         likeli_names: Tuple[str, ...],
+        data_names: Tuple[str, ...],
         register_constraints: Callable[[ndarray, Constraints], None],
     ) -> None:
         self_names = self.coeff_names

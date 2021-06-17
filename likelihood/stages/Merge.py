@@ -39,10 +39,20 @@ class Merge(Stage[_Merge_gradinfo_t]):
         names, packing = _make_names(*stages)
         input: List[int] = []
         output: List[int] = []
+        data_in_names: List[str] = []
+        data_out_names: List[str] = []
         for s in stages:
             input.extend(s.data_in_index)
             output.extend(s.data_out_index)
-        super().__init__(names, tuple(input), tuple(output))
+            data_in_names.extend(s.data_in_names)
+            data_out_names.extend(s.data_out_names)
+        super().__init__(
+            names,
+            tuple(data_in_names),
+            tuple(data_out_names),
+            tuple(input),
+            tuple(output),
+        )
         self.len_coeff = packing[-1]
         self.packing = packing[:-1]
         self.stages = stages

@@ -376,6 +376,8 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
             Jitted_Function[Callable[[ndarray], float]],
             Jitted_Function[Callable[[ndarray, float, float], ndarray]],
         ],
+        data_in_names: Tuple[str, str],
+        data_out_names: Tuple[str, str, str],
         input: Tuple[int, int],
         output: Tuple[int, int, int],
     ) -> None:
@@ -384,6 +386,8 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
 
         super().__init__(
             (),
+            data_in_names + submodel[0].data_in_names + submodel[1].data_in_names,
+            data_out_names + submodel[0].data_out_names + submodel[1].data_out_names,
             input + submodel[0].data_in_index + submodel[1].data_in_index,
             output + submodel[0].data_out_index + submodel[1].data_out_index,
             Jitted_Function(
@@ -410,10 +414,11 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
     def register_coeff(
         self,
         likeli_names: Tuple[str, ...],
+        data_names: Tuple[str, ...],
         register_constraints: Callable[[ndarray, Constraints], None],
     ) -> None:
-        self.submodel[0].register_coeff(likeli_names, register_constraints)
-        self.submodel[1].register_coeff(likeli_names, register_constraints)
+        self.submodel[0].register_coeff(likeli_names, data_names, register_constraints)
+        self.submodel[1].register_coeff(likeli_names, data_names, register_constraints)
         self.coeff_index = numpy.concatenate(
             (self.submodel[0].coeff_index, self.submodel[1].coeff_index)
         )

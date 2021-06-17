@@ -42,27 +42,50 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
     input = numpy.concatenate(
-        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 10))), axis=1
+        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 8))), axis=1
     )
     beta0 = numpy.array([0.0, 0.0])
 
-    stage1 = Linear(("p11b1",), (2,), 3)
-    stage2 = Linear(("p22b1",), (2,), 4)
-    stage3 = Merge([Logistic((3,), (3,)), Logistic((4,), (4,))])
-    stage4 = Copy((0, 1, 2), (5, 6, 7))
-    stage5 = Copy((0, 2), (8, 9))
-    stage6 = Copy((2,), (10,))
-    submodel1 = Iterize((5, 6, 7), (5, 6, 7))
-    submodel2 = Iterize((8, 9, 10), (8, 9, 10))
+    using_var_names = (
+        *("Y", "zeros", "ones"),
+        *("Y1", "mean1", "var1"),
+        *("Y2", "mean2", "var2"),
+        *("p11col", "p22col"),
+    )
+
+    stage1 = Linear(("p11b1",), ("ones",), "p11col", (2,), 9)
+    stage2 = Linear(("p22b1",), ("ones",), "p22col", (2,), 10)
+    stage3 = Merge(
+        [
+            Logistic(("p11col",), ("p11col",), (9,), (9,)),
+            Logistic(("p22col",), ("p22col",), (10,), (10,)),
+        ]
+    )
+    stage4 = Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1"), (0, 1, 2), (3, 4, 5))
+    stage5 = Copy(("Y", "ones"), ("Y2", "mean2"), (0, 2), (6, 7))
+    stage6 = Copy(("ones",), ("var2",), (2,), (8,))
+    submodel1 = Iterize(
+        ("Y1", "mean1", "var1"), ("Y1", "mean1", "var1"), (3, 4, 5), (3, 4, 5)
+    )
+    submodel2 = Iterize(
+        ("Y2", "mean2", "var2"), ("Y2", "mean2", "var2"), (6, 7, 8), (6, 7, 8)
+    )
     stage7 = MS_TVTP(
-        (submodel1, submodel2), (), providers["normpdf"], (3, 4), (0, 11, 12)
+        (submodel1, submodel2),
+        (),
+        providers["normpdf"],
+        ("p11col", "p22col"),
+        ("Y", "p11col", "p22col"),
+        (9, 10),
+        (0, 9, 10),
     )
 
     nll = likelihood.negLikelihood(
         ("p11b1", "p22b1"),
+        using_var_names,
         (stage1, stage2, stage3, stage4, stage5, stage6, stage7),
         None,
-        nvars=13,
+        nvars=11,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)

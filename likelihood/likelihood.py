@@ -56,6 +56,7 @@ def _check_stages(stages: Tuple[Stage[Any], ...], nvars: int) -> None:
 
 class negLikelihood:
     coeff_names: Tuple[str, ...]
+    data_names: Tuple[str, ...]
     nInput: int
     stages: Tuple[Stage[Any], ...]
     penalty: Optional[Penalty[Any]]
@@ -64,14 +65,18 @@ class negLikelihood:
     def __init__(
         self,
         coeff_names: Tuple[str, ...],
+        data_names: Tuple[str, ...],
         stages: Tuple[Stage[Any], ...],
         penalty: Optional[Penalty[Any]],
         *,
         nvars: int
     ) -> None:
         assert isunique(coeff_names)
+        assert isunique(data_names)
         _check_stages(stages, nvars)
         self.coeff_names = coeff_names
+        self.data_names = data_names
+        assert len(data_names) == nvars
         self.stages = stages
         self.penalty = penalty
         self.nInput = nvars
@@ -82,9 +87,9 @@ class negLikelihood:
             numpy.full((len(coeff_names),), numpy.inf),
         )
         for s in stages:
-            s.register_coeff(coeff_names, self.register_constraints)
+            s.register_coeff(coeff_names, data_names, self.register_constraints)
         if penalty is not None:
-            penalty.register_coeff(coeff_names, self.register_constraints)
+            penalty.register_coeff(coeff_names, data_names, self.register_constraints)
 
     def _get_stages(self, *, regularize: bool) -> Tuple[Stage[Any], ...]:
         if regularize:

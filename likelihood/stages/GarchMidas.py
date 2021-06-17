@@ -98,12 +98,16 @@ class GarchMidas(Iterative.Iterative):
     def __init__(
         _,
         names: Tuple[str, str, str],
+        data_in_names: Tuple[str, str, str],
+        data_out_names: Tuple[str, str, str, str],
         input: Tuple[int, int, int],
         output: Tuple[int, int, int, int],
     ) -> None:
 
         super().__init__(
             names,
+            data_in_names,
+            data_out_names,
             input,
             output,
             Jitted_Function(
