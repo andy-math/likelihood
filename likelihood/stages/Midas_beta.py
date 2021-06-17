@@ -100,7 +100,7 @@ class Midas_beta(Convolution):
         else:
             return phi, dphi_do[:, ::-1]
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, 2))
         b = numpy.empty((0,))
         lb = numpy.array([1.0, 1.0])

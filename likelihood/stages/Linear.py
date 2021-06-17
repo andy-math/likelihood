@@ -28,7 +28,7 @@ class Linear(Stage[_Linear_gradinfo_t]):
     ) -> Tuple[ndarray, ndarray]:
         return dL_do * coeff, dL_do.flatten() @ input
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, len(self.coeff_names)))
         b = numpy.empty((0,))
         lb = numpy.full((len(self.coeff_names),), -numpy.inf)

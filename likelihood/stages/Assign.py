@@ -30,7 +30,7 @@ class Assign(Stage[_Assign_gradinfo_t]):
         (length, _) = dL_dR.shape
         return numpy.empty((length, 0)), cast(ndarray, numpy.sum(dL_dR, axis=0))
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, 1))
         b = numpy.empty((0,))
         lb = numpy.array([self.lb])

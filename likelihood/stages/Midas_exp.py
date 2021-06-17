@@ -49,7 +49,7 @@ class Midas_exp(Convolution):
         phi.shape = (phi.shape[0],)
         return phi, dphi_do
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, 1))
         b = numpy.empty((0,))
         lb = numpy.array([0.0])

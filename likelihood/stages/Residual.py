@@ -23,7 +23,7 @@ class Residual(Stage[_Residual_gradinfo_t]):
     ) -> Tuple[ndarray, ndarray]:
         return dL_dR * numpy.array([[1.0, -1.0]]), numpy.ndarray((0,))
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, 0))
         b = numpy.empty((0,))
         lb = numpy.empty((0,))

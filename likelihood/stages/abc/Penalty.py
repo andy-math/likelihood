@@ -32,5 +32,5 @@ class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
                 assert False  # pragma: no cover
         self.index = index
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         assert False  # pragma: no cover

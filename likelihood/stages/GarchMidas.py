@@ -113,7 +113,7 @@ class GarchMidas(Iterative.Iterative):
             Jitted_Function(Iterative.grad_signature, (), _garch_midas_grad_generate),
         )
 
-    def get_constraint(_) -> Constraints:
+    def get_constraints(_) -> Constraints:
         A = numpy.array([[0.0, 1.0, 1.0]])
         b = numpy.array([1.0])
         lb = numpy.array([0.0, 0.0, 0.0])

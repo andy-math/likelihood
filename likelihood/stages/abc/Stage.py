@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Generic, NamedTuple, Optional, Tuple, TypeVar
+from typing import Callable, Generic, NamedTuple, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
@@ -20,6 +20,7 @@ _gradinfo_t = TypeVar("_gradinfo_t", contravariant=True)
 
 class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     coeff_names: Tuple[str, ...]
+    coeff_index: Optional[ndarray] = None
     data_in_index: Tuple[int, ...]
     data_out_index: Tuple[int, ...]
 
@@ -50,7 +51,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         pass  # pragma: no cover
 
     @abstractmethod
-    def get_constraint(
+    def get_constraints(
         self,
     ) -> Constraints:
         pass  # pragma: no cover
@@ -82,3 +83,19 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
             dL_di = dL_do
         dL_di[:, self.data_in_index] += _dL_di
         return dL_di, dL_dc
+
+    def register_coeff(
+        self,
+        likeli_names: Tuple[str, ...],
+        register_constraints: Callable[[ndarray, Constraints], None],
+    ) -> None:
+        self_names = self.coeff_names
+
+        # 检查有无参数是未被声明的
+        for x in self_names:
+            if x not in self_names:
+                assert False, f"模块{type(self).__name__}所使用的参数{x}未在似然函数中声明。"
+
+        coeff_index = numpy.array([likeli_names.index(x) for x in self_names])
+        self.coeff_index = coeff_index
+        register_constraints(coeff_index, self.get_constraints())

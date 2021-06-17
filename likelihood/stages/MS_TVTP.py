@@ -431,9 +431,9 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
             dL_dc[index] += d
         return dL_do, dL_dc
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         return compose_constraints(
             self.mapping,
-            self.submodel[0].get_constraint(),
-            self.submodel[1].get_constraint(),
+            self.submodel[0].get_constraints(),
+            self.submodel[1].get_constraints(),
         )

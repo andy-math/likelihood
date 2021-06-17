@@ -26,7 +26,7 @@ class Exp(Stage[_Exp_gradinfo_t]):
     ) -> Tuple[ndarray, ndarray]:
         return dL_dR * output, numpy.ndarray((0,))
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, 0))
         b = numpy.empty((0,))
         lb = numpy.empty((0,))

@@ -36,7 +36,7 @@ class Logistic(Stage[_Logistic_gradinfo_t]):
         """
         return dL_dR * (output * (1.0 - output)), numpy.empty((0,))
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, 0))
         b = numpy.empty((0,))
         lb = numpy.empty((0,))

@@ -104,7 +104,7 @@ class Iterize(Iterative.Iterative):
             Jitted_Function(Iterative.grad_signature, (), _iterize_grad_generate),
         )
 
-    def get_constraint(_) -> Constraints:
+    def get_constraints(_) -> Constraints:
         A = numpy.empty((0, 0))
         b = numpy.empty((0,))
         lb = numpy.empty((0,))

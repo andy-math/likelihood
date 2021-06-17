@@ -54,7 +54,7 @@ class LogNormpdf_var(Logpdf[_LogNormpdfVar_gradinfo_t]):
         dL_dvar = dL_dvar + dL_dlogP * ((1.0 / 2.0) * (z * z - 1.0 / var))
         return numpy.concatenate((dL_dx, dL_dvar), axis=1), numpy.ndarray((0,))
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, 0))
         b = numpy.empty((0,))
         lb = numpy.empty((0,))

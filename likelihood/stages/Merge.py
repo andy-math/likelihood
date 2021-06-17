@@ -94,10 +94,10 @@ class Merge(Stage[_Merge_gradinfo_t]):
             dL_dc.append(_dL_dc)
         return numpy.concatenate(dL_di, axis=1), numpy.concatenate(dL_dc)
 
-    def get_constraint(self) -> Constraints:
+    def get_constraints(self) -> Constraints:
         from scipy.linalg import block_diag  # type: ignore
 
-        A, b, lb, ub = zip(*(s.get_constraint() for s in self.stages))
+        A, b, lb, ub = zip(*(s.get_constraints() for s in self.stages))
         return Constraints(
             block_diag(*A),
             numpy.concatenate(b),
