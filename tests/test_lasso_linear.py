@@ -33,7 +33,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     penalty = Lasso(stage1.coeff_names, 1.0, ("Y", "var1"), "Y", (0, 1), 0)
     nll = likelihood.negLikelihood(
         stage1.coeff_names + ("var",),
-        ("Y",) + tuple(f"b{i}" for i in range(1, m + 1)),
+        ("Y",) + tuple(f"var{i}" for i in range(1, m + 1)),
         (stage1, stage2),
         penalty,
         nvars=m + 1,

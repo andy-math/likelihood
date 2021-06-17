@@ -107,15 +107,27 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         data_names: Tuple[str, ...],
         register_constraints: Callable[[ndarray, Constraints], None],
     ) -> None:
-        self_names = self.coeff_names
-
         # 检查有无参数是未被声明的
-        for x in self_names:
-            if x not in self_names:
+        for x in self.coeff_names:
+            if x not in likeli_names:
                 assert False, f"模块{type(self).__name__}所使用的参数{x}未在似然函数中声明。"
+        # 检查有无变量列名是未被声明的
+        for x in self.data_in_names:
+            if x not in data_names:
+                assert False, f"模块{type(self).__name__}所使用的输入变量{x}未在似然函数中声明。"
+        for x in self.data_out_names:
+            if x not in data_names:
+                assert False, f"模块{type(self).__name__}所使用的输出变量{x}未在似然函数中声明。"
 
-        coeff_index = numpy.array(
-            [likeli_names.index(x) for x in self_names], dtype=numpy.int64
+        self.coeff_index = numpy.array(
+            [likeli_names.index(x) for x in self.coeff_names], dtype=numpy.int64
         )
-        self.coeff_index = coeff_index
-        register_constraints(coeff_index, self.get_constraints())
+        data_in_index = numpy.array(
+            [data_names.index(x) for x in self.data_in_names], dtype=numpy.int64
+        )
+        data_out_index = numpy.array(
+            [data_names.index(x) for x in self.data_out_names], dtype=numpy.int64
+        )
+        assert numpy.all(self.data_in_index == data_in_index)
+        assert numpy.all(self.data_out_index == data_out_index)
+        register_constraints(self.coeff_index, self.get_constraints())
