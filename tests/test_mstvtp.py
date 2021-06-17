@@ -60,7 +60,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
 
     nll = likelihood.negLikelihood(
         ("p11b1", "p22b1"),
-        [stage1, stage2, stage3, stage4, stage5, stage6, stage7],
+        (stage1, stage2, stage3, stage4, stage5, stage6, stage7),
         None,
         nvars=13,
     )

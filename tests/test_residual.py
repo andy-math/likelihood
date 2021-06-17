@@ -24,7 +24,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     stage3 = LogNormpdf("var", (1, 7), (0, 1))
     nll = likelihood.negLikelihood(
         ("b1", "b2", "b3", "b4", "b5", "b0", "var"),
-        [stage1, stage2, stage3],
+        (stage1, stage2, stage3),
         None,
         nvars=8,
     )

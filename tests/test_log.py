@@ -30,7 +30,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     stage3 = LogNormpdf("var", (0, 1), (0, 1))
 
     nll = likelihood.negLikelihood(
-        ("b1", "b0", "var"), [stage1, stage2, stage3], None, nvars=3
+        ("b1", "b0", "var"), (stage1, stage2, stage3), None, nvars=3
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
