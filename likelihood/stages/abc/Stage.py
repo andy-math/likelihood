@@ -59,10 +59,18 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
-        _input: ndarray = input[:, self.data_in_index]
-        _output, gradinfo = self._eval(coeff, _input, grad=grad, debug=debug)
+        """
+        主要处理消除k-lag的问题
+        对于长度缩小了的输出，从原input上截取k-lag项（也就是最后几项）
+        然后将output贴进去
+        另外，在此处对output检查是最经济的，只需要检查被输出的少数列，而不是更新后的完整sheet
+        """
+        _output, gradinfo = self._eval(
+            coeff, input[:, self.data_in_index], grad=grad, debug=debug
+        )
         assertNoInfNaN(_output)
         k = input.shape[0] - _output.shape[0]
+        assert k >= 0
         output = input[k:, :] if k else input
         output[:, self.data_out_index] = _output
         return output, gradinfo
@@ -76,6 +84,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         assertNoInfNaN(_dL_di)
         assertNoInfNaN(dL_dc)
         k = _dL_di.shape[0] - dL_do.shape[0]
+        assert k > 0
         if k:
             dL_di = numpy.zeros((_dL_di.shape[0], dL_do.shape[1]))
             dL_di[k:, :] = dL_do
