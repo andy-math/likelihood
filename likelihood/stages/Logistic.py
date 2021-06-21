@@ -18,7 +18,7 @@ class Logistic(Stage[_Logistic_gradinfo_t]):
         output: Tuple[int, ...],
     ) -> None:
         assert len(input) == len(output)
-        super().__init__((), data_in_names, data_out_names, input, output)
+        super().__init__((), data_in_names, data_out_names, input, output, ())
 
     def _eval(
         self, _: ndarray, x: ndarray, *, grad: bool, debug: bool

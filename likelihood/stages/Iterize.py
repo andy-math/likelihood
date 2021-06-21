@@ -103,6 +103,7 @@ class Iterize(Iterative.Iterative):
             data_out_names,
             input,
             output,
+            (),
             Jitted_Function(Iterative.output0_signature, (), _iterize_output0_generate),
             Jitted_Function(Iterative.eval_signature, (), _iterize_eval_generate),
             Jitted_Function(Iterative.grad_signature, (), _iterize_grad_generate),

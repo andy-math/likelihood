@@ -21,7 +21,9 @@ class Midas_exp(Convolution):
         k: int
     ) -> None:
         assert len(input) == len(output)
-        super().__init__((coeff_name,), data_in_names, data_out_names, input, output)
+        super().__init__(
+            (coeff_name,), data_in_names, data_out_names, input, output, ()
+        )
         self.K = k
 
     def kernel(self, _omega: ndarray) -> Tuple[ndarray, ndarray]:

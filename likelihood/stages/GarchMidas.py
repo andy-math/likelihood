@@ -110,6 +110,7 @@ class GarchMidas(Iterative.Iterative):
             data_out_names,
             input,
             output,
+            (),
             Jitted_Function(
                 Iterative.output0_signature, (), _garch_midas_output0_generate
             ),

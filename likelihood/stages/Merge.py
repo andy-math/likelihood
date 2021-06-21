@@ -52,6 +52,7 @@ class Merge(Stage[_Merge_gradinfo_t]):
             tuple(data_out_names),
             tuple(input),
             tuple(output),
+            (),
         )
         self.len_coeff = packing[-1]
         self.packing = packing[:-1]

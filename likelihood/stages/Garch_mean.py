@@ -124,6 +124,7 @@ class Garch_mean(Iterative.Iterative):
             data_out_names,
             input,
             output,
+            (),
             Jitted_Function(
                 Iterative.output0_signature, (), _garch_mean_output0_generate
             ),

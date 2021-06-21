@@ -390,6 +390,7 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
             data_out_names + submodel[0].data_out_names + submodel[1].data_out_names,
             input + submodel[0].data_in_index + submodel[1].data_in_index,
             output + submodel[0].data_out_index + submodel[1].data_out_index,
+            (),
             Jitted_Function(
                 Iterative.output0_signature,
                 tuple(x._output0_scalar for x in submodel),
@@ -414,25 +415,30 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
     def register_coeff(
         self,
         likeli_names: Tuple[str, ...],
-        data_names: Tuple[str, ...],
+        data_in_names: Tuple[str, ...],
+        data_out_names: Tuple[str, ...],
         register_constraints: Callable[[ndarray, Constraints], None],
     ) -> None:
-        self.submodel[0].register_coeff(likeli_names, data_names, register_constraints)
-        self.submodel[1].register_coeff(likeli_names, data_names, register_constraints)
+        self.submodel[0].register_coeff(
+            likeli_names, data_in_names, data_out_names, register_constraints
+        )
+        self.submodel[1].register_coeff(
+            likeli_names, data_in_names, data_out_names, register_constraints
+        )
         self.coeff_index = numpy.concatenate(
             (self.submodel[0].coeff_index, self.submodel[1].coeff_index)
         )
         assert numpy.all(
             self.data_in_index
             == numpy.array(
-                [data_names.index(x) for x in self.data_in_names],
+                [data_in_names.index(x) for x in self.data_in_names],
                 dtype=numpy.int64,
             )
         )
         assert numpy.all(
             self.data_out_index
             == numpy.array(
-                [data_names.index(x) for x in self.data_out_names],
+                [data_out_names.index(x) for x in self.data_out_names],
                 dtype=numpy.int64,
             )
         )

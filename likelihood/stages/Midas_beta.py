@@ -21,7 +21,7 @@ class Midas_beta(Convolution):
         k: int
     ) -> None:
         assert len(input) == len(output)
-        super().__init__(names, data_in_names, data_out_names, input, output)
+        super().__init__(names, data_in_names, data_out_names, input, output, ())
         self.K = k
 
     def kernel(self, omega: ndarray) -> Tuple[ndarray, ndarray]:

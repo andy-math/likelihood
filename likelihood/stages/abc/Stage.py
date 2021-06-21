@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Callable, Generic, NamedTuple, Optional, Tuple, TypeVar
+from typing import Any, Callable, Generic, NamedTuple, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
@@ -25,6 +25,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     data_in_index: Tuple[int, ...]
     data_out_names: Tuple[str, ...]
     data_out_index: Tuple[int, ...]
+    submodels: Tuple[Stage[Any], ...]
 
     def __init__(
         self,
@@ -33,6 +34,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         data_out_names: Tuple[str, ...],
         data_in_index: Tuple[int, ...],
         data_out_index: Tuple[int, ...],
+        submodels: Tuple[Stage[Any], ...],
     ) -> None:
         assert isunique(coeff_names)
         assert isunique(data_in_names)
@@ -45,6 +47,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         self.data_in_index = data_in_index
         self.data_out_names = data_out_names
         self.data_out_index = data_out_index
+        self.submodels = submodels
 
     @abstractmethod
     def _eval(
@@ -104,7 +107,8 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def register_coeff(
         self,
         likeli_names: Tuple[str, ...],
-        data_names: Tuple[str, ...],
+        data_in_names: Tuple[str, ...],
+        data_out_names: Tuple[str, ...],
         register_constraints: Callable[[ndarray, Constraints], None],
     ) -> None:
         # 检查有无参数是未被声明的
@@ -113,20 +117,20 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
                 assert False, f"模块{type(self).__name__}所使用的参数{x}未在似然函数中声明。"
         # 检查有无变量列名是未被声明的
         for x in self.data_in_names:
-            if x not in data_names:
+            if x not in data_in_names:
                 assert False, f"模块{type(self).__name__}所使用的输入变量{x}未在似然函数中声明。"
         for x in self.data_out_names:
-            if x not in data_names:
+            if x not in data_out_names:
                 assert False, f"模块{type(self).__name__}所使用的输出变量{x}未在似然函数中声明。"
 
         self.coeff_index = numpy.array(
             [likeli_names.index(x) for x in self.coeff_names], dtype=numpy.int64
         )
         data_in_index = numpy.array(
-            [data_names.index(x) for x in self.data_in_names], dtype=numpy.int64
+            [data_in_names.index(x) for x in self.data_in_names], dtype=numpy.int64
         )
         data_out_index = numpy.array(
-            [data_names.index(x) for x in self.data_out_names], dtype=numpy.int64
+            [data_out_names.index(x) for x in self.data_out_names], dtype=numpy.int64
         )
         assert numpy.all(self.data_in_index == data_in_index)
         assert numpy.all(self.data_out_index == data_out_index)

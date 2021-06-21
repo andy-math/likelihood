@@ -17,7 +17,7 @@ class Residual(Stage[_Residual_gradinfo_t]):
         input: Tuple[int, int],
         output: int,
     ) -> None:
-        super().__init__((), data_in_names, (data_out_name,), input, (output,))
+        super().__init__((), data_in_names, (data_out_name,), input, (output,), ())
 
     def _eval(
         self, _: ndarray, x_mu: ndarray, *, grad: bool, debug: bool

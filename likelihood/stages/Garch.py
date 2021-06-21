@@ -94,6 +94,7 @@ class Garch(Iterative.Iterative):
             (data_out_name,),
             (input,),
             (output,),
+            (),
             Jitted_Function(Iterative.output0_signature, (), _garch_output0_generate),
             Jitted_Function(Iterative.eval_signature, (), _grach_eval_generate),
             Jitted_Function(Iterative.grad_signature, (), _garch_grad_generate),

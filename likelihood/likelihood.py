@@ -87,9 +87,13 @@ class negLikelihood:
             numpy.full((len(coeff_names),), numpy.inf),
         )
         for s in stages:
-            s.register_coeff(coeff_names, data_names, self.register_constraints)
+            s.register_coeff(
+                coeff_names, data_names, data_names, self.register_constraints
+            )
         if penalty is not None:
-            penalty.register_coeff(coeff_names, data_names, self.register_constraints)
+            penalty.register_coeff(
+                coeff_names, data_names, data_names, self.register_constraints
+            )
 
     def _get_stages(self, *, regularize: bool) -> Tuple[Stage[Any], ...]:
         if regularize:
