@@ -82,11 +82,11 @@ class negLikelihood:
             numpy.full((len(coeff_names),), numpy.inf),
         )
         for s in stages:
-            s.register_coeff(
+            s.register_coeff_and_data_names(
                 coeff_names, data_names, data_names, self.register_constraints
             )
         if penalty is not None:
-            penalty.register_coeff(
+            penalty.register_coeff_and_data_names(
                 coeff_names, data_names, data_names, self.register_constraints
             )
 

@@ -117,7 +117,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         dL_di[:, self.data_in_index] += _dL_di
         return dL_di, dL_dc
 
-    def register_coeff(
+    def register_coeff_and_data_names(
         self,
         likeli_names: Tuple[str, ...],
         data_in_names: Tuple[str, ...],
@@ -157,7 +157,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
             register_constraints(coeff_index, constraints)
 
         for s in self.submodels:
-            s.register_coeff(
+            s.register_coeff_and_data_names(
                 self.coeff_names,
                 self.data_in_names,
                 self.data_out_names,
