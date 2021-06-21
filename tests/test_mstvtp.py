@@ -78,7 +78,6 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         using_var_names,
         (stage1, stage2, stage3, stage4, stage5, stage6, stage7),
         None,
-        nvars=11,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)

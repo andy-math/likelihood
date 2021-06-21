@@ -67,15 +67,12 @@ class negLikelihood:
         data_names: Tuple[str, ...],
         stages: Tuple[Stage[Any], ...],
         penalty: Optional[Penalty[Any]],
-        *,
-        nvars: int
     ) -> None:
         assert isunique(coeff_names)
         assert isunique(data_names)
         _check_stages(stages, data_names[0])
         self.coeff_names = coeff_names
         self.data_names = data_names
-        assert len(data_names) == nvars
         self.stages = stages
         self.penalty = penalty
         self.constraints = Constraints(

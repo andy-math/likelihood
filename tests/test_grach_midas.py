@@ -48,7 +48,6 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> 
         ("Y", "variance", "long", "drop"),
         (stage1, stage2, stage3),
         None,
-        nvars=4,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)

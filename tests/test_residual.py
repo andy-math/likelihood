@@ -31,7 +31,6 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
         ("Y", "var1", "var2", "var3", "var4", "var5", "ones", "zeros"),
         (stage1, stage2, stage3),
         None,
-        nvars=8,
     )
 
     beta0 = numpy.zeros((beta.shape[0] + 1,))

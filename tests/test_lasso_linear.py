@@ -34,7 +34,6 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
         ("Y",) + tuple(f"var{i}" for i in range(1, m + 1)),
         (stage1, stage2),
         penalty,
-        nvars=m + 1,
     )
 
     beta0 = numpy.zeros((beta.shape[0] + 1))
