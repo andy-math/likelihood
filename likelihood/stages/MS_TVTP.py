@@ -408,5 +408,8 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
 
     def get_constraints(self) -> Constraints:
         return Constraints(
-            numpy.empty((0, 0)), numpy.empty((0,)), numpy.empty((0,)), numpy.empty((0,))
+            numpy.empty((0, len(self.coeff_names))),
+            numpy.empty((0,)),
+            numpy.full((len(self.coeff_names),), -numpy.inf),
+            numpy.full((len(self.coeff_names),), numpy.inf),
         )
