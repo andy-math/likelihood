@@ -422,3 +422,17 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
         self.coeff_index = numpy.concatenate(
             (self.submodel[0].coeff_index, self.submodel[1].coeff_index)
         )
+        assert numpy.all(
+            self.data_in_index
+            == numpy.array(
+                [data_names.index(x) for x in self.data_in_names],
+                dtype=numpy.int64,
+            )
+        )
+        assert numpy.all(
+            self.data_out_index
+            == numpy.array(
+                [data_names.index(x) for x in self.data_out_names],
+                dtype=numpy.int64,
+            )
+        )
