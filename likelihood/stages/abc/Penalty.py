@@ -8,8 +8,6 @@ _Penalty_gradinfo_t = TypeVar("_Penalty_gradinfo_t")
 
 
 class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
-    coeff_names: Tuple[str, ...]
-
     def __init__(
         self,
         coeff_names: Tuple[str, ...],
@@ -18,8 +16,7 @@ class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
         input: Tuple[int, ...],
         output: Tuple[int, ...],
     ) -> None:
-        super().__init__((), data_in_names, data_out_names, input, output, ())
-        self.coeff_names = coeff_names
+        super().__init__(coeff_names, data_in_names, data_out_names, input, output, ())
 
     def get_constraints(self) -> Constraints:
         return Constraints(
