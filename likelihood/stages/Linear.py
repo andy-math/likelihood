@@ -15,10 +15,8 @@ class Linear(Stage[_Linear_gradinfo_t]):
         names: Tuple[str, ...],
         data_in_names: Tuple[str, ...],
         data_out_name: str,
-        input: Tuple[int, ...],
-        output: int,
     ) -> None:
-        super().__init__(names, data_in_names, (data_out_name,), input, (output,), ())
+        super().__init__(names, data_in_names, (data_out_name,), ())
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool

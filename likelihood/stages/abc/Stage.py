@@ -29,9 +29,9 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     coeff_names: Tuple[str, ...]
     coeff_index: Optional[ndarray] = None
     data_in_names: Tuple[str, ...]
-    data_in_index: Tuple[int, ...]
+    data_in_index: Optional[ndarray] = None
     data_out_names: Tuple[str, ...]
-    data_out_index: Tuple[int, ...]
+    data_out_index: Optional[ndarray] = None
     submodels: Tuple[Stage[Any], ...]
 
     def __init__(
@@ -39,8 +39,6 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         coeff_names: Tuple[str, ...],
         data_in_names: Tuple[str, ...],
         data_out_names: Tuple[str, ...],
-        data_in_index: Tuple[int, ...],
-        data_out_index: Tuple[int, ...],
         submodels: Tuple[Stage[Any], ...],
     ) -> None:
         super().__init__()
@@ -59,13 +57,9 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         assert isunique(coeff_names)
         assert isunique(data_in_names)
         assert isunique(data_out_names)
-        assert isunique(data_in_index)
-        assert isunique(data_out_index)
         self.coeff_names = coeff_names
         self.data_in_names = data_in_names
-        self.data_in_index = data_in_index
         self.data_out_names = data_out_names
-        self.data_out_index = data_out_index
         self.submodels = submodels
 
     @abstractmethod
@@ -129,8 +123,6 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         data_in_names: Tuple[str, ...],
         data_out_names: Tuple[str, ...],
         register_constraints: Callable[[ndarray, Constraints], None],
-        *,
-        pass_index_check: bool = False,
     ) -> None:
         # 检查有无参数是未被声明的
         for x in self.coeff_names:
@@ -147,17 +139,12 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         self.coeff_index = numpy.array(
             [likeli_names.index(x) for x in self.coeff_names], dtype=numpy.int64
         )
-        data_in_index = numpy.array(
+        self.data_in_index = numpy.array(
             [data_in_names.index(x) for x in self.data_in_names], dtype=numpy.int64
         )
-        data_out_index = numpy.array(
+        self.data_out_index = numpy.array(
             [data_out_names.index(x) for x in self.data_out_names], dtype=numpy.int64
         )
-        assert numpy.all(self.data_in_index == data_in_index) or pass_index_check
-        assert numpy.all(self.data_out_index == data_out_index) or pass_index_check
-        if pass_index_check:
-            self.data_in_index = tuple(data_in_index.tolist())
-            self.data_out_index = tuple(data_out_index.tolist())
         register_constraints(self.coeff_index, self.get_constraints())
 
         def _register_constraints(
@@ -175,5 +162,4 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
                 self.data_in_names,
                 self.data_out_names,
                 _register_constraints,
-                pass_index_check=True,
             )

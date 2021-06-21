@@ -19,10 +19,8 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
         Lambda: float,
         data_in_names: Tuple[str, str],
         data_out_name: str,
-        input: Tuple[int, int],
-        output: int,
     ) -> None:
-        super().__init__(coeff_names, data_in_names, (data_out_name,), input, (output,))
+        super().__init__(coeff_names, data_in_names, (data_out_name,))
         self.Lambda = Lambda
         assert 0 <= Lambda and math.isfinite(Lambda)
 

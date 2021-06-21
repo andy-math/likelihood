@@ -84,16 +84,14 @@ class Iterize(Iterative.Iterative):
         _,
         data_in_names: Union[Tuple[str], Tuple[str, str], Tuple[str, str, str]],
         data_out_names: Union[Tuple[str], Tuple[str, str], Tuple[str, str, str]],
-        input: Union[Tuple[int], Tuple[int, int], Tuple[int, int, int]],
-        output: Union[Tuple[int], Tuple[int, int], Tuple[int, int, int]],
     ) -> None:
-        assert len(input) == len(output)
-        assert 1 <= len(input) <= 3
-        if len(input) == 1:
+        assert len(data_in_names) == len(data_out_names)
+        assert 1 <= len(data_in_names) <= 3
+        if len(data_in_names) == 1:
             _iterize_output0_generate = _iterize_output0_generate_1
-        elif len(input) == 2:
+        elif len(data_in_names) == 2:
             _iterize_output0_generate = _iterize_output0_generate_2
-        elif len(input) == 3:
+        elif len(data_in_names) == 3:
             _iterize_output0_generate = _iterize_output0_generate_3
         else:
             assert False  # pragma: no cover
@@ -101,8 +99,6 @@ class Iterize(Iterative.Iterative):
             (),
             data_in_names,
             data_out_names,
-            input,
-            output,
             (),
             Jitted_Function(Iterative.output0_signature, (), _iterize_output0_generate),
             Jitted_Function(Iterative.eval_signature, (), _iterize_eval_generate),

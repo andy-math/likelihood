@@ -53,30 +53,24 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         *("p11col", "p22col"),
     )
 
-    stage1 = Linear(("p11b1",), ("ones",), "p11col", (2,), 9)
-    stage2 = Linear(("p22b1",), ("ones",), "p22col", (2,), 10)
+    stage1 = Linear(("p11b1",), ("ones",), "p11col")
+    stage2 = Linear(("p22b1",), ("ones",), "p22col")
     stage3 = Merge(
         (
-            Logistic(("p11col",), ("p11col",), (9,), (9,)),
-            Logistic(("p22col",), ("p22col",), (10,), (10,)),
+            Logistic(("p11col",), ("p11col",)),
+            Logistic(("p22col",), ("p22col",)),
         )
     )
-    stage4 = Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1"), (0, 1, 2), (3, 4, 5))
-    stage5 = Copy(("Y", "ones"), ("Y2", "mean2"), (0, 2), (6, 7))
-    stage6 = Copy(("ones",), ("var2",), (2,), (8,))
-    submodel1 = Iterize(
-        ("Y1", "mean1", "var1"), ("Y1", "mean1", "var1"), (3, 4, 5), (3, 4, 5)
-    )
-    submodel2 = Iterize(
-        ("Y2", "mean2", "var2"), ("Y2", "mean2", "var2"), (6, 7, 8), (6, 7, 8)
-    )
+    stage4 = Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1"))
+    stage5 = Copy(("Y", "ones"), ("Y2", "mean2"))
+    stage6 = Copy(("ones",), ("var2",))
+    submodel1 = Iterize(("Y1", "mean1", "var1"), ("Y1", "mean1", "var1"))
+    submodel2 = Iterize(("Y2", "mean2", "var2"), ("Y2", "mean2", "var2"))
     stage7 = MS_TVTP(
         (submodel1, submodel2),
         providers["normpdf"],
         ("p11col", "p22col"),
         ("Y", "p11col", "p22col"),
-        (9, 10),
-        (0, 9, 10),
     )
 
     nll = likelihood.negLikelihood(

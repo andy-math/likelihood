@@ -14,10 +14,8 @@ class Exp(Stage[_Exp_gradinfo_t]):
         self,
         data_in_name: str,
         data_out_name: str,
-        input: int,
-        output: int,
     ) -> None:
-        super().__init__((), (data_in_name,), (data_out_name,), (input,), (output,), ())
+        super().__init__((), (data_in_name,), (data_out_name,), ())
 
     def _eval(
         self, _: ndarray, x: ndarray, *, grad: bool, debug: bool

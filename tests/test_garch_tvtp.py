@@ -66,33 +66,23 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         *("p11col", "p22col"),
     )
 
-    stage1 = Linear(("p11b1",), ("ones",), "p11col", (2,), 11)
-    stage2 = Linear(("p22b1",), ("ones",), "p22col", (2,), 12)
-    stage3 = Logistic(("p11col", "p22col"), ("p11col", "p22col"), (11, 12), (11, 12))
-    stage4 = Copy(("Y", "zeros"), ("Y1", "mean1"), (0, 1), (3, 4))
-    stage5 = Copy(("Y", "zeros"), ("Y2", "mean2"), (0, 1), (7, 8))
+    stage1 = Linear(("p11b1",), ("ones",), "p11col")
+    stage2 = Linear(("p22b1",), ("ones",), "p22col")
+    stage3 = Logistic(("p11col", "p22col"), ("p11col", "p22col"))
+    stage4 = Copy(("Y", "zeros"), ("Y1", "mean1"))
+    stage5 = Copy(("Y", "zeros"), ("Y2", "mean2"))
     # x mu var EX2
     submodel1 = Garch_mean(
-        ("c1", "a1", "b1"),
-        ("Y1", "mean1"),
-        ("Y1", "mean1", "var1", "EX2_1"),
-        (3, 4),
-        (3, 4, 5, 6),
+        ("c1", "a1", "b1"), ("Y1", "mean1"), ("Y1", "mean1", "var1", "EX2_1")
     )
     submodel2 = Garch_mean(
-        ("c2", "a2", "b2"),
-        ("Y2", "mean2"),
-        ("Y2", "mean2", "var2", "EX2_2"),
-        (7, 8),
-        (7, 8, 9, 10),
+        ("c2", "a2", "b2"), ("Y2", "mean2"), ("Y2", "mean2", "var2", "EX2_2")
     )
     stage6 = MS_TVTP(
         (submodel1, submodel2),
         providers["normpdf"],
         ("p11col", "p22col"),
         ("Y", "p11col", "p22col"),
-        (11, 12),
-        (0, 11, 12),
     )
 
     nll = likelihood.negLikelihood(

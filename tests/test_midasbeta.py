@@ -42,8 +42,8 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([2.0, 2.0, 1.0])
 
-    stage1 = Midas_beta(("omega1", "omega2"), ("X",), ("X",), (1,), (1,), k=k)
-    stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"), (0, 1), (0, 1))
+    stage1 = Midas_beta(("omega1", "omega2"), ("X",), ("X",), k=k)
+    stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"))
 
     kernel_reldiff = difference.relative(stage1.kernel(coeff)[0], kkkk[::-1])
     assert kernel_reldiff < 1e-8
@@ -88,8 +88,8 @@ def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     input = numpy.concatenate((y, x), axis=1)
     beta0 = numpy.array([1.0e308, 1.0e308, 1.0])
 
-    stage1 = Midas_beta(("omega1", "omega2"), ("X",), ("X",), (1,), (1,), k=k)
-    stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"), (0, 1), (0, 1))
+    stage1 = Midas_beta(("omega1", "omega2"), ("X",), ("X",), k=k)
+    stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"))
 
     ce: Optional[BaseException] = None
     try:

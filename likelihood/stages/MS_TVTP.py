@@ -375,18 +375,14 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
         ],
         data_in_names: Tuple[str, str],
         data_out_names: Tuple[str, str, str],
-        input: Tuple[int, int],
-        output: Tuple[int, int, int],
     ) -> None:
         assert isinstance(submodels[0], type(submodels[1]))
-        assert len(submodels[0].data_out_index) == len(submodels[1].data_out_index)
+        assert len(submodels[0].data_in_names) == len(submodels[1].data_out_names)
 
         super().__init__(
             (),
             data_in_names,
             data_out_names,
-            input + submodels[0].data_in_index + submodels[1].data_in_index,
-            output + submodels[0].data_out_index + submodels[1].data_out_index,
             submodels,
             Jitted_Function(
                 Iterative.output0_signature,

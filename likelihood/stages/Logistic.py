@@ -11,14 +11,10 @@ _Logistic_gradinfo_t = ndarray
 
 class Logistic(Stage[_Logistic_gradinfo_t]):
     def __init__(
-        self,
-        data_in_names: Tuple[str, ...],
-        data_out_names: Tuple[str, ...],
-        input: Tuple[int, ...],
-        output: Tuple[int, ...],
+        self, data_in_names: Tuple[str, ...], data_out_names: Tuple[str, ...]
     ) -> None:
-        assert len(input) == len(output)
-        super().__init__((), data_in_names, data_out_names, input, output, ())
+        assert len(data_in_names) == len(data_out_names)
+        super().__init__((), data_in_names, data_out_names, ())
 
     def _eval(
         self, _: ndarray, x: ndarray, *, grad: bool, debug: bool

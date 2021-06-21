@@ -25,9 +25,9 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = generate(coeff, n, seed=seed)
     beta0 = numpy.array([1.0, 1.0, 1.0])
 
-    stage1 = Linear(("b1", "b0"), ("X", "ones"), "X", (1, 2), 1)
-    stage2 = Log("X", "X", 1, 1)
-    stage3 = LogNormpdf("var", ("Y", "X"), ("Y", "X"), (0, 1), (0, 1))
+    stage1 = Linear(("b1", "b0"), ("X", "ones"), "X")
+    stage2 = Log("X", "X")
+    stage3 = LogNormpdf("var", ("Y", "X"), ("Y", "X"))
 
     nll = likelihood.negLikelihood(
         ("b1", "b0", "var"), ("Y", "X", "ones"), (stage1, stage2, stage3), None, nvars=3

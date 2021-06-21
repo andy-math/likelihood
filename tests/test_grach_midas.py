@@ -37,15 +37,11 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> 
     input = numpy.concatenate((y, x, x * x, numpy.zeros(y.shape)), axis=1)
     beta0 = numpy.array([0.8, 0.1, 0.1, 0.8])
 
-    stage1 = Midas_exp("omega", ("long",), ("long",), (2,), (2,), k=k)
+    stage1 = Midas_exp("omega", ("long",), ("long",), k=k)
     stage2 = GarchMidas(
-        ("c", "a", "b"),
-        ("Y", "variance", "long"),
-        ("Y", "drop", "variance", "long"),
-        (0, 1, 2),
-        (0, 3, 1, 2),
+        ("c", "a", "b"), ("Y", "variance", "long"), ("Y", "drop", "variance", "long")
     )
-    stage3 = LogNormpdf_var(("Y", "variance"), ("Y", "variance"), (0, 1), (0, 1))
+    stage3 = LogNormpdf_var(("Y", "variance"), ("Y", "variance"))
 
     nll = likelihood.negLikelihood(
         ("omega", "c", "a", "b"),

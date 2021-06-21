@@ -47,17 +47,16 @@ def _grad_loop(
     return dL_do, dL_dc
 
 
-def _check_stages(stages: Tuple[Stage[Any], ...], nvars: int) -> None:
+def _check_stages(stages: Tuple[Stage[Any], ...], firstColName: str) -> None:
     for s in stages:
-        assert not len(s.data_in_index) or max(s.data_in_index) < nvars
+        assert not isinstance(s, Penalty)
     assert isinstance(stages[-1], Logpdf)
-    assert stages[-1].data_out_index[0] == 0
+    assert stages[-1].data_out_names[0] == firstColName
 
 
 class negLikelihood:
     coeff_names: Tuple[str, ...]
     data_names: Tuple[str, ...]
-    nInput: int
     stages: Tuple[Stage[Any], ...]
     penalty: Optional[Penalty[Any]]
     constraints: Constraints
@@ -73,13 +72,12 @@ class negLikelihood:
     ) -> None:
         assert isunique(coeff_names)
         assert isunique(data_names)
-        _check_stages(stages, nvars)
+        _check_stages(stages, data_names[0])
         self.coeff_names = coeff_names
         self.data_names = data_names
         assert len(data_names) == nvars
         self.stages = stages
         self.penalty = penalty
-        self.nInput = nvars
         self.constraints = Constraints(
             numpy.empty((0, len(coeff_names))),
             numpy.empty((0,)),
@@ -113,7 +111,7 @@ class negLikelihood:
     ) -> Tuple[float, ndarray, Optional[Tuple[Any, ...]]]:
 
         assert coeff.shape == (len(self.coeff_names),)
-        assert input.shape[1] == self.nInput
+        assert input.shape[1] == len(self.data_names)
 
         assertNoInfNaN(coeff)
         assertNoInfNaN(input)

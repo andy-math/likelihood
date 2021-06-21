@@ -17,12 +17,7 @@ class Merge(Stage[_Merge_gradinfo_t]):
     submodels: Tuple[Stage[Any], ...]
 
     def __init__(self, submodels: Tuple[Stage[Any], ...]) -> None:
-        input: List[int] = []
-        output: List[int] = []
-        for s in submodels:
-            input.extend(s.data_in_index)
-            output.extend(s.data_out_index)
-        super().__init__((), (), (), tuple(input), tuple(output), submodels)
+        super().__init__((), (), (), submodels)
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool

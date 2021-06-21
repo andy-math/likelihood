@@ -121,8 +121,6 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
         names: Tuple[str, ...],
         data_in_names: Tuple[str, ...],
         data_out_names: Tuple[str, ...],
-        input: Tuple[int, ...],
-        output: Tuple[int, ...],
         submodels: Tuple[Iterative, ...],
         output0: Jitted_Function[
             Callable[[ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]]
@@ -137,7 +135,7 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
             ]
         ],
     ) -> None:
-        super().__init__(names, data_in_names, data_out_names, input, output, submodels)
+        super().__init__(names, data_in_names, data_out_names, submodels)
         self._eval_impl = Jitted_Function(
             _eval_generator_signature, (output0, eval), _eval_generator
         )

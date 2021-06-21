@@ -13,10 +13,8 @@ class Penalty(Stage[_Penalty_gradinfo_t], metaclass=ABCMeta):
         coeff_names: Tuple[str, ...],
         data_in_names: Tuple[str, ...],
         data_out_names: Tuple[str, ...],
-        input: Tuple[int, ...],
-        output: Tuple[int, ...],
     ) -> None:
-        super().__init__(coeff_names, data_in_names, data_out_names, input, output, ())
+        super().__init__(coeff_names, data_in_names, data_out_names, ())
 
     def get_constraints(self) -> Constraints:
         return Constraints(

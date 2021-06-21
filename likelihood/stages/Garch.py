@@ -84,16 +84,12 @@ class Garch(Iterative.Iterative):
         names: Tuple[str, str, str],
         data_in_name: str,
         data_out_name: str,
-        input: int,
-        output: int,
     ) -> None:
 
         super().__init__(
             names,
             (data_in_name,),
             (data_out_name,),
-            (input,),
-            (output,),
             (),
             Jitted_Function(Iterative.output0_signature, (), _garch_output0_generate),
             Jitted_Function(Iterative.eval_signature, (), _grach_eval_generate),

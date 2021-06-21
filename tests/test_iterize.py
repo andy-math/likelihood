@@ -23,11 +23,9 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
         ("b1", "b2", "b3", "b4", "b5", "b0"),
         ("var1", "var2", "var3", "var4", "var5", "ones"),
         "var1",
-        tuple(range(1, 7)),
-        1,
     )
-    stage2 = Iterize(("Y", "var1"), ("Y", "var1"), (0, 1), (0, 1))
-    stage3 = LogNormpdf("var", ("Y", "var1"), ("Y", "var1"), (0, 1), (0, 1))
+    stage2 = Iterize(("Y", "var1"), ("Y", "var1"))
+    stage3 = LogNormpdf("var", ("Y", "var1"), ("Y", "var1"))
     nll = likelihood.negLikelihood(
         ("b1", "b2", "b3", "b4", "b5", "b0", "var"),
         ("Y", "var1", "var2", "var3", "var4", "var5", "ones"),
