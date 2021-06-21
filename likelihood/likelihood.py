@@ -159,11 +159,9 @@ class negLikelihood:
             return
         self_A, self_b, self_lb, self_ub = self.constraints
 
-        self_A = numpy.concatenate(
-            (self_A, numpy.zeros((constraints.A.shape[0], len(self.coeff_names)))),
-            axis=0,
-        )
-        self_A[-constraints.A.shape[0] :, coeff_index] = constraints.A
+        A = numpy.zeros((constraints.A.shape[0], len(self.coeff_names)))
+        A[:, coeff_index] = constraints.A
+        self_A = numpy.concatenate((self_A, A), axis=0)
         self_b = numpy.concatenate((self_b, constraints.b))
         self_lb[coeff_index] = numpy.maximum(self_lb[coeff_index], constraints.lb)
         self_ub[coeff_index] = numpy.minimum(self_ub[coeff_index], constraints.ub)
