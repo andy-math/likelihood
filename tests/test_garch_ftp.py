@@ -35,9 +35,10 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
             (1 - contrib22) * var1 + contrib22 * var2,
         )
 
-        x[i] = numpy.random.normal(
-            loc=0, scale=math.sqrt(p1 * var1 + p2 * var2), size=1
-        )
+        x[i] = p1 * numpy.random.normal(
+            loc=0, scale=math.sqrt(var1), size=1
+        ) + p2 * numpy.random.normal(loc=0, scale=math.sqrt(var2), size=1)
+
         f1, f2 = normpdf(x[i], var1), normpdf(x[i], var2)
 
         p1, p2 = p1 * f1, p2 * f2
@@ -55,7 +56,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = numpy.concatenate(
         (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 10))), axis=1
     )
-    beta0 = numpy.array([0.8, 0.8, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0])
+    beta0 = numpy.array([0.8, 0.8, 0.011, 0.089, 0.89, 0.022, 0.078, 0.89])
 
     using_var_names = (
         *("Y", "zeros", "ones"),
@@ -119,7 +120,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
 
 class Test_1:
     def test_1(_) -> None:
-        run_once(numpy.array([0.8, 0.8, 0.011, 0.099, 0.89, 1.0, 0.0, 0.0]), 1000)
+        run_once(numpy.array([0.8, 0.8, 0.011, 0.089, 0.89, 0.022, 0.078, 0.89]), 1000)
 
 
 if __name__ == "__main__":
