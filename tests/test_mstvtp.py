@@ -56,10 +56,10 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     stage1 = Linear(("p11b1",), ("ones",), "p11col", (2,), 9)
     stage2 = Linear(("p22b1",), ("ones",), "p22col", (2,), 10)
     stage3 = Merge(
-        [
+        (
             Logistic(("p11col",), ("p11col",), (9,), (9,)),
             Logistic(("p22col",), ("p22col",), (10,), (10,)),
-        ]
+        )
     )
     stage4 = Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1"), (0, 1, 2), (3, 4, 5))
     stage5 = Copy(("Y", "ones"), ("Y2", "mean2"), (0, 2), (6, 7))

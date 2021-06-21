@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import (Any, Callable, Generic, List, NamedTuple, Optional, Tuple,
-                    TypeVar)
+from typing import Any, Callable, Generic, List, NamedTuple, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
@@ -156,6 +155,9 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         )
         assert numpy.all(self.data_in_index == data_in_index) or pass_index_check
         assert numpy.all(self.data_out_index == data_out_index) or pass_index_check
+        if pass_index_check:
+            self.data_in_index = tuple(data_in_index.tolist())
+            self.data_out_index = tuple(data_out_index.tolist())
         register_constraints(self.coeff_index, self.get_constraints())
 
         def _register_constraints(
