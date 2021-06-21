@@ -85,7 +85,6 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     assign2 = Assign("p22", "p22col", 12, 0.0, 1.0)
     stage6 = MS_TVTP(
         (submodel1, submodel2),
-        (),
         providers["normpdf"],
         ("p11col", "p22col"),
         ("Y", "p11col", "p22col"),

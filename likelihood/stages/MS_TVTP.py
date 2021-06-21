@@ -369,7 +369,6 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
     def __init__(
         self,
         submodels: Tuple[Iterative.Iterative, Iterative.Iterative],
-        sharing: Tuple[str, ...],
         provider: Tuple[
             Jitted_Function[Callable[[ndarray], float]],
             Jitted_Function[Callable[[ndarray, float, float], ndarray]],
