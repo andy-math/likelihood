@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Generic, NamedTuple, Optional, Tuple, TypeVar
+from typing import Any, Callable, Generic, List, NamedTuple, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
 from overloads.shortcuts import assertNoInfNaN, isunique
+
+
+def _unique(t: Tuple[str, ...], *tuples: Tuple[str, ...]) -> Tuple[str, ...]:
+    result: List[str] = list(t)
+    for t in tuples:
+        for s in t:
+            if s not in result:
+                result.append(s)
+    return tuple(result)
 
 
 class Constraints(NamedTuple):
@@ -36,7 +45,9 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         data_out_index: Tuple[int, ...],
         submodels: Tuple[Stage[Any], ...],
     ) -> None:
-        assert isunique(coeff_names)
+        coeff_names = _unique(coeff_names, *(s.coeff_names for s in submodels))
+        data_in_names = _unique(data_in_names, *(s.data_in_names for s in submodels))
+        data_out_names = _unique(data_out_names, *(s.data_out_names for s in submodels))
         assert isunique(data_in_names)
         assert isunique(data_out_names)
         assert isunique(data_in_index)
@@ -135,3 +146,20 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         assert numpy.all(self.data_in_index == data_in_index)
         assert numpy.all(self.data_out_index == data_out_index)
         register_constraints(self.coeff_index, self.get_constraints())
+
+        def _register_constraints(
+            coeff_index: ndarray, constraints: Constraints
+        ) -> None:
+            assert self.coeff_index is not None
+            coeff_index = numpy.array(
+                (self.coeff_index[i] for i in coeff_index), dtype=numpy.int64
+            )
+            register_constraints(coeff_index, constraints)
+
+        for s in self.submodels:
+            s.register_coeff(
+                self.coeff_names,
+                self.data_in_names,
+                self.data_out_names,
+                _register_constraints,
+            )
