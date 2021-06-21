@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Generic, List, NamedTuple, Optional, Tuple, TypeVar
+from typing import (Any, Callable, Generic, List, NamedTuple, Optional, Tuple,
+                    TypeVar)
 
 import numpy
 from numerical.typedefs import ndarray
 from overloads.shortcuts import assertNoInfNaN, isunique
 
 
-def _unique(t: Tuple[str, ...], *tuples: Tuple[str, ...]) -> Tuple[str, ...]:
-    result: List[str] = list(t)
+def _concatenate(*tuples: Tuple[str, ...]) -> Tuple[str, ...]:
+    result: List[str] = []
     for t in tuples:
-        for s in t:
-            if s not in result:
-                result.append(s)
+        result.extend(t)
     return tuple(result)
 
 
@@ -45,14 +44,24 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         data_out_index: Tuple[int, ...],
         submodels: Tuple[Stage[Any], ...],
     ) -> None:
-        coeff_names = _unique(coeff_names, *(s.coeff_names for s in submodels))
-        data_in_names = _unique(data_in_names, *(s.data_in_names for s in submodels))
-        data_out_names = _unique(data_out_names, *(s.data_out_names for s in submodels))
+        super().__init__()
+        coeff_names = _concatenate(
+            coeff_names,
+            *(s.coeff_names for s in submodels),
+        )
+        data_in_names = _concatenate(
+            data_in_names,
+            *(s.data_in_names for s in submodels),
+        )
+        data_out_names = _concatenate(
+            data_out_names,
+            *(s.data_out_names for s in submodels),
+        )
+        assert isunique(coeff_names)
         assert isunique(data_in_names)
         assert isunique(data_out_names)
         assert isunique(data_in_index)
         assert isunique(data_out_index)
-        super().__init__()
         self.coeff_names = coeff_names
         self.data_in_names = data_in_names
         self.data_in_index = data_in_index
@@ -121,6 +130,8 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         data_in_names: Tuple[str, ...],
         data_out_names: Tuple[str, ...],
         register_constraints: Callable[[ndarray, Constraints], None],
+        *,
+        pass_index_check: bool = False,
     ) -> None:
         # 检查有无参数是未被声明的
         for x in self.coeff_names:
@@ -143,8 +154,8 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         data_out_index = numpy.array(
             [data_out_names.index(x) for x in self.data_out_names], dtype=numpy.int64
         )
-        assert numpy.all(self.data_in_index == data_in_index)
-        assert numpy.all(self.data_out_index == data_out_index)
+        assert numpy.all(self.data_in_index == data_in_index) or pass_index_check
+        assert numpy.all(self.data_out_index == data_out_index) or pass_index_check
         register_constraints(self.coeff_index, self.get_constraints())
 
         def _register_constraints(
@@ -152,7 +163,7 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         ) -> None:
             assert self.coeff_index is not None
             coeff_index = numpy.array(
-                (self.coeff_index[i] for i in coeff_index), dtype=numpy.int64
+                [self.coeff_index[i] for i in coeff_index], dtype=numpy.int64
             )
             register_constraints(coeff_index, constraints)
 
@@ -162,4 +173,5 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
                 self.data_in_names,
                 self.data_out_names,
                 _register_constraints,
+                pass_index_check=True,
             )

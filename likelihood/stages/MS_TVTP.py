@@ -366,11 +366,9 @@ providers = {
 
 
 class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t]):
-    submodel: Tuple[Iterative.Iterative, Iterative.Iterative]
-
     def __init__(
         self,
-        submodel: Tuple[Iterative.Iterative, Iterative.Iterative],
+        submodels: Tuple[Iterative.Iterative, Iterative.Iterative],
         sharing: Tuple[str, ...],
         provider: Tuple[
             Jitted_Function[Callable[[ndarray], float]],
@@ -381,64 +379,34 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
         input: Tuple[int, int],
         output: Tuple[int, int, int],
     ) -> None:
-        assert isinstance(submodel[0], type(submodel[1]))
-        assert len(submodel[0].data_out_index) == len(submodel[1].data_out_index)
+        assert isinstance(submodels[0], type(submodels[1]))
+        assert len(submodels[0].data_out_index) == len(submodels[1].data_out_index)
 
         super().__init__(
             (),
-            data_in_names + submodel[0].data_in_names + submodel[1].data_in_names,
-            data_out_names + submodel[0].data_out_names + submodel[1].data_out_names,
-            input + submodel[0].data_in_index + submodel[1].data_in_index,
-            output + submodel[0].data_out_index + submodel[1].data_out_index,
-            (),
+            data_in_names,
+            data_out_names,
+            input + submodels[0].data_in_index + submodels[1].data_in_index,
+            output + submodels[0].data_out_index + submodels[1].data_out_index,
+            submodels,
             Jitted_Function(
                 Iterative.output0_signature,
-                tuple(x._output0_scalar for x in submodel),
+                tuple(x._output0_scalar for x in submodels),
                 _tvtp_output0_generate,
             ),
             Jitted_Function(
                 Iterative.eval_signature,
-                tuple(x._eval_scalar for x in submodel) + provider[:1],
+                tuple(x._eval_scalar for x in submodels) + provider[:1],
                 _tvtp_eval_generate,
             ),
             Jitted_Function(
                 Iterative.grad_signature,
-                tuple(x._grad_scalar for x in submodel) + provider,
+                tuple(x._grad_scalar for x in submodels) + provider,
                 _tvtp_grad_generate,
             ),
         )
-        self.submodel = submodel
 
     def get_constraints(self) -> Constraints:
-        assert False
-
-    def register_coeff(
-        self,
-        likeli_names: Tuple[str, ...],
-        data_in_names: Tuple[str, ...],
-        data_out_names: Tuple[str, ...],
-        register_constraints: Callable[[ndarray, Constraints], None],
-    ) -> None:
-        self.submodel[0].register_coeff(
-            likeli_names, data_in_names, data_out_names, register_constraints
-        )
-        self.submodel[1].register_coeff(
-            likeli_names, data_in_names, data_out_names, register_constraints
-        )
-        self.coeff_index = numpy.concatenate(
-            (self.submodel[0].coeff_index, self.submodel[1].coeff_index)
-        )
-        assert numpy.all(
-            self.data_in_index
-            == numpy.array(
-                [data_in_names.index(x) for x in self.data_in_names],
-                dtype=numpy.int64,
-            )
-        )
-        assert numpy.all(
-            self.data_out_index
-            == numpy.array(
-                [data_out_names.index(x) for x in self.data_out_names],
-                dtype=numpy.int64,
-            )
+        return Constraints(
+            numpy.empty((0, 0)), numpy.empty((0,)), numpy.empty((0,)), numpy.empty((0,))
         )
