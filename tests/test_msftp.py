@@ -8,6 +8,7 @@ from likelihood.stages.Assign import Assign
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Iterize import Iterize
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
+from likelihood.Variables import Variables
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -23,7 +24,7 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     numpy.random.seed(seed)
     p11, p22 = coeff
     p1, p2 = 0.5, 0.5
-    x = numpy.zeros((n, 1))
+    x = numpy.zeros((n,))
     for i in range(n):
         p1, p2 = p1 * p11 + p2 * (1 - p22), p1 * (1 - p11) + p2 * p22
         x[i] = p1 * numpy.random.normal(
@@ -38,8 +39,11 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
-    input = numpy.concatenate(
-        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 8))), axis=1
+    input = Variables(
+        *(("Y", x), ("zeros", None), ("ones", numpy.ones((n,)))),
+        *(("Y1", None), ("mean1", None), ("var1", None)),
+        *(("Y2", None), ("mean2", None), ("var2", None)),
+        *(("p11col", None), ("p22col", None)),
     )
     beta0 = numpy.array([0.8, 0.8])
 

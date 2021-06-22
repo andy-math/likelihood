@@ -5,6 +5,7 @@ from likelihood import likelihood
 from likelihood.stages.Lasso import Lasso
 from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
+from likelihood.Variables import Variables
 from numerical import difference
 from optimizer import trust_region
 
@@ -38,7 +39,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
 
     beta0 = numpy.zeros((beta.shape[0] + 1))
     beta0[-1] = 1.0
-    input = numpy.concatenate((y.reshape((-1, 1)), x), axis=1)
+    input = Variables(("Y", y), *((f"var{i+1}", x[:, i]) for i in range(m)))
 
     func, grad = nll2func(nll, beta0, input, regularize=True)
 

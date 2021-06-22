@@ -9,6 +9,7 @@ from overloads.shortcuts import assertNoInfNaN, isunique
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Penalty import Penalty
 from likelihood.stages.abc.Stage import Constraints, Stage
+from likelihood.Variables import Variables
 
 
 def _eval_loop(
@@ -100,41 +101,55 @@ class negLikelihood:
     def _eval(
         self: negLikelihood,
         coeff: ndarray,
-        input: ndarray,
+        data_in: Variables,
         *,
         grad: bool,
         regularize: bool,
         debug: bool
     ) -> Tuple[float, ndarray, Optional[Tuple[Any, ...]]]:
 
-        assert coeff.shape == (len(self.coeff_names),)
-        assert input.shape[1] == len(self.data_names)
+        assert coeff.shape == (
+            len(self.coeff_names),
+        ), "向negLikelihood所输入的参数向量的尺寸与预期的不同"
+        assert (
+            data_in.data_names == self.data_names
+        ), "Variables中定义的变量与negLikelihood需要的变量似乎不同"
 
         assertNoInfNaN(coeff)
-        assertNoInfNaN(input)
+        assertNoInfNaN(data_in.sheet)
 
         output, gradinfo = _eval_loop(
             self._get_stages(regularize=regularize),
             coeff,
-            input.copy(),
+            data_in.sheet.copy(),
             grad=grad,
             debug=debug,
         )
         return -numpy.sum(output[:, 0]), output, gradinfo
 
     def eval(
-        self, coeff: ndarray, input: ndarray, *, regularize: bool, debug: bool = False
+        self,
+        coeff: ndarray,
+        data_in: Variables,
+        *,
+        regularize: bool,
+        debug: bool = False
     ) -> Tuple[float, ndarray]:
         fval, output, _ = self._eval(
-            coeff, input, grad=False, regularize=regularize, debug=debug
+            coeff, data_in, grad=False, regularize=regularize, debug=debug
         )
         return fval, output
 
     def grad(
-        self, coeff: ndarray, input: ndarray, *, regularize: bool, debug: bool = False
+        self,
+        coeff: ndarray,
+        data_in: Variables,
+        *,
+        regularize: bool,
+        debug: bool = False
     ) -> ndarray:
         _, o, gradinfo = self._eval(
-            coeff, input, grad=True, regularize=regularize, debug=debug
+            coeff, data_in, grad=True, regularize=regularize, debug=debug
         )
 
         dL_dL = numpy.zeros(o.shape)

@@ -10,6 +10,7 @@ from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
 from likelihood.stages.Merge import Merge
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
+from likelihood.Variables import Variables
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -26,7 +27,7 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     p11b1, p22b1 = coeff
     p11, p22 = 1.0 / (math.exp(-p11b1) + 1.0), 1.0 / (math.exp(-p22b1) + 1.0)
     p1, p2 = 0.5, 0.5
-    x = numpy.zeros((n, 1))
+    x = numpy.zeros((n,))
     for i in range(n):
         p1, p2 = p1 * p11 + p2 * (1 - p22), p1 * (1 - p11) + p2 * p22
         x[i] = p1 * numpy.random.normal(
@@ -41,8 +42,11 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
-    input = numpy.concatenate(
-        (x, numpy.zeros((n, 1)), numpy.ones((n, 1)), numpy.zeros((n, 8))), axis=1
+    input = Variables(
+        *(("Y", x), ("zeros", None), ("ones", numpy.ones((n,)))),
+        *(("Y1", None), ("mean1", None), ("var1", None)),
+        *(("Y2", None), ("mean2", None), ("var2", None)),
+        *(("p11col", None), ("p22col", None)),
     )
     beta0 = numpy.array([0.0, 0.0])
 

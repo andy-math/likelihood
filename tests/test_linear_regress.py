@@ -4,6 +4,7 @@ import numpy.linalg
 from likelihood import likelihood
 from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
+from likelihood.Variables import Variables
 from numerical import difference
 from optimizer import trust_region
 
@@ -33,7 +34,15 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
 
     beta0 = numpy.zeros((beta.shape[0] + 1,))
     beta0[-1] = 1.0
-    input = numpy.concatenate((y.reshape((-1, 1)), x), axis=1)
+    input = Variables(
+        ("Y", y),
+        ("var1", x[:, 0]),
+        ("var2", x[:, 1]),
+        ("var3", x[:, 2]),
+        ("var4", x[:, 3]),
+        ("var5", x[:, 4]),
+        ("ones", numpy.ones((n,))),
+    )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 

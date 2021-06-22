@@ -6,6 +6,7 @@ import numpy.linalg
 from likelihood import likelihood
 from likelihood.stages.Garch import Garch
 from likelihood.stages.LogNormpdf_var import LogNormpdf_var
+from likelihood.Variables import Variables
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -17,7 +18,7 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     numpy.random.seed(seed)
     c, a, b = coeff
     var = c / (1 - a - b)
-    x = numpy.zeros((n, 1))
+    x = numpy.zeros((n,))
     x[0] = numpy.random.normal(loc=0, scale=math.sqrt(var), size=1)
     for i in range(1, n):
         var = c + a * x[i - 1] * x[i - 1] + b * var
@@ -27,9 +28,9 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
 
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
-    x, y = x[:-1, :], x[1:, :]
-    input = numpy.concatenate((y, x), axis=1)
-    beta0 = numpy.array([numpy.std(input[:, 0]) ** 2 * 0.1, 0.1, 0.8])
+    x, y = x[:-1], x[1:]
+    input = Variables(("Y", y), ("X", x))
+    beta0 = numpy.array([numpy.std(y) ** 2 * 0.1, 0.1, 0.8])
 
     stage1 = Garch(("c", "a", "b"), "X", "X")
     stage2 = LogNormpdf_var(("Y", "X"), ("Y", "X"))

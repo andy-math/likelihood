@@ -8,6 +8,7 @@ from likelihood import likelihood
 from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.stages.Midas_exp import Midas_exp
+from likelihood.Variables import Variables
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -24,21 +25,21 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
     kernel = omega ** numpy.arange(1.0, k + 1.0)[::-1]
     kernel = kernel / numpy.sum(kernel)
     assertNoInfNaN(kernel)
-    x = numpy.zeros((n + k * 10, 1))
+    x = numpy.zeros((n + k * 10,))
     for i in range(k):
         x[i] = numpy.random.randn()
     for i in range(k, n + k * 10):
         start = i - k
         stop = i
-        x[i] = x[start:stop, 0] @ kernel + numpy.random.randn()
+        x[i] = x[start:stop] @ kernel + numpy.random.randn()
     start = k * 10
     return x[start:]  # type: ignore
 
 
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     x = generate(coeff, n, k, seed=seed)
-    x, y = x[:-1, :], x[1:, :]
-    input = numpy.concatenate((y, x), axis=1)
+    x, y = x[:-1], x[1:]
+    input = Variables(("Y", y), ("X", x))
     beta0 = numpy.array([0.5, 1.0])
 
     stage1 = Midas_exp("omega", ("X",), ("X",), k=k)
@@ -72,8 +73,8 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
 
 def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     x = generate(coeff, n, k, seed=seed)
-    x, y = x[:-1, :], x[1:, :]
-    input = numpy.concatenate((y, x), axis=1)
+    x, y = x[:-1], x[1:]
+    input = Variables(("Y", y), ("X", x))
     beta0 = numpy.array([0.0, 1.0])
 
     stage1 = Midas_exp("omega", ("X",), ("X",), k=k)

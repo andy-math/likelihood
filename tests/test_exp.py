@@ -6,6 +6,7 @@ from likelihood import likelihood
 from likelihood.stages.Exp import Exp
 from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
+from likelihood.Variables import Variables
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -13,24 +14,26 @@ from optimizer import trust_region
 from tests.common import nll2func
 
 
-def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
+def generate(coeff: ndarray, n: int, seed: int = 0) -> Variables:
     numpy.random.seed(seed)
     x = numpy.concatenate((numpy.random.rand(n, 1), numpy.ones((n, 1))), axis=1)
     y = numpy.exp(x @ coeff) + numpy.random.randn(n)
-    y = y.reshape((-1, 1))
-    return numpy.concatenate((y, x), axis=1)  # type: ignore
+    return Variables(("Y", y), ("X", x[:, 0]), ("ones", x[:, 1]))
 
 
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = generate(coeff, n, seed=seed)
     beta0 = numpy.array([0.0, 0.0, 1.0])
 
-    stage1 = Linear(("b1", "b0"), ("X", "ones"), "X")
-    stage2 = Exp("X", "X")
-    stage3 = LogNormpdf("var", ("Y", "X"), ("Y", "X"))
-
     nll = likelihood.negLikelihood(
-        ("b1", "b0", "var"), ("Y", "X", "ones"), (stage1, stage2, stage3), None
+        ("b1", "b0", "var"),
+        ("Y", "X", "ones"),
+        (
+            Linear(("b1", "b0"), ("X", "ones"), "X"),
+            Exp("X", "X"),
+            LogNormpdf("var", ("Y", "X"), ("Y", "X")),
+        ),
+        None,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)

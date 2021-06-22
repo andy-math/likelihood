@@ -7,6 +7,7 @@ from likelihood import likelihood
 from likelihood.stages.GarchMidas import GarchMidas
 from likelihood.stages.LogNormpdf_var import LogNormpdf_var
 from likelihood.stages.Midas_exp import Midas_exp
+from likelihood.Variables import Variables
 from numerical import difference
 from numerical.typedefs import ndarray
 from optimizer import trust_region
@@ -21,7 +22,7 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
 
     numpy.random.seed(seed)
     short = c / (1 - a - b)
-    x = numpy.zeros((n, 1))
+    x = numpy.zeros((n,))
     for i in range(k):
         x[0] = numpy.random.normal(loc=0, scale=math.sqrt(short), size=1)
     for i in range(k, n):
@@ -33,8 +34,8 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
 
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> None:
     x = generate(coeff, n + times * k, k, seed=seed)[times * k :]  # noqa: E203
-    x, y = x[:-1, :], x[1:, :]
-    input = numpy.concatenate((y, x, x * x, numpy.zeros(y.shape)), axis=1)
+    x, y = x[:-1], x[1:]
+    input = Variables(("Y", y), ("variance", x), ("long", x * x), ("drop", None))
     beta0 = numpy.array([0.8, 0.1, 0.1, 0.8])
 
     stage1 = Midas_exp("omega", ("long",), ("long",), k=k)
