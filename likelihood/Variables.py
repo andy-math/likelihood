@@ -38,7 +38,7 @@ class Variables:
             *((name, self.sheet[from_:to, i]) for i, name in enumerate(self.data_names))
         )
 
-    def subset(self, data_names: Tuple[str, ...]) -> Variables:
+    def subset(self, *data_names: str) -> Variables:
         assert isunique(data_names)
         for name in data_names:
             assert name in self.data_names, f"变量{name}未出现于此变量表中"
