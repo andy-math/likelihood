@@ -26,7 +26,7 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     p1, p2 = 0.5, 0.5
     var1 = c1 / (1.0 - a1 - b1)
     var2 = c2 / (1.0 - a2 - b2)
-    x = numpy.zeros((n, ))
+    x = numpy.zeros((n,))
     for i in range(n):
         path11, path22 = p1 * p11, p2 * p22
         p1, p2 = path11 + p2 * (1 - p22), p1 * (1 - p11) + path22
@@ -84,7 +84,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         (submodel1, submodel2),
         providers["normpdf"],
         ("p11col", "p22col"),
-        ("Y", "p11col", "p22col"),
+        ("Y", "zeros", "p11col", "p22col"),
     )
 
     nll = likelihood.negLikelihood(

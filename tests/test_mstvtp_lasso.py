@@ -6,6 +6,7 @@ import numpy.linalg
 from likelihood import likelihood
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Iterize import Iterize
+from likelihood.stages.Lasso import Lasso
 from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
 from likelihood.stages.Merge import Merge
@@ -48,7 +49,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         *(("Y2", None), ("mean2", None), ("var2", None)),
         *(("p11col", None), ("p22col", None)),
     )
-    beta0 = numpy.array([0.0, 0.0])
+    beta0 = numpy.array([0.1, 0.1])
 
     using_var_names = (
         *("Y", "zeros", "ones"),
@@ -81,10 +82,10 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         ("p11b1", "p22b1"),
         using_var_names,
         (stage1, stage2, stage3, stage4, stage5, stage6, stage7),
-        None,
+        Lasso(("p11b1", "p22b1"), 1.0, ("Y", "zeros"), "Y"),
     )
 
-    func, grad = nll2func(nll, beta0, input, regularize=False)
+    func, grad = nll2func(nll, beta0, input, regularize=True)
 
     constraint = nll.get_constraints()
 
@@ -98,14 +99,14 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         opts,
     )
     beta_mle = result.x
-    relerr_mle = difference.relative(coeff, beta_mle)
+    abserr_mle = difference.absolute(beta_mle, numpy.zeros(coeff.shape))
     print("result.success: ", result.success)
     print("coeff: ", coeff)
     print("mle:   ", beta_mle)
-    print("relerr_mle: ", relerr_mle)
-    assert result.success
+    print("abserr_mle: ", abserr_mle)
+    # assert result.success
     assert 5 < result.iter < 200
-    assert relerr_mle < 0.6
+    assert abserr_mle < 1e-10
 
 
 class Test_1:

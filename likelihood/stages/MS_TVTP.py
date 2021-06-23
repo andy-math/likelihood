@@ -23,15 +23,15 @@ def _tvtp_output0_generate(
         out0_1, dout_1, pre_1, dpre_1 = out0_f1(coeff[:halfCoeff])
         out0_2, dout_2, pre_2, dpre_2 = out0_f2(coeff[halfCoeff:])
 
-        out0 = numpy.concatenate((numpy.array([0.0, 0.5, 0.5]), out0_1, out0_2))
+        out0 = numpy.concatenate((numpy.array([0.0, 0.0, 0.5, 0.5]), out0_1, out0_2))
         pre = numpy.concatenate((pre_1, pre_2))
 
         (nOut,) = out0_1.shape
         (nPre,) = pre_1.shape
 
-        dout = numpy.zeros((nOut * 2 + 3, halfCoeff * 2))
-        dout[3 : (nOut + 3), :halfCoeff] = dout_1
-        dout[(nOut + 3) : (2 * nOut + 3), halfCoeff:] = dout_2
+        dout = numpy.zeros((nOut * 2 + 4, halfCoeff * 2))
+        dout[4 : (nOut + 4), :halfCoeff] = dout_1
+        dout[(nOut + 4) : (2 * nOut + 4), halfCoeff:] = dout_2
 
         dpre = numpy.zeros((nPre * 2, halfCoeff * 2))
         dpre[:nPre, :halfCoeff] = dpre_1
@@ -63,7 +63,7 @@ def _tvtp_eval_generate(
 
         lag_post1: float
         lag_post2: float
-        _, lag_post1, lag_post2, lag = lag[0], lag[1], lag[2], lag[3:]
+        lag_post1, lag_post2, lag = lag[2], lag[3], lag[4:]
         (nLag,) = lag.shape
         halfLag = nLag // 2
         assert halfLag * 2 == nLag
@@ -114,10 +114,22 @@ def _tvtp_eval_generate(
             rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
         post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
 
+        EX2_1 = out_1[2] + out_1[1] * out_1[1]
+        EX2_2 = out_2[2] + out_2[1] * out_2[1]
+        EX = prior1 * out_1[1] + prior2 * out_2[1]
+        var = max((prior1 * EX2_1 + prior2 * EX2_2) - EX * EX, 0.0)
+
         return (
             numpy.concatenate(
                 (
-                    numpy.array([math.log(rawpost1 + rawpost2), post1, post2]),
+                    numpy.array(
+                        [
+                            math.log(rawpost1 + rawpost2),
+                            var,
+                            post1,
+                            post2,
+                        ]
+                    ),
                     out_1,
                     out_2,
                 )
@@ -164,19 +176,20 @@ def _tvtp_grad_generate(
 
         lag_post1: float
         lag_post2: float
-        _, lag_post1, lag_post2, lag = lag[0], lag[1], lag[2], lag[3:]
+        lag_post1, lag_post2, lag = lag[2], lag[3], lag[4:]
         (nLag,) = lag.shape
         halfLag = nLag // 2
         assert halfLag * 2 == nLag
 
         dL_dpost1: float
         dL_dpost2: float
-        output, dL_dlike, dL_dpost1, dL_dpost2, dL_do = (
-            output[3:],
+        output, dL_dlike, dL_dvar, dL_dpost1, dL_dpost2, dL_do = (
+            output[4:],
             dL_do[0],
             dL_do[1],
             dL_do[2],
-            dL_do[3:],
+            dL_do[3],
+            dL_do[4:],
         )
         (nOutput,) = output.shape
         halfOutput = nOutput // 2
@@ -227,6 +240,15 @@ def _tvtp_grad_generate(
             rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
         post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
 
+        EX2_1 = out1[2] + out1[1] * out1[1]
+        EX2_2 = out2[2] + out2[1] * out2[1]
+        EX = prior1 * out1[1] + prior2 * out2[1]
+        # var = max((prior1 * EX2_1 + prior2 * EX2_2) - EX * EX, 0.0)
+
+        dL_dEX2_1 = dL_dvar * prior1
+        dL_dEX2_2 = dL_dvar * prior2
+        dL_dEX = -dL_dvar * (2 * EX)
+
         dL_dlike /= rawpost1 + rawpost2
         dL_dstage2 = -dL_dpost1 * (post1 / 归一化stage2) - dL_dpost2 * (post2 / 归一化stage2)
         dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2 + dL_dlike
@@ -234,14 +256,18 @@ def _tvtp_grad_generate(
         if rawpost1 + rawpost2 == 0:
             dL_drawpost1, dL_drawpost2 = 0.0, 0.0
 
-        dL_dprior1 = dL_drawpost1 * likeli1
-        dL_dprior2 = dL_drawpost2 * likeli2
+        dL_dprior1 = dL_drawpost1 * likeli1 + dL_dvar * EX2_1 + dL_dEX * out1[1]
+        dL_dprior2 = dL_drawpost2 * likeli2 + dL_dvar * EX2_2 + dL_dEX * out1[2]
 
         dL_dlikeli1 = dL_drawpost1 * prior1
         dL_dlikeli2 = dL_drawpost2 * prior2
 
         dL_dout1 += likeli_gradient(out1, likeli1, dL_dlikeli1)
         dL_dout2 += likeli_gradient(out2, likeli2, dL_dlikeli2)
+        dL_dout1[1] += dL_dEX * prior1 + dL_dEX2_1 * (2 * out1[1])
+        dL_dout2[1] += dL_dEX * prior2 + dL_dEX2_2 * (2 * out2[1])
+        dL_dout1[2] += dL_dEX2_1
+        dL_dout2[2] += dL_dEX2_2
 
         dL_dcoeff1, dL_dinput1, dL_dlag1, dL_dpre[:halfPre] = grad_f1(
             coeff[:halfCoeff],
@@ -298,7 +324,7 @@ def _tvtp_grad_generate(
         )
         dL_drawlag = numpy.concatenate(
             (
-                numpy.array([0.0, dL_dlagpost1, dL_dlagpost2]),
+                numpy.array([0.0, 0.0, dL_dlagpost1, dL_dlagpost2]),
                 dL_drawlag1,
                 dL_drawlag2,
             )
@@ -374,7 +400,7 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
             Jitted_Function[Callable[[ndarray, float, float], ndarray]],
         ],
         data_in_names: Tuple[str, str],
-        data_out_names: Tuple[str, str, str],
+        data_out_names: Tuple[str, str, str, str],
     ) -> None:
         assert isinstance(submodels[0], type(submodels[1]))
         assert isinstance(submodels[1], type(submodels[0]))
