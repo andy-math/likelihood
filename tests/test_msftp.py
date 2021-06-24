@@ -65,7 +65,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         (submodel1, submodel2),
         providers["normpdf"],
         ("p11col", "p22col"),
-        ("Y", "zeros", "p11col", "p22col"),
+        ("Y", "zeros", "ones", "p11col", "p22col"),
     )
 
     nll = likelihood.negLikelihood(
