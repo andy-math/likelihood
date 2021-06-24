@@ -82,7 +82,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         ("p11b1", "p22b1"),
         using_var_names,
         (stage1, stage2, stage3, stage4, stage5, stage6, stage7),
-        Lasso(("p11b1", "p22b1"), 1.0, ("Y", "zeros"), "Y"),
+        Lasso(("p11b1", "p22b1"), 1.0, ("Y", "ones"), "Y"),
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=True)
