@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, List, Optional, Tuple, TypeVar
 
 import numpy
 from numerical.typedefs import ndarray
@@ -10,6 +11,8 @@ from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Penalty import Penalty
 from likelihood.stages.abc.Stage import Constraints, Stage
 from likelihood.Variables import Variables
+
+T = TypeVar("T", int, datetime)
 
 
 def _eval_loop(
@@ -101,7 +104,7 @@ class negLikelihood:
     def _eval(
         self: negLikelihood,
         coeff: ndarray,
-        data_in: Variables,
+        data_in: Variables[T],
         *,
         grad: bool,
         regularize: bool,
@@ -130,7 +133,7 @@ class negLikelihood:
     def eval(
         self,
         coeff: ndarray,
-        data_in: Variables,
+        data_in: Variables[T],
         *,
         regularize: bool,
         debug: bool = False
@@ -143,7 +146,7 @@ class negLikelihood:
     def grad(
         self,
         coeff: ndarray,
-        data_in: Variables,
+        data_in: Variables[T],
         *,
         regularize: bool,
         debug: bool = False
