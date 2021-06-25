@@ -43,6 +43,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
     input = Variables(
+        tuple(range(n)),
         *(("Y", x), ("zeros", None), ("ones", numpy.ones((n,)))),
         *(("Y1", None), ("mean1", None), ("var1", None)),
         *(("Y2", None), ("mean2", None), ("var2", None)),

@@ -35,7 +35,9 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> None:
     x = generate(coeff, n + times * k, k, seed=seed)[times * k :]  # noqa: E203
     x, y = x[:-1], x[1:]
-    input = Variables(("Y", y), ("variance", x), ("long", x * x), ("drop", None))
+    input = Variables(
+        tuple(range(n - 1)), ("Y", y), ("variance", x), ("long", x * x), ("drop", None)
+    )
     beta0 = numpy.array([0.8, 0.1, 0.1, 0.8])
 
     stage1 = Midas_exp("omega", ("long",), ("long",), k=k)

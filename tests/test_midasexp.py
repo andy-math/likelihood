@@ -39,7 +39,7 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     x = generate(coeff, n, k, seed=seed)
     x, y = x[:-1], x[1:]
-    input = Variables(("Y", y), ("X", x))
+    input = Variables(tuple(range(n - 1)), ("Y", y), ("X", x))
     beta0 = numpy.array([0.5, 1.0])
 
     stage1 = Midas_exp("omega", ("X",), ("X",), k=k)
@@ -74,7 +74,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
 def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     x = generate(coeff, n, k, seed=seed)
     x, y = x[:-1], x[1:]
-    input = Variables(("Y", y), ("X", x))
+    input = Variables(tuple(range(n - 1)), ("Y", y), ("X", x))
     beta0 = numpy.array([0.0, 1.0])
 
     stage1 = Midas_exp("omega", ("X",), ("X",), k=k)

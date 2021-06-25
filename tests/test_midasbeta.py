@@ -40,7 +40,7 @@ def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> Tuple[ndarray, nd
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     x, kkkk = generate(coeff, n, k, seed=seed)
     x, y = x[:-1], x[1:]
-    input = Variables(("Y", y), ("X", x))
+    input = Variables(tuple(range(n - 1)), ("Y", y), ("X", x))
     beta0 = numpy.array([2.0, 2.0, 1.0])
 
     stage1 = Midas_beta(("omega1", "omega2"), ("X",), ("X",), k=k)
@@ -82,7 +82,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
 def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     x, _ = generate(coeff, n, k, seed=seed)
     x, y = x[:-1], x[1:]
-    input = Variables(("Y", y), ("X", x))
+    input = Variables(tuple(range(n - 1)), ("Y", y), ("X", x))
     beta0 = numpy.array([1.0e308, 1.0e308, 1.0])
 
     stage1 = Midas_beta(("omega1", "omega2"), ("X",), ("X",), k=k)

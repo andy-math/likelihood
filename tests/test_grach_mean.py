@@ -30,7 +30,9 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
     x, y = x[:-1], x[1:]
 
-    input = Variables(("Y", y), ("mean", None), ("var", None), ("EX2", None))
+    input = Variables(
+        tuple(range(n - 1)), ("Y", y), ("mean", None), ("var", None), ("EX2", None)
+    )
     beta0 = numpy.array([numpy.std(y) ** 2 * 0.1, 0.1, 0.8])
 
     stage1 = Garch_mean(("c", "a", "b"), ("Y", "mean"), ("Y", "mean", "var", "EX2"))
