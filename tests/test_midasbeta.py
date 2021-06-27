@@ -64,7 +64,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
         func,
         grad,
         beta0,
-        *constraint,
+        constraint,
         opts,
     )
     beta_mle = result.x[:-1]

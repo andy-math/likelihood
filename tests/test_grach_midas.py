@@ -63,7 +63,7 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> 
         func,
         grad,
         beta0 if n > 10 else coeff,
-        *constraint,
+        constraint,
         opts,
     )
     beta_mle = result.x

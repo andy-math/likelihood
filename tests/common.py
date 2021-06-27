@@ -1,13 +1,16 @@
-from typing import Callable, Tuple
+from datetime import datetime
+from typing import Callable, Tuple, TypeVar
 
 import numpy
 from likelihood.likelihood import negLikelihood
 from likelihood.Variables import Variables
 from numerical.typedefs import ndarray
 
+T = TypeVar("T", int, datetime)
+
 
 def nll2func(
-    nll: negLikelihood, beta0: ndarray, data_in: Variables, *, regularize: bool
+    nll: negLikelihood, beta0: ndarray, data_in: Variables[T], *, regularize: bool
 ) -> Tuple[Callable[[ndarray], float], Callable[[ndarray], ndarray]]:
     (trial1, output1) = nll.eval(beta0, data_in, regularize=regularize, debug=True)
     (trial2, output2) = nll.eval(beta0, data_in, regularize=regularize, debug=True)
