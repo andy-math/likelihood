@@ -101,7 +101,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
 
     opts = trust_region.Trust_Region_Options(max_iter=99999)
     opts.check_iter = 30
-    opts.abstol_fval = 1.0e-1
+    opts.abstol_fval = 1.0
     opts.max_stall_iter = 100
     opts.border_abstol = 1e-10
 
