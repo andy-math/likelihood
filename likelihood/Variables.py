@@ -28,9 +28,14 @@ class Variables(Generic[T]):
             assert dynT.Tuple(
                 (
                     dynT.Str(),
-                    dynT.Optional(dynT.NDArray(numpy.float64, (length_tracker,))),
+                    dynT.Union(
+                        dynT.Optional(dynT.NDArray(numpy.float64, (length_tracker,))),
+                        dynT.Optional(dynT.NDArray(numpy.int64, (length_tracker,))),
+                    ),
                 )
             )._isinstance(d)
+            if d[1] is not None and d[1].dtype == numpy.int64:
+                d = (d[0], d[1].astype(numpy.float64))
             if d[1] is not None:
                 assertNoInfNaN(d[1])
         assert length_tracker.value is not None
