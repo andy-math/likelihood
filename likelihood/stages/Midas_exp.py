@@ -4,7 +4,7 @@ import numpy
 from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.abc.Convolution import Convolution
 from likelihood.stages.abc.Stage import Constraints
-from numerical.typedefs import ndarray
+from numpy import ndarray
 
 
 class Midas_exp(Convolution):

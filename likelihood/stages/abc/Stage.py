@@ -4,7 +4,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Any, Callable, Generic, List, NamedTuple, Optional, Tuple, TypeVar
 
 import numpy
-from numerical.typedefs import ndarray
+from numpy import ndarray
 from overloads.shortcuts import assertNoInfNaN, isunique
 
 

@@ -5,7 +5,7 @@ from likelihood import likelihood
 from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.Variables import Variables
-from numerical import difference
+from overloads import difference
 from optimizer import trust_region
 
 from tests.common import nll2func

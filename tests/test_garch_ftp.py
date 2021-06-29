@@ -9,9 +9,9 @@ from likelihood.stages.Copy import Copy
 from likelihood.stages.Garch_mean import Garch_mean
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from likelihood.Variables import Variables
-from numerical import difference
-from numerical.typedefs import ndarray
+from numpy import ndarray
 from optimizer import trust_region
+from overloads import difference
 
 from tests.common import nll2func
 

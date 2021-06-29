@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 
 import numpy
 from likelihood.stages.abc.Stage import Stage
-from numerical.typedefs import ndarray
+from numpy import ndarray
 
 _Convolution_gradinfo_t = Tuple[ndarray, ndarray, ndarray]
 

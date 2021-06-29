@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 import numpy
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Stage import Constraints
-from numerical.typedefs import ndarray
+from numpy import ndarray
 
 _LogNormpdfVar_gradinfo_t = Tuple[ndarray, ndarray]
 

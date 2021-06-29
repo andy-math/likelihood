@@ -4,7 +4,7 @@ from typing import Callable, Tuple, TypeVar
 import numpy
 from likelihood.likelihood import negLikelihood
 from likelihood.Variables import Variables
-from numerical.typedefs import ndarray
+from numpy import ndarray
 
 T = TypeVar("T", int, datetime)
 

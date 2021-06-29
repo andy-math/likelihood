@@ -5,7 +5,7 @@ from typing import Generic, Optional, Tuple, TypeVar
 
 import numpy
 import overloads.dyn_typing as dynT
-from numerical.typedefs import ndarray
+from numpy import ndarray
 from overloads.shortcuts import assertNoInfNaN, isunique
 
 T = TypeVar("T", int, datetime)

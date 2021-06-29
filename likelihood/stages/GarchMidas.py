@@ -6,7 +6,7 @@ import numpy
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative
 from likelihood.stages.abc.Stage import Constraints
-from numerical.typedefs import ndarray
+from numpy import ndarray
 
 
 def _garch_midas_output0_generate() -> Callable[

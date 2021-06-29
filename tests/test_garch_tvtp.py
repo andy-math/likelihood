@@ -10,8 +10,8 @@ from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from likelihood.Variables import Variables
-from numerical import difference
-from numerical.typedefs import ndarray
+from overloads import difference
+from numpy import ndarray
 from optimizer import trust_region
 
 from tests.common import nll2func

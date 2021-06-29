@@ -9,8 +9,8 @@ from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.stages.Midas_beta import Midas_beta
 from likelihood.Variables import Variables
-from numerical import difference
-from numerical.typedefs import ndarray
+from overloads import difference
+from numpy import ndarray
 from optimizer import trust_region
 from overloads.shortcuts import assertNoInfNaN
 

@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 
 import numpy
 from likelihood.stages.abc.Penalty import Penalty
-from numerical.typedefs import ndarray
+from numpy import ndarray
 
 _Lasso_gradinfo_t = Tuple[ndarray]
 
