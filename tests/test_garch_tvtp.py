@@ -10,9 +10,9 @@ from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from likelihood.Variables import Variables
-from overloads import difference
 from numpy import ndarray
 from optimizer import trust_region
+from overloads import difference
 
 from tests.common import nll2func
 
@@ -105,8 +105,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     opts = trust_region.Trust_Region_Options(max_iter=99999)
     opts.check_iter = 15
     opts.check_rel = 5e-2
-    opts.abstol_fval = 1.0
-    opts.max_stall_iter = 100
+    opts.tol_grad = 1e-4
     opts.border_abstol = 1e-10
 
     result = trust_region.trust_region(

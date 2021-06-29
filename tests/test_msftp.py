@@ -9,9 +9,9 @@ from likelihood.stages.Copy import Copy
 from likelihood.stages.Iterize import Iterize
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from likelihood.Variables import Variables
-from overloads import difference
 from numpy import ndarray
 from optimizer import trust_region
+from overloads import difference
 
 from tests.common import nll2func
 
@@ -80,6 +80,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     constraint = nll.get_constraints()
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
+    opts.tol_grad = 1e-4
 
     result = trust_region.trust_region(
         func,

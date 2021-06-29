@@ -12,9 +12,9 @@ from likelihood.stages.Logistic import Logistic
 from likelihood.stages.Merge import Merge
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from likelihood.Variables import Variables
-from overloads import difference
 from numpy import ndarray
 from optimizer import trust_region
+from overloads import difference
 
 from tests.common import nll2func
 
