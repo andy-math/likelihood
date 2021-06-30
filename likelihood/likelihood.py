@@ -181,5 +181,5 @@ class negLikelihood:
 
         self.constraints = Constraints(self_A, self_b, self_lb, self_ub)
 
-    def get_constraints(self) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
+    def get_constraints(self) -> Constraints:
         return self.constraints
