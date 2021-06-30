@@ -296,8 +296,16 @@ def _tvtp_grad_generate(
         dL_dcontrib11 = float(dL_dlag1 @ (rawlag1 - rawlag2))
         dL_dcontrib22 = float(dL_dlag2 @ (rawlag2 - rawlag1))
 
-        dL_dprior1 -= dL_dcontrib11 * (contrib11 / prior1) if prior1 else 0.0
-        dL_dprior2 -= dL_dcontrib22 * (contrib22 / prior2) if prior2 else 0.0
+        dL_dprior1 -= (
+            dL_dcontrib11 * (contrib11 / prior1)
+            if prior1 and math.isfinite(contrib11 / prior1)
+            else 0.0
+        )
+        dL_dprior2 -= (
+            dL_dcontrib22 * (contrib22 / prior2)
+            if prior2 and math.isfinite(contrib22 / prior2)
+            else 0.0
+        )
 
         dL_dpath11 = (dL_dcontrib11 / prior1 if prior1 else 0.0) + dL_dprior1
         dL_dpath12 = dL_dprior1
