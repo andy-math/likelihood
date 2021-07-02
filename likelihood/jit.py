@@ -30,9 +30,9 @@ class Jitted_Function(Generic[T2]):
         self.pickled_bytecode = (pickle.dumps(generator),) + tuple(
             [y for x in dependent for y in x.pickled_bytecode]
         )
-        self.qualifier = f"{generator.__module__}.{generator.__qualname__}"
         self.signature = signature
         self.dependent = dependent
+        generator = pickle.loads(self.pickled_bytecode[0])
         _output_width_m = max(_output_width_m, len(generator.__module__))
         _output_width_n = max(_output_width_n, len(generator.__name__))
 
