@@ -257,12 +257,12 @@ def _tvtp_grad_generate(
         dL_dstage2 = -dL_dpost1 * (post1 / 归一化stage2) - dL_dpost2 * (post2 / 归一化stage2)
         dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2 + dL_dlike
         dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2 + dL_dlike
-        if math.isinf(dL_dpost1 / 归一化stage2):
-            print("TVTP: dL_drawpost1的梯度出现inf溢出")
-            dL_drawpost1 = dL_dstage2 + dL_dlike
-        if math.isinf(dL_dpost2 / 归一化stage2):
-            print("TVTP: dL_drawpost2的梯度出现inf溢出")
-            dL_drawpost2 = dL_dstage2 + dL_dlike
+        if not math.isfinite(dL_drawpost1):
+            print("TVTP: dL_drawpost1的梯度出现溢出")
+            dL_drawpost1 = 0.0
+        if not math.isfinite(dL_drawpost2):
+            print("TVTP: dL_drawpost2的梯度出现溢出")
+            dL_drawpost2 = 0.0
 
         if rawpost1 + rawpost2 == 0:
             dL_drawpost1, dL_drawpost2 = 0.0, 0.0
