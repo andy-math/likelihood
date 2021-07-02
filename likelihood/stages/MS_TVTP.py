@@ -240,8 +240,10 @@ def _tvtp_grad_generate(
         rawpost2: float = prior2 * likeli2
 
         归一化stage2 = rawpost1 + rawpost2
+        _stage2_patched = False
         if 归一化stage2 == 0:
             rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
+            _stage2_patched = True
         post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
 
         EX2_1 = out1[2] + out1[1] * out1[1]
@@ -253,19 +255,16 @@ def _tvtp_grad_generate(
         dL_dEX2_2 = dL_dvar * prior2
         dL_dEX += -dL_dvar * (2 * EX)
 
-        dL_dlike /= rawpost1 + rawpost2
+        dL_dlike /= 归一化stage2
         dL_dstage2 = -dL_dpost1 * (post1 / 归一化stage2) - dL_dpost2 * (post2 / 归一化stage2)
         dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2 + dL_dlike
         dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2 + dL_dlike
+        if _stage2_patched:
+            dL_drawpost1, dL_drawpost2 = 0.0, 0.0
         if not math.isfinite(dL_drawpost1):
-            print("TVTP: dL_drawpost1的梯度出现溢出")
             dL_drawpost1 = 0.0
         if not math.isfinite(dL_drawpost2):
-            print("TVTP: dL_drawpost2的梯度出现溢出")
             dL_drawpost2 = 0.0
-
-        if rawpost1 + rawpost2 == 0:
-            dL_drawpost1, dL_drawpost2 = 0.0, 0.0
 
         dL_dprior1 = dL_drawpost1 * likeli1 + dL_dvar * EX2_1 + dL_dEX * out1[1]
         dL_dprior2 = dL_drawpost2 * likeli2 + dL_dvar * EX2_2 + dL_dEX * out1[2]
