@@ -25,15 +25,40 @@ class Jitted_Function(Generic[T2]):
         dependent: Tuple[Jitted_Function[Any], ...],
         generator: Callable[..., T2],
     ) -> None:
-        global _output_width_m, _output_width_n
         # picklable test
-        self.pickled_bytecode = (pickle.dumps(generator),) + tuple(
-            [y for x in dependent for y in x.pickled_bytecode]
+        pickled_bytecode = tuple(
+            [
+                pickle.dumps(generator),
+                *(y for x in dependent for y in x.pickled_bytecode),
+            ]
         )
-        self.signature = signature
-        self.dependent = dependent
+        self.__setstate__((signature, dependent, pickled_bytecode))
+
+    def __getstate__(
+        self,
+    ) -> Tuple[
+        numba.core.typing.templates.Signature,
+        Tuple[Jitted_Function[Any], ...],
+        Tuple[bytes, ...],
+    ]:
+        return (self.signature, self.dependent, self.pickled_bytecode)
+
+    def __setstate__(
+        self,
+        state: Tuple[
+            numba.core.typing.templates.Signature,
+            Tuple[Jitted_Function[Any], ...],
+            Tuple[bytes, ...],
+        ],
+    ) -> None:
+        global _output_width_m, _output_width_n
+        (self.signature, self.dependent, self.pickled_bytecode) = state
+        generator = self._get_generator()
         _output_width_m = max(_output_width_m, len(generator.__module__))
         _output_width_n = max(_output_width_n, len(generator.__name__))
+
+    def _get_generator(self) -> Callable[..., T2]:
+        return pickle.loads(self.pickled_bytecode[0])  # type: ignore
 
     def _compile(self) -> Tuple[T2, T2]:
         if self.pickled_bytecode in _Jitted_Function_Cache:
@@ -41,14 +66,13 @@ class Jitted_Function(Generic[T2]):
 
         start_time = time.time()
 
-        generator: Callable[..., T2] = pickle.loads(self.pickled_bytecode[0])
-
+        generator = self._get_generator()
         func = numba.njit(self.signature)(
-            generator(*[x.func() for x in self.dependent])
+            generator(*(x.func() for x in self.dependent))
         )
-        py_func = generator(*[x.py_func() for x in self.dependent])
-
+        py_func = generator(*(x.py_func() for x in self.dependent))
         _Jitted_Function_Cache[self.pickled_bytecode] = (func, py_func)
+
         print(
             f"pid[{multiprocessing.current_process().pid}]: "
             f"预编译 {generator.__module__.ljust(_output_width_m)} "
@@ -56,6 +80,7 @@ class Jitted_Function(Generic[T2]):
             f" -- 用时{time.time()-start_time:.4f}秒\n",
             end="",
         )
+
         return func, py_func
 
     def func(self) -> T2:
