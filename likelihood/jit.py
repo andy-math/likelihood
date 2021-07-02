@@ -32,7 +32,6 @@ class Jitted_Function(Generic[T2]):
         )
         self.signature = signature
         self.dependent = dependent
-        generator = pickle.loads(self.pickled_bytecode[0])
         _output_width_m = max(_output_width_m, len(generator.__module__))
         _output_width_n = max(_output_width_n, len(generator.__name__))
 
