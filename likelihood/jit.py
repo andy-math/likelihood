@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import multiprocessing
 import pickle
+import time
 from typing import Any, Callable, Dict, Generic, NoReturn, Tuple, TypeVar
 
 import numba  # type: ignore
 
 T2 = TypeVar("T2", covariant=True)
 
-
+_output_width_m = 0
+_output_width_n = 0
 _Jitted_Function_Cache: Dict[Tuple[bytes, ...], Tuple[Any, Any]] = {}
 
 
@@ -22,16 +25,22 @@ class Jitted_Function(Generic[T2]):
         dependent: Tuple[Jitted_Function[Any], ...],
         generator: Callable[..., T2],
     ) -> None:
+        global _output_width_m, _output_width_n
         # picklable test
         self.pickled_bytecode = (pickle.dumps(generator),) + tuple(
             [y for x in dependent for y in x.pickled_bytecode]
         )
+        self.qualifier = f"{generator.__module__}.{generator.__qualname__}"
         self.signature = signature
         self.dependent = dependent
+        _output_width_m = max(_output_width_m, len(generator.__module__))
+        _output_width_n = max(_output_width_n, len(generator.__name__))
 
     def _compile(self) -> Tuple[T2, T2]:
         if self.pickled_bytecode in _Jitted_Function_Cache:
             return _Jitted_Function_Cache[self.pickled_bytecode]
+
+        start_time = time.time()
 
         generator: Callable[..., T2] = pickle.loads(self.pickled_bytecode[0])
 
@@ -41,7 +50,12 @@ class Jitted_Function(Generic[T2]):
         py_func = generator(*[x.py_func() for x in self.dependent])
 
         _Jitted_Function_Cache[self.pickled_bytecode] = (func, py_func)
-        print(f"预编译 <{generator.__name__} at {generator.__module__.split('.')[-1]}> 完成")
+        print(
+            f"pid[{multiprocessing.current_process().pid}]: "
+            f"预编译 {generator.__module__.ljust(_output_width_m)} "
+            f".{generator.__name__.ljust(_output_width_n)} 完成"
+            f" -- 用时{time.time()-start_time:.4f}秒"
+        )
         return func, py_func
 
     def func(self) -> T2:
