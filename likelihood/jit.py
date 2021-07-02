@@ -51,8 +51,8 @@ class Jitted_Function(Generic[T2]):
         _Jitted_Function_Cache[self.pickled_bytecode] = (func, py_func)
         print(
             f"pid[{multiprocessing.current_process().pid}]: "
-            f"预编译 {generator.__module__.ljust(_output_width_m+5)} "
-            f".{generator.__name__.ljust(_output_width_n+5)} 完成"
+            f"预编译 {generator.__module__.ljust(_output_width_m+6)} "
+            f".{generator.__name__.ljust(_output_width_n+6)} 完成"
             f" -- 用时{time.time()-start_time:.4f}秒"
         )
         return func, py_func
