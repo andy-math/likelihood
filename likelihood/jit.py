@@ -53,7 +53,8 @@ class Jitted_Function(Generic[T2]):
             f"pid[{multiprocessing.current_process().pid}]: "
             f"预编译 {generator.__module__.ljust(_output_width_m+6)} "
             f".{generator.__name__.ljust(_output_width_n+6)} 完成"
-            f" -- 用时{time.time()-start_time:.4f}秒"
+            f" -- 用时{time.time()-start_time:.4f}秒\n",
+            end="",
         )
         return func, py_func
 
