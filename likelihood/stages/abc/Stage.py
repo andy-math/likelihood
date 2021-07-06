@@ -147,14 +147,9 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
         )
         register_constraints(self.coeff_index, self.get_constraints())
 
-        def _register_constraints(
-            coeff_index: ndarray, constraints: Constraints
-        ) -> None:
+        def _register_constraints(index: ndarray, constraints: Constraints) -> None:
             assert self.coeff_index is not None
-            coeff_index = numpy.array(
-                [self.coeff_index[i] for i in coeff_index], dtype=numpy.int64
-            )
-            register_constraints(coeff_index, constraints)
+            register_constraints(self.coeff_index[index], constraints)
 
         for s in self.submodels:
             s.register_coeff_and_data_names(
