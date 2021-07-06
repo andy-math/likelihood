@@ -98,7 +98,6 @@ class Mapping(Stage[T]):
         def _register_constraints(index: ndarray, constraints: Constraints) -> None:
             assert self.coeff_index is not None
             index = self.expand_index[index]
-            assert numpy.all(index == self.expand_index)
             A = numpy.zeros((constraints.A.shape[0], len(self.coeff_names)))
             lb = numpy.full((len(self.coeff_names),), -numpy.inf)
             ub = numpy.full((len(self.coeff_names),), numpy.inf)
