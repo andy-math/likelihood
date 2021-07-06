@@ -21,7 +21,7 @@ def _eval_loop(
     input: ndarray,
     *,
     grad: bool,
-    debug: bool
+    debug: bool,
 ) -> Tuple[ndarray, Optional[Tuple[Any, ...]]]:
     output: ndarray = input
     gradinfo: List[Optional[Any]] = []
@@ -40,7 +40,7 @@ def _grad_loop(
     gradinfo: Tuple[Any, ...],
     dL_do: ndarray,
     *,
-    debug: bool
+    debug: bool,
 ) -> Tuple[ndarray, ndarray]:
     dL_dc = numpy.zeros(coeff.shape)
     for s, g in zip(stages[::-1], gradinfo[::-1]):
@@ -51,7 +51,12 @@ def _grad_loop(
     return dL_do, dL_dc
 
 
-def _check_stages(stages: Tuple[Stage[Any], ...], firstColName: str) -> None:
+def _check_stages(
+    coeff_names: Tuple[str, ...], stages: Tuple[Stage[Any], ...], firstColName: str
+) -> None:
+    for name in coeff_names:
+        if not any([name in s.coeff_names for s in stages]):
+            assert False, f"likelihood中所声明的参数{name}似乎未被任何stage所引用"
     for s in stages:
         assert not isinstance(s, Penalty)
     assert isinstance(stages[-1], Logpdf)
@@ -74,7 +79,7 @@ class negLikelihood:
     ) -> None:
         assert isunique(coeff_names)
         assert isunique(data_names)
-        _check_stages(stages, data_names[0])
+        _check_stages(coeff_names, stages, data_names[0])
         self.coeff_names = coeff_names
         self.data_names = data_names
         self.stages = stages
@@ -108,7 +113,7 @@ class negLikelihood:
         *,
         grad: bool,
         regularize: bool,
-        debug: bool
+        debug: bool,
     ) -> Tuple[float, ndarray, Optional[Tuple[Any, ...]]]:
 
         assert coeff.shape == (
@@ -136,7 +141,7 @@ class negLikelihood:
         data_in: Variables[T],
         *,
         regularize: bool,
-        debug: bool = False
+        debug: bool = False,
     ) -> Tuple[float, ndarray]:
         fval, output, _ = self._eval(
             coeff, data_in, grad=False, regularize=regularize, debug=debug
@@ -149,7 +154,7 @@ class negLikelihood:
         data_in: Variables[T],
         *,
         regularize: bool,
-        debug: bool = False
+        debug: bool = False,
     ) -> ndarray:
         _, o, gradinfo = self._eval(
             coeff, data_in, grad=True, regularize=regularize, debug=debug
