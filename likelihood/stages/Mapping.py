@@ -93,14 +93,21 @@ class Mapping(Stage[T]):
             [data_out_names.index(x) for x in self.data_out_names], dtype=numpy.int64
         )
 
-        def _register_constraints(
-            coeff_index: ndarray, constraints: Constraints
-        ) -> None:
+        def _register_constraints(index: ndarray, constraints: Constraints) -> None:
             assert self.coeff_index is not None
-            coeff_index = numpy.array(
-                [self.coeff_index[i] for i in coeff_index], dtype=numpy.int64
+            index = self.expand_index[index]
+            A = numpy.zeros((constraints.A.shape[0], len(self.coeff_names)))
+            lb = numpy.full((len(self.coeff_names),), -numpy.inf)
+            ub = numpy.full((len(self.coeff_names),), numpy.inf)
+
+            for i, idx in enumerate(index):
+                A[:, idx] = A[:, idx] + constraints.A[:, i]
+                lb[idx] = max(lb[idx], constraints.lb[i])
+                ub[idx] = min(ub[idx], constraints.ub[i])
+
+            register_constraints(
+                self.coeff_index[index], Constraints(A, constraints.b, lb, ub)
             )
-            register_constraints(coeff_index, constraints)
 
         self.submodel.register_coeff_and_data_names(
             self.coeff_names,
