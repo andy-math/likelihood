@@ -46,8 +46,7 @@ def _grad_loop(
     for s, g in zip(stages[::-1], gradinfo[::-1]):
         assert s.coeff_index is not None
         dL_do, _dL_dc = s.grad(coeff[s.coeff_index], g, dL_do, debug=debug)
-        for i, ci in enumerate(s.coeff_index):
-            dL_dc[ci] += _dL_dc[i]
+        dL_dc[s.coeff_index] += _dL_dc
     return dL_do, dL_dc
 
 
@@ -59,6 +58,9 @@ def _check_stages(
             assert False, f"likelihood中所声明的参数{name}似乎未被任何stage所引用"
     for s in stages:
         assert not isinstance(s, Penalty)
+        assert isunique(s.coeff_names)
+        assert isunique(s.data_in_names)
+        assert isunique(s.data_out_names)
     assert isinstance(stages[-1], Logpdf)
     assert stages[-1].data_out_names[0] == firstColName
 
