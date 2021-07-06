@@ -1,56 +1,110 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar
 
 import numpy
 from likelihood.stages.abc.Stage import Constraints, Stage
 from numpy import ndarray
+from overloads.shortcuts import isunique
 
-_Merge_gradinfo_t = List[Any]
+T = TypeVar("T")
 
 
-class Merge(Stage[_Merge_gradinfo_t]):
-    def __init__(self, submodels: Tuple[Stage[Any], ...]) -> None:
-        super().__init__((), (), (), submodels)
+class Mapping(Stage[T]):
+    submodel: Stage[T]
+    expand_index: ndarray
+
+    def __init__(
+        self, _mapping: Dict[str, Tuple[str, ...]], submodel: Stage[T]
+    ) -> None:
+        expanded_names = tuple(y for x in _mapping.values() for y in x)
+        assert isunique(expanded_names)
+
+        for name in submodel.coeff_names:
+            if name not in expanded_names:
+                assert False, f"Mapping中的子模型所使用的参数{name}未在Mapping层声明"
+
+        for name in expanded_names:
+            if name not in submodel.coeff_names:
+                assert False, f"Mapping中所声明的参数{name}未被子模型引用"
+
+        mapping = tuple((k, v) for k, v in _mapping.items())
+        coeff_names = tuple(k for k, _ in mapping)
+
+        super().__init__(
+            coeff_names, submodel.data_in_names, submodel.data_out_names, ()
+        )
+
+        expand_index: List[int] = []
+        for name in submodel.coeff_names:
+            for i, (_, v) in enumerate(mapping):
+                if name in v:
+                    expand_index.append(i)
+        assert len(expand_index) == len(submodel.coeff_names)
+        self.expand_index = numpy.array(expand_index, dtype=numpy.int64)
 
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
-    ) -> Tuple[ndarray, Optional[_Merge_gradinfo_t]]:
-        output: List[ndarray] = []
-        gradinfo: List[Optional[Any]] = []
-        for s in self.submodels:
-            _output, g = s._eval(
-                coeff[s.coeff_index], input[:, s.data_in_index], grad=grad, debug=debug
-            )
-            output.append(_output)
-            gradinfo.append(g)
-        output_ = numpy.concatenate(output, axis=1)
-        if not grad:
-            return output_, None
-        return output_, gradinfo
+    ) -> Tuple[ndarray, Optional[T]]:
+        return self.submodel._eval(
+            coeff[self.expand_index], input, grad=grad, debug=debug
+        )
 
     def _grad(
-        self,
-        coeff: ndarray,
-        gradinfo: _Merge_gradinfo_t,
-        dL_do: ndarray,
-        *,
-        debug: bool
+        self, coeff: ndarray, gradinfo: T, dL_do: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
-        dL_di: List[ndarray] = []
-        dL_dc: List[ndarray] = []
-        for s, g in zip(self.submodels, gradinfo):
-            _dL_di, _dL_dc = s._grad(
-                coeff[s.coeff_index], g, dL_do[:, s.data_out_index], debug=debug
-            )
-            dL_di.append(_dL_di)
-            dL_dc.append(_dL_dc)
-        return numpy.concatenate(dL_di, axis=1), numpy.concatenate(dL_dc)
+        dL_di, _dL_dc = self.submodel._grad(
+            coeff[self.expand_index], gradinfo, dL_do, debug=debug
+        )
+        dL_dc = numpy.zeros((len(self.coeff_names),))
+        for i, v in zip(self.expand_index, _dL_dc):
+            dL_dc[i] += v
+        return dL_di, dL_dc
 
     def get_constraints(self) -> Constraints:
-        return Constraints(
-            numpy.empty((0, len(self.coeff_names))),
-            numpy.empty((0,)),
-            numpy.full((len(self.coeff_names),), -numpy.inf),
-            numpy.full((len(self.coeff_names),), numpy.inf),
+        assert False
+
+    def register_coeff_and_data_names(
+        self,
+        likeli_names: Tuple[str, ...],
+        data_in_names: Tuple[str, ...],
+        data_out_names: Tuple[str, ...],
+        register_constraints: Callable[[ndarray, Constraints], None],
+    ) -> None:
+        # 检查有无参数是未被声明的
+        for x in self.coeff_names:
+            if x not in likeli_names:
+                assert False, f"模块{type(self).__name__}所使用的参数{x}未在似然函数中声明。"
+        # 检查有无变量列名是未被声明的
+        for x in self.data_in_names:
+            if x not in data_in_names:
+                assert False, f"模块{type(self).__name__}所使用的输入变量{x}未在似然函数中声明。"
+        for x in self.data_out_names:
+            if x not in data_out_names:
+                assert False, f"模块{type(self).__name__}所使用的输出变量{x}未在似然函数中声明。"
+
+        self.coeff_index = numpy.array(
+            [likeli_names.index(x) for x in self.coeff_names], dtype=numpy.int64
+        )
+        self.data_in_index = numpy.array(
+            [data_in_names.index(x) for x in self.data_in_names], dtype=numpy.int64
+        )
+        self.data_out_index = numpy.array(
+            [data_out_names.index(x) for x in self.data_out_names], dtype=numpy.int64
+        )
+
+        def _register_constraints(
+            coeff_index: ndarray, constraints: Constraints
+        ) -> None:
+            assert self.coeff_index is not None
+            coeff_index = numpy.array(
+                [self.coeff_index[i] for i in coeff_index], dtype=numpy.int64
+            )
+            register_constraints(coeff_index, constraints)
+
+        self.submodel.register_coeff_and_data_names(
+            self.coeff_names,
+            self.data_in_names,
+            self.data_out_names,
+            _register_constraints,
         )
