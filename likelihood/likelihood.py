@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, List, Optional, Tuple, TypeVar
+from typing import Any, List, Optional, Tuple, Type, TypeVar
 
 import numpy
 from numpy import ndarray
@@ -10,9 +10,14 @@ from overloads.shortcuts import assertNoInfNaN, isunique
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Penalty import Penalty
 from likelihood.stages.abc.Stage import Constraints, Stage
+from likelihood.stages.Mapping import Mapping
 from likelihood.Variables import Variables
 
 T = TypeVar("T", int, datetime)
+
+
+def _isStage(s: Stage[Any], T: Type[Any]) -> bool:
+    return isinstance(s, T) or (isinstance(s, Mapping) and isinstance(s.submodel, T))
 
 
 def _eval_loop(
@@ -57,11 +62,11 @@ def _check_stages(
         if not any([name in s.coeff_names for s in stages]):
             assert False, f"likelihood中所声明的参数{name}似乎未被任何stage所引用"
     for s in stages:
-        assert not isinstance(s, Penalty)
+        assert not _isStage(s, Penalty)
         assert isunique(s.coeff_names)
         assert isunique(s.data_in_names)
         assert isunique(s.data_out_names)
-    assert isinstance(stages[-1], Logpdf)
+    assert _isStage(stages[-1], Logpdf)
     assert stages[-1].data_out_names[0] == firstColName
 
 

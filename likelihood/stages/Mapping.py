@@ -35,6 +35,8 @@ class Mapping(Stage[T]):
             coeff_names, submodel.data_in_names, submodel.data_out_names, ()
         )
 
+        self.submodel = submodel
+
         expand_index: List[int] = []
         for name in submodel.coeff_names:
             for i, (_, v) in enumerate(mapping):
@@ -96,6 +98,7 @@ class Mapping(Stage[T]):
         def _register_constraints(index: ndarray, constraints: Constraints) -> None:
             assert self.coeff_index is not None
             index = self.expand_index[index]
+            assert numpy.all(index == self.expand_index)
             A = numpy.zeros((constraints.A.shape[0], len(self.coeff_names)))
             lb = numpy.full((len(self.coeff_names),), -numpy.inf)
             ub = numpy.full((len(self.coeff_names),), numpy.inf)
@@ -106,11 +109,11 @@ class Mapping(Stage[T]):
                 ub[idx] = min(ub[idx], constraints.ub[i])
 
             register_constraints(
-                self.coeff_index[index], Constraints(A, constraints.b, lb, ub)
+                self.coeff_index, Constraints(A, constraints.b, lb, ub)
             )
 
         self.submodel.register_coeff_and_data_names(
-            self.coeff_names,
+            self.submodel.coeff_names,
             self.data_in_names,
             self.data_out_names,
             _register_constraints,
