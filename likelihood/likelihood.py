@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Any, List, Optional, Tuple, Type, TypeVar
 
 import numpy
-from overloads.typing import ndarray
 from overloads.shortcuts import assertNoInfNaN, isunique
+from overloads.typing import ndarray
 
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Penalty import Penalty
@@ -186,8 +186,8 @@ class negLikelihood:
 
         A = numpy.zeros((constraints.A.shape[0], len(self.coeff_names)))
         A[:, coeff_index] = constraints.A
-        self_A = numpy.concatenate((self_A, A), axis=0)
-        self_b = numpy.concatenate((self_b, constraints.b))
+        self_A: ndarray = numpy.concatenate((self_A, A), axis=0)  # type: ignore
+        self_b: ndarray = numpy.concatenate((self_b, constraints.b))  # type: ignore
         self_lb[coeff_index] = numpy.maximum(self_lb[coeff_index], constraints.lb)
         self_ub[coeff_index] = numpy.minimum(self_ub[coeff_index], constraints.ub)
 
