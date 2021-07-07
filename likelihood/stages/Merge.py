@@ -24,7 +24,7 @@ class Merge(Stage[_Merge_gradinfo_t]):
             )
             output.append(_output)
             gradinfo.append(g)
-        output_ = numpy.concatenate(output, axis=1)
+        output_: ndarray = numpy.concatenate(output, axis=1)  # type: ignore
         if not grad:
             return output_, None
         return output_, gradinfo
@@ -45,7 +45,7 @@ class Merge(Stage[_Merge_gradinfo_t]):
             )
             dL_di.append(_dL_di)
             dL_dc.append(_dL_dc)
-        return numpy.concatenate(dL_di, axis=1), numpy.concatenate(dL_dc)
+        return numpy.concatenate(dL_di, axis=1), numpy.concatenate(dL_dc)  # type: ignore
 
     def get_constraints(self) -> Constraints:
         return Constraints(
