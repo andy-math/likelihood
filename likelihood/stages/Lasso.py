@@ -97,4 +97,7 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
             -beta.shape[0] / var
             + (self.Lambda / (2.0)) * numpy.sum(numpy.abs(beta)) / (var * var)
         )
-        return numpy.concatenate((dL_dlogP, dL_dvar), axis=1), dL_dbeta
+        return (
+            numpy.concatenate((dL_dlogP, dL_dvar), axis=1),  # type: ignore
+            dL_dbeta,
+        )

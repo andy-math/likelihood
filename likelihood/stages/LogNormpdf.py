@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, cast
 
 import numpy
 from likelihood.stages.abc.Logpdf import Logpdf
@@ -31,7 +31,9 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         x: ndarray = mu_x[:, [1]] - mu_x[:, [0]]
         constant = numpy.log(var) + numpy.log(2.0) + numpy.log(numpy.pi)
         logP = (-1.0 / 2.0) * (constant + (x * x) / var)
-        output = numpy.concatenate((logP, numpy.full(logP.shape, var)), axis=1)
+        output: ndarray = numpy.concatenate(  # type: ignore
+            (logP, numpy.full(logP.shape, var)), axis=1
+        )
         if not grad:
             return output, None
         return output, x
@@ -49,12 +51,14 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         d/dVar{log p(x)} = (-1/2) {1/Var - (x*x)/(Var*Var)}
                          = (1/2) {(x/Var) * (x/Var) - 1/Var}
         """
-        z = x / var
+        z: ndarray = x / var
         dL_dlogP: ndarray = dL_dlogP_dvar[:, [0]]
         dL_dvar: ndarray = dL_dlogP_dvar[:, [1]]
-        dL_di = dL_dlogP * -z
+        dL_di: ndarray = dL_dlogP * -z
         dL_dlogP.shape = (dL_dlogP.shape[0],)
-        dL_dc = dL_dlogP @ ((1.0 / 2.0) * (z * z - 1.0 / var)) + numpy.sum(dL_dvar)
+        dL_dc = dL_dlogP @ (
+            (1.0 / 2.0) * (cast(ndarray, z * z) - 1.0 / var)
+        ) + numpy.sum(dL_dvar)
         return dL_di * numpy.array([[-1.0, 1.0]]), dL_dc
 
     def get_constraints(self) -> Constraints:

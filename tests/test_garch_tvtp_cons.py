@@ -11,9 +11,9 @@ from likelihood.stages.Logistic import Logistic
 from likelihood.stages.Mapping import Mapping
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from likelihood.Variables import Variables
-from overloads.typing import ndarray
 from optimizer import trust_region
 from overloads import difference
+from overloads.typing import ndarray
 
 from tests.common import nll2func
 
@@ -39,9 +39,9 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
             (1 - contrib22) * var1 + contrib22 * var2,
         )
 
-        x[i] = p1 * numpy.random.normal(
-            loc=0, scale=math.sqrt(var1), size=1
-        ) + p2 * numpy.random.normal(loc=0, scale=math.sqrt(var2), size=1)
+        x[i] = float(
+            p1 * numpy.random.normal(loc=0, scale=math.sqrt(var1), size=1)
+        ) + float(p2 * numpy.random.normal(loc=0, scale=math.sqrt(var2), size=1))
 
         f1, f2 = normpdf(x[i], var1), normpdf(x[i], var2)
 

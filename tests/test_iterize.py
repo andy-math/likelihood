@@ -6,17 +6,20 @@ from likelihood.stages.Iterize import Iterize
 from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.Variables import Variables
-from overloads import difference
 from optimizer import trust_region
+from overloads import difference
+from overloads.typing import ndarray
 
 from tests.common import nll2func
 
 
 def run_once(n: int, m: int, seed: int = 0) -> None:
     numpy.random.seed(seed)
-    x = numpy.concatenate((numpy.random.randn(n, m), numpy.ones((n, 1))), axis=1)
+    x: ndarray = numpy.concatenate(  # type: ignore
+        (numpy.random.randn(n, m), numpy.ones((n, 1))), axis=1
+    )
     beta = numpy.random.randn(m + 1)
-    y = x @ beta + numpy.random.randn(n)
+    y: ndarray = x @ beta + numpy.random.randn(n)
     beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)  # type: ignore
     abserr_decomp = difference.absolute(beta, beta_decomp)
 
