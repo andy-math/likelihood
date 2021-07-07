@@ -9,9 +9,9 @@ from likelihood.stages.Copy import Copy
 from likelihood.stages.Garch_mean import Garch_mean
 from likelihood.stages.MS_TVTP import MS_TVTP, providers
 from likelihood.Variables import Variables
-from overloads.typing import ndarray
 from optimizer import trust_region
 from overloads import difference
+from overloads.typing import ndarray
 
 from tests.common import nll2func
 
@@ -36,9 +36,9 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
             (1 - contrib22) * var1 + contrib22 * var2,
         )
 
-        x[i] = p1 * numpy.random.normal(
-            loc=0, scale=math.sqrt(var1), size=1
-        ) + p2 * numpy.random.normal(loc=0, scale=math.sqrt(var2), size=1)
+        x[i] = float(
+            p1 * numpy.random.normal(loc=0, scale=math.sqrt(var1), size=1)
+        ) + float(p2 * numpy.random.normal(loc=0, scale=math.sqrt(var2), size=1))
 
         f1, f2 = normpdf(x[i], var1), normpdf(x[i], var2)
 
@@ -100,7 +100,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     constraint = nll.get_constraints()
 
     opts = trust_region.Trust_Region_Options(max_iter=99999)
-    opts.check_iter = 25
+    opts.check_iter = 14
     opts.tol_grad = 1e-4
     opts.border_abstol = 1e-10
 
