@@ -45,7 +45,10 @@ class Merge(Stage[_Merge_gradinfo_t]):
             )
             dL_di.append(_dL_di)
             dL_dc.append(_dL_dc)
-        return numpy.concatenate(dL_di, axis=1), numpy.concatenate(dL_dc)  # type: ignore
+        return (
+            numpy.concatenate(dL_di, axis=1),  # type: ignore
+            numpy.concatenate(dL_dc),  # type: ignore
+        )
 
     def get_constraints(self) -> Constraints:
         return Constraints(
