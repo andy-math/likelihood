@@ -7,16 +7,18 @@ from likelihood.stages.Linear import Linear
 from likelihood.stages.Log import Log
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.Variables import Variables
+from optimizer import trust_region
 from overloads import difference
 from overloads.typing import ndarray
-from optimizer import trust_region
 
 from tests.common import nll2func
 
 
 def generate(coeff: ndarray, n: int, seed: int = 0) -> Variables[int]:
     numpy.random.seed(seed)
-    x = numpy.concatenate((numpy.random.rand(n, 1) + 0.01, numpy.ones((n, 1))), axis=1)
+    x: ndarray = numpy.concatenate(  # type: ignore
+        (numpy.random.rand(n, 1) + 0.01, numpy.ones((n, 1))), axis=1
+    )
     y = numpy.log(x @ coeff) + numpy.random.randn(n) / 3
     return Variables(tuple(range(n)), ("Y", y), ("X", x[:, 0]), ("ones", x[:, 1]))
 

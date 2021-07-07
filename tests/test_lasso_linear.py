@@ -6,8 +6,9 @@ from likelihood.stages.Lasso import Lasso
 from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.Variables import Variables
-from overloads import difference
 from optimizer import trust_region
+from overloads import difference
+from overloads.typing import ndarray
 
 from tests.common import nll2func
 
@@ -17,9 +18,9 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     rrrr = numpy.random.randn(n, m)
     rrrr[:, -1] = rrrr[:, 0] - rrrr[:, -1] / 1000
     x = rrrr
-    beta = n * numpy.random.randn(m)
+    beta: ndarray = n * numpy.random.randn(m)
     beta[-1] = 0.0
-    y = x @ beta + numpy.random.randn(n)
+    y: ndarray = x @ beta + numpy.random.randn(n)
     beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)  # type: ignore
     relerr_decomp = difference.relative(beta[:-1], beta_decomp[:-1])
 
