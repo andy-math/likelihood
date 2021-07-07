@@ -86,7 +86,7 @@ def _grad_generator(
         _dL_dc, dL_di[0, :], dL_d0, dL_dpre = grad_func(
             coeff, inputs[0, :], output0, outputs[0, :], dL_do[0, :], dL_dpre
         )
-        dL_dc += _dL_dc + dL_d0 @ d0_dc + dL_dpre @ dpre_dc
+        dL_dc += _dL_dc + dL_d0 @ d0_dc + dL_dpre @ dpre_dc  # type: ignore
         return dL_di, dL_dc
 
     return implement
