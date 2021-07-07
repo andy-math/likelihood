@@ -8,7 +8,7 @@ from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
 from numba import float64  # type: ignore
-from numpy import ndarray
+from overloads.typing import ndarray
 
 
 def _tvtp_output0_generate(

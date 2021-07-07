@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Optional, Tuple, TypeVar
 
 import numpy
 from likelihood.stages.abc.Stage import Constraints, Stage
-from numpy import ndarray
+from overloads.typing import ndarray
 from overloads.shortcuts import isunique
 
 T = TypeVar("T")

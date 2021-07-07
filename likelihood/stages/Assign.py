@@ -4,7 +4,7 @@ from typing import Optional, Tuple, cast
 
 import numpy
 from likelihood.stages.abc.Stage import Constraints, Stage
-from numpy import ndarray
+from overloads.typing import ndarray
 
 _Assign_gradinfo_t = type(None)
 

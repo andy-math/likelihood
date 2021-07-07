@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, List, Optional, Tuple, Type, TypeVar
 
 import numpy
-from numpy import ndarray
+from overloads.typing import ndarray
 from overloads.shortcuts import assertNoInfNaN, isunique
 
 from likelihood.stages.abc.Logpdf import Logpdf

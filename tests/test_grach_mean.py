@@ -8,7 +8,7 @@ from likelihood.stages.Garch_mean import Garch_mean
 from likelihood.stages.LogNormpdf_var import LogNormpdf_var
 from likelihood.Variables import Variables
 from overloads import difference
-from numpy import ndarray
+from overloads.typing import ndarray
 from optimizer import trust_region
 
 from tests.common import nll2func
