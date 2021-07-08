@@ -316,6 +316,9 @@ class InnerFunction:
         assert return_stmt.value is not None
         return stmts, return_stmt.value
 
+    def get_name(self) -> str:
+        return self.funcdef.name
+
     def __str__(self) -> str:
         module = ast.Module(
             body=[*self.imports, *self.assigns, self.funcdef], type_ignores=[]
