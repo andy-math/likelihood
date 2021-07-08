@@ -61,7 +61,7 @@ class Jitted_Function(Generic[T2]):
         ) as f:
             f.write(str(innerfunc))
             innerfile = f.name
-        print(f"代换编译 {generator.__module__}.{generator.__name__} 完成")
+        print(f"展开代换 {generator.__module__}.{generator.__name__} 完成")
 
         self.__setstate__(
             (signature, dependent, innerfunc, innerfile, pickled_bytecode)
