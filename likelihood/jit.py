@@ -119,6 +119,13 @@ class Jitted_Function(Generic[T2]):
         if not compile:
             return None, py_func
 
+        print(
+            f"pid[{multiprocessing.current_process().pid}]: "
+            f"预编译 {generator.__module__.ljust(_output_width_m)} "
+            f".{generator.__name__.ljust(_output_width_n)} 开始\n",
+            end="",
+        )
+
         start_time = time.time()
         func = numba.njit(self.signature)(
             py_func
