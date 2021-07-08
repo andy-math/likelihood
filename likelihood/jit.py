@@ -122,7 +122,7 @@ class Jitted_Function(Generic[T2]):
         print(
             f"pid[{multiprocessing.current_process().pid}]: "
             f"预编译 {generator.__module__.ljust(_output_width_m)} "
-            f".{generator.__name__.ljust(_output_width_n)} 开始\n",
+            f".{generator.__name__.ljust(_output_width_n)} 等候中\n",
             end="",
         )
 
