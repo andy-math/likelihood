@@ -5,7 +5,7 @@ import os
 import pickle
 import tempfile
 import time
-from typing import Any, Callable, Dict, Generic, NoReturn, Tuple, TypeVar
+from typing import Any, Callable, Dict, Generic, NoReturn, Optional, Tuple, TypeVar
 
 import numba  # type: ignore
 
@@ -16,6 +16,19 @@ T2 = TypeVar("T2", covariant=True)
 _output_width_m = 0
 _output_width_n = 0
 _Jitted_Function_Cache: Dict[Tuple[bytes, ...], Tuple[Any, Any]] = {}
+
+
+def load_func(func: str, filename: str) -> Any:
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location(func, filename)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[func] = module
+    assert spec.loader is not None
+    spec.loader.exec_module(module)  # type: ignore
+    return module.__dict__[func]
 
 
 class Jitted_Function(Generic[T2]):
@@ -96,17 +109,21 @@ class Jitted_Function(Generic[T2]):
     def _get_generator(self) -> Callable[..., T2]:
         return pickle.loads(self.pickled_bytecode[0])  # type: ignore
 
-    def _compile(self) -> Tuple[T2, T2]:
+    def _compile(self, compile: bool) -> Tuple[Optional[T2], T2]:
         if self.pickled_bytecode in _Jitted_Function_Cache:
             return _Jitted_Function_Cache[self.pickled_bytecode]
 
-        start_time = time.time()
-
         generator = self._get_generator()
+        py_func = load_func(self.innerfunc.get_name(), self.innerfile)
+        # py_func = generator(*(x.py_func() for x in self.dependent))
+        if not compile:
+            return None, py_func
+
+        start_time = time.time()
         func = numba.njit(self.signature)(
-            generator(*(x.func() for x in self.dependent))
+            py_func
+            # generator(*(x.func() for x in self.dependent))
         )
-        py_func = generator(*(x.py_func() for x in self.dependent))
         _Jitted_Function_Cache[self.pickled_bytecode] = (func, py_func)
 
         print(
@@ -120,11 +137,12 @@ class Jitted_Function(Generic[T2]):
         return func, py_func
 
     def func(self) -> T2:
-        func, _ = self._compile()
+        func, _ = self._compile(True)
+        assert func is not None
         return func
 
     def py_func(self) -> T2:
-        _, py_func = self._compile()
+        _, py_func = self._compile(False)
         return py_func
 
     def __call__(_) -> NoReturn:
