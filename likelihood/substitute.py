@@ -241,7 +241,7 @@ def patch(filename: str, entry_name: str) -> Generator:
 
     class ReName(ast.NodeTransformer):
         def _rename(self, name: str) -> str:
-            if name in builtins.__dict__:
+            if name in builtins.__dict__ and name not in ("input", "iter"):
                 return name
             name = prefix + "__" + name
             return name
