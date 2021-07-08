@@ -12,21 +12,35 @@ saveload_t = Union[Type[ast.Load], Type[ast.Store]]
 
 
 def extractExprRef(
-    expr: Union[ast.expr, ast.alias], add: Callable[[str], None], saveload: saveload_t
+    expr: Union[ast.expr, ast.alias],
+    add: Callable[[str], bool],
+    saveload: saveload_t,
+    prefix: Optional[str],
 ) -> None:
     def call_self(*_exprs: Optional[ast.expr], sl: Optional[saveload_t] = None) -> None:
         for e in _exprs:
             if e is not None:
-                extractExprRef(e, add, saveload if sl is None else sl)
+                extractExprRef(e, add, saveload if sl is None else sl, prefix)
 
     if hasattr(expr, "ctx"):
         assert isinstance(expr.ctx, saveload)  # type: ignore
     if isinstance(expr, ast.Constant):
         pass  # drop
     elif isinstance(expr, ast.Name):
-        add(expr.id)
+        undef = add(expr.id)
+        if prefix is not None:
+            if not undef:
+                expr.id = prefix + expr.id
+            else:
+                assert expr.id in builtins.__dict__
     elif isinstance(expr, ast.alias):
-        add(expr.name if expr.asname is None else expr.asname)
+        name = expr.name if expr.asname is None else expr.asname
+        undef = add(name)
+        if prefix is not None:
+            if not undef:
+                expr.asname = prefix + name
+            else:
+                assert name in builtins.__dict__
     elif isinstance(expr, ast.Subscript):
         call_self(expr.value, expr.slice, sl=ast.Load)
     elif isinstance(expr, (ast.List, ast.Tuple)):
@@ -57,6 +71,7 @@ def extractFuncRef(
     function: ast.FunctionDef,
     defined: Set[str],
     reference: Callable[[VarArg(Optional[ast.expr])], None],
+    prefix: Optional[str],
 ) -> Set[str]:
     assert len(function.decorator_list) == 0
     args = function.args
@@ -67,33 +82,48 @@ def extractFuncRef(
     assert args.kwarg is None
     assert len(args.defaults) == 0
     reference(*(arg.annotation for arg in args.args), function.returns)
+    defined.add(function.name)
+    if prefix is not None:
+        function.name = prefix + function.name
     defined = defined.copy()
     defined.update({arg.arg for arg in args.args})
+    if prefix is not None:
+        for arg in args.args:
+            arg.arg = prefix + arg.arg
     undefined: Set[str] = set()
-    extractStmtRef(function.body, defined, undefined)
+    extractStmtRef(function.body, defined, undefined, prefix)
     return undefined
 
 
 def extractStmtRef(
-    statements: List[ast.stmt], defined: Set[str], undefined: Set[str]
+    statements: List[ast.stmt],
+    defined: Set[str],
+    undefined: Set[str],
+    prefix: Optional[str] = None,
 ) -> None:
     declared = False
 
-    def add_undefined(x: str) -> None:
-        if x not in builtins.__dict__ and x not in defined:
+    def add_undefined(x: str) -> bool:
+        if x not in defined and x not in builtins.__dict__:
             undefined.add(x)
+        return x not in defined
+
+    def add_defined(x: str) -> bool:
+        assert x not in undefined
+        defined.add(x)
+        return False
 
     def reference(*exprs: Optional[ast.expr]) -> None:
         assert not declared
         for e in exprs:
             if e is not None:
-                extractExprRef(e, add_undefined, ast.Load)
+                extractExprRef(e, add_undefined, ast.Load, prefix)
 
     def declare(*exprs: Optional[Union[ast.expr, ast.alias]]) -> None:
         nonlocal declared
         for e in exprs:
             if e is not None:
-                extractExprRef(e, defined.add, ast.Store)
+                extractExprRef(e, add_defined, ast.Store, prefix)
         declared = True
 
     for stmt in statements:
@@ -109,20 +139,19 @@ def extractStmtRef(
             reference(stmt.value, stmt.annotation)
             declare(stmt.target)
         elif isinstance(stmt, ast.FunctionDef):
-            undefined.update(extractFuncRef(stmt, defined, reference))
-            defined.add(stmt.name)
+            undefined.update(extractFuncRef(stmt, defined, reference, prefix))
         elif isinstance(stmt, ast.expr):
             reference(stmt)
         elif isinstance(stmt, ast.For):
             assert len(stmt.orelse) == 0
             reference(stmt.iter)
             declare(stmt.target)
-            extractStmtRef(stmt.body, defined, undefined)
+            extractStmtRef(stmt.body, defined, undefined, prefix)
         elif isinstance(stmt, ast.If):
             reference(stmt.test)
             unpatched_def = defined.copy()
-            extractStmtRef(stmt.body, defined, undefined)
-            extractStmtRef(stmt.body, unpatched_def, undefined)
+            extractStmtRef(stmt.body, defined, undefined, prefix)
+            extractStmtRef(stmt.orelse, unpatched_def, undefined, prefix)
             defined.update(unpatched_def)
         elif isinstance(stmt, ast.Assert):
             reference(stmt.test)
@@ -237,30 +266,9 @@ def patch(filename: str, entry_name: str) -> Generator:
     tree = ast.parse(str_code, filename=filename)
     prune(tree, entry_name)
     prefix = "".join(filename.replace(".py", "").split(os.sep))
-    prefix = prefix + "__" + entry_name
+    prefix = prefix + "__" + entry_name + "__"
 
-    class ReName(ast.NodeTransformer):
-        def _rename(self, name: str) -> str:
-            if name in builtins.__dict__ and name not in ("input", "iter"):
-                return name
-            name = prefix + "__" + name
-            return name
-
-        def visit(self, node: ast.AST) -> ast.AST:
-            if isinstance(node, ast.Name):
-                node.id = self._rename(node.id)
-            elif isinstance(node, ast.FunctionDef):
-                node.name = self._rename(node.name)
-            elif isinstance(node, ast.arg):
-                node.arg = self._rename(node.arg)
-            elif isinstance(node, ast.alias):
-                node.asname = self._rename(
-                    node.name if node.asname is None else node.asname
-                )
-            self.generic_visit(node)
-            return node
-
-    ReName().generic_visit(tree)
+    extractStmtRef(tree.body, set(), set(), prefix)
 
     return Generator(tree)
 
@@ -424,7 +432,7 @@ class Generator:
         assert isinstance(funcdef.body[0], ast.FunctionDef)
         funcdef = funcdef.body[0]
         _, undefined = extractStmtRef_(*imports, *assigns, funcdef)
-        assert not len(undefined)
+        assert not len(undefined), undefined
         return InnerFunction(
             *split_statements([*using_symbol([*imports, *assigns], funcdef), funcdef])
         )
@@ -452,7 +460,7 @@ if __name__ == "__main__":
     g_ = patch("likelihood/substitute.py", "g_generator").substitute()
     f_ = patch("likelihood/substitute.py", "h").substitute(g_)
     print(f_)
-    """
+
     normpdf_provider = patch(
         "likelihood/stages/MS_TVTP.py", "normpdf_provider"
     ).substitute()
@@ -471,6 +479,4 @@ if __name__ == "__main__":
     _eval_generator = patch(
         "likelihood/stages/abc/Iterative.py", "_eval_generator"
     ).substitute(_tvtp_output0_generate, _tvtp_eval_generate)
-    with open("trial2.py", "w") as f:
-        f.write(str(_eval_generator))
-    """
+    print(str(_eval_generator))
