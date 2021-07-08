@@ -449,8 +449,8 @@ def g_generator() -> Callable[[float], float]:
 
 
 if __name__ == "__main__":
-    g_ = patch("trial.py", "g_generator").substitute()
-    f_ = patch("trial.py", "h").substitute(g_)
+    g_ = patch("likelihood/substitute.py", "g_generator").substitute()
+    f_ = patch("likelihood/substitute.py", "h").substitute(g_)
     print(f_)
     """
     normpdf_provider = patch(
