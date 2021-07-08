@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import multiprocessing
+import os
 import pickle
+import tempfile
 import time
 from typing import Any, Callable, Dict, Generic, NoReturn, Tuple, TypeVar
 
 import numba  # type: ignore
+
+from likelihood.substitute import InnerFunction, patch
 
 T2 = TypeVar("T2", covariant=True)
 
@@ -17,6 +21,8 @@ _Jitted_Function_Cache: Dict[Tuple[bytes, ...], Tuple[Any, Any]] = {}
 class Jitted_Function(Generic[T2]):
     signature: numba.core.typing.templates.Signature
     dependent: Tuple[Jitted_Function[Any], ...]
+    innerfunc: InnerFunction
+    innerfile: str
     pickled_bytecode: Tuple[bytes, ...]
 
     def __init__(
@@ -32,27 +38,57 @@ class Jitted_Function(Generic[T2]):
                 *(y for x in dependent for y in x.pickled_bytecode),
             ]
         )
-        self.__setstate__((signature, dependent, pickled_bytecode))
+
+        # 代换编译
+        innerfunc = patch(
+            generator.__module__.replace(".", os.sep) + ".py", generator.__name__
+        ).substitute(*(dep.innerfunc for dep in dependent))
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", suffix=".py", delete=False
+        ) as f:
+            f.write(str(innerfunc))
+            innerfile = f.name
+        print(f"代换编译 {generator.__module__}.{generator.__name__} 完成")
+
+        self.__setstate__(
+            (signature, dependent, innerfunc, innerfile, pickled_bytecode)
+        )
 
     def __getstate__(
         self,
     ) -> Tuple[
         numba.core.typing.templates.Signature,
         Tuple[Jitted_Function[Any], ...],
+        InnerFunction,
+        str,
         Tuple[bytes, ...],
     ]:
-        return (self.signature, self.dependent, self.pickled_bytecode)
+        return (
+            self.signature,
+            self.dependent,
+            self.innerfunc,
+            self.innerfile,
+            self.pickled_bytecode,
+        )
 
     def __setstate__(
         self,
         state: Tuple[
             numba.core.typing.templates.Signature,
             Tuple[Jitted_Function[Any], ...],
+            InnerFunction,
+            str,
             Tuple[bytes, ...],
         ],
     ) -> None:
         global _output_width_m, _output_width_n
-        (self.signature, self.dependent, self.pickled_bytecode) = state
+        (
+            self.signature,
+            self.dependent,
+            self.innerfunc,
+            self.innerfile,
+            self.pickled_bytecode,
+        ) = state
         generator = self._get_generator()
         _output_width_m = max(_output_width_m, len(generator.__module__))
         _output_width_n = max(_output_width_n, len(generator.__name__))
