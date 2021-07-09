@@ -115,8 +115,28 @@ class GarchMidas(Iterative.Iterative):
         )
 
     def get_constraints(_) -> Constraints:
-        A = numpy.array([[0.0, 1.0, 1.0]])
+        """
+        根据短期项garch方程：
+        h = c + a*e^2 + b*h
+        两边取期望：
+        var = c + a*var + b*var
+        var(1-a-b) = c
+        var = c/(1-a-b)
+        由于在GARCH-MIDAS中，最终的var由长短期复合构成，
+        因此产生很小的长期预测值和很大的短期预测值的发散结果是合法的
+        为了避免量纲失衡，需要限制短期项的无条件方差：
+        var <= 1
+        c/(1-a-b) <= 1
+        c <= 1-a-b
+        c+a+b <= 1
+        这样，当短期项的波动范围受到抑制，长期项预测值就会趋于真实波动率
+        """
+        A = numpy.array(  # PATCHED: A = numpy.array([[0.0, 1.0, 1.0]])
+            [[1.0, 1.0, 1.0]]
+        )
         b = numpy.array([1.0])
         lb = numpy.array([0.0, 0.0, 0.0])
-        ub = numpy.array([numpy.inf, 1.0, 1.0])
+        ub = numpy.array(  # PATCHED: ub = numpy.array([numpy.inf, 1.0, 1.0])
+            [1.0, 1.0, 1.0]
+        )
         return Constraints(A, b, lb, ub)
