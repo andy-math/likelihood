@@ -261,7 +261,7 @@ def prune(tree: ast.Module, entry_name: str) -> None:
 
 
 def patch(filename: str, entry_name: str) -> Generator:
-    with open(filename) as f:
+    with open(filename, encoding="utf-8") as f:
         str_code = f.read()
     tree = ast.parse(str_code, filename=filename)
     prune(tree, entry_name)
