@@ -121,8 +121,8 @@ class Jitted_Function(Generic[T2]):
 
         start_time = time.time()
         func = numba.njit(self.signature)(
-            load_func(self.innerfunc)
-            # generator(*(x.func() for x in self.dependent))
+            # load_func(self.innerfunc)
+            generator(*(x.func() for x in self.dependent))
         )
         _Jitted_Function_Cache[self.pickled_bytecode] = (func, py_func)
 
