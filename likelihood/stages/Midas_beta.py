@@ -4,6 +4,7 @@ import numpy
 from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.abc.Convolution import Convolution
 from likelihood.stages.abc.Stage import Constraints
+from overloads.shortcuts import assertNoInfNaN
 from overloads.typing import ndarray
 
 
@@ -62,9 +63,11 @@ class Midas_beta(Convolution):
             dstage1_da = 0
         """
         stage1 = (kLeft / self.K) ** alpha * (kRight / self.K)
-        dstage1_da = stage1 * (numpy.log(kLeft) - numpy.log(self.K))
+        dstage1_da = numpy.log(kLeft) - numpy.log(
+            self.K
+        )  # PATCHED[1]: remove {*stage1}
         dstage1_da[kLeft == 0] = 0.0
-        dstage1_do = dstage1_da * da_do
+        dstage1_do = dstage1_da * da_do  # PATCHED[1]: missing {*stage1}
         """
         rphi = stage1 ** oRight
         drphi_dstage1 = oRight * stage1 ** (oRight-1)
@@ -75,10 +78,12 @@ class Midas_beta(Convolution):
             drphi_doRight = 0
         """
         rphi = stage1 ** oRight
-        drphi_dstage1 = oRight * stage1 ** (oRight - 1.0)
+        drphi_dstage1 = (  # PATCHED[1]: using {**oRight} instead of {**(oRight - 1.0)}
+            oRight * rphi
+        )
         drphi_doRight = rphi * numpy.log(stage1)
         drphi_doRight[stage1 == 0] = 0.0
-        drphi_do = drphi_dstage1 * dstage1_do
+        drphi_do = drphi_dstage1 * dstage1_do  # PATCHED[1]: {**oRight} fill {*stage1}
         drphi_do[:, [1]] += drphi_doRight
 
         sum = numpy.sum(rphi)
