@@ -115,6 +115,24 @@ def _tvtp_eval_generate(
         if 归一化stage2 == 0:
             rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
         post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+        """
+        关于归一化问题的鲁棒的梯度推导
+        f: (rawpost1, rawpost2) -> (post1, post1)
+        dp1_dr1 = 1/stage2
+        dp2_dr2 = 1/stage2
+        dp1_dstage = -r1/stage2^2
+        dp2_dstage = -r2/stage2^2
+
+        so:
+        dp1_dr1 = dp1_dr1 + dp1_dstage*dstage_dr1
+                = 1/stage2 - r1/stage2^2
+                = [1-r1/(r1+r2)]/(r1+r2)          =  [r2/(r1+r2)]/(r1+r2) ~  0.5/(r1+r2)
+        dp1_dr2 = dp1_dstage*dstage_dr2           = -[r1/(r1+r2)]/(r1+r2) ~ -0.5/(r1+r2)
+        dp2_dr1 = dp2_dstage*dstage_dr1           = -[r2/(r1+r2)]/(r1+r2) ~ -0.5/(r1+r2)
+        dp2_dr2 = dp2_dr2 + dp2_dstage*dstage_dr2
+                = 1/stage2 - r2/stage2^2
+                = (1-r2/(r1+r2))/(r1+r2)          =  [r1/(r1+r2)]/(r1+r2) ~  0.5/(r1+r2)
+        """
 
         EX2_1 = out_1[2] + out_1[1] * out_1[1]
         EX2_2 = out_2[2] + out_2[1] * out_2[1]
