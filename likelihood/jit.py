@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 import multiprocessing
-import os
 import pickle
-import tempfile
 import time
 from typing import Any, Callable, Dict, Generic, NoReturn, Optional, Tuple, TypeVar
 
 import numba  # type: ignore
-
-from likelihood.substitute import InnerFunction, patch
 
 T2 = TypeVar("T2", covariant=True)
 
@@ -18,29 +14,9 @@ _output_width_n = 0
 _Jitted_Function_Cache: Dict[Tuple[bytes, ...], Tuple[Any, Any]] = {}
 
 
-def load_func(innerfunc: InnerFunction) -> Any:
-    import importlib.util
-    import sys
-
-    fname = innerfunc.get_name()
-    with tempfile.NamedTemporaryFile(
-        mode="w", encoding="utf-8", suffix=".py", delete=False
-    ) as f:
-        f.write(str(innerfunc))
-        filename = f.name
-    spec = importlib.util.spec_from_file_location(fname, filename)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[fname] = module
-    assert spec.loader is not None
-    spec.loader.exec_module(module)  # type: ignore
-    return module.__dict__[fname]
-
-
 class Jitted_Function(Generic[T2]):
     signature: numba.core.typing.templates.Signature
     dependent: Tuple[Jitted_Function[Any], ...]
-    innerfunc: InnerFunction
     pickled_bytecode: Tuple[bytes, ...]
 
     def __init__(
@@ -57,26 +33,18 @@ class Jitted_Function(Generic[T2]):
             ]
         )
 
-        # 代换编译
-        innerfunc = patch(
-            generator.__module__.replace(".", os.sep) + ".py", generator.__name__
-        ).substitute(*(dep.innerfunc for dep in dependent))
-        print(f"展开代换 {generator.__module__}.{generator.__name__} 完成")
-
-        self.__setstate__((signature, dependent, innerfunc, pickled_bytecode))
+        self.__setstate__((signature, dependent, pickled_bytecode))
 
     def __getstate__(
         self,
     ) -> Tuple[
         numba.core.typing.templates.Signature,
         Tuple[Jitted_Function[Any], ...],
-        InnerFunction,
         Tuple[bytes, ...],
     ]:
         return (
             self.signature,
             self.dependent,
-            self.innerfunc,
             self.pickled_bytecode,
         )
 
@@ -85,7 +53,6 @@ class Jitted_Function(Generic[T2]):
         state: Tuple[
             numba.core.typing.templates.Signature,
             Tuple[Jitted_Function[Any], ...],
-            InnerFunction,
             Tuple[bytes, ...],
         ],
     ) -> None:
@@ -93,7 +60,6 @@ class Jitted_Function(Generic[T2]):
         (
             self.signature,
             self.dependent,
-            self.innerfunc,
             self.pickled_bytecode,
         ) = state
         generator = self._get_generator()
