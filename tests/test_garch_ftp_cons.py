@@ -130,6 +130,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     print("coeff: ", coeff)
     print("mle:   ", [round(x, 6) for x in beta_mle])
     print("abserr_mle: ", abserr_mle)
+    print("grad:  ", [round(x, 6) for x in result.gradient.value])
     # assert result.success
     assert 5 < result.iter < 3000
 
