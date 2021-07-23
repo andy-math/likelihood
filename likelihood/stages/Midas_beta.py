@@ -54,17 +54,23 @@ class Midas_beta(Convolution):
         alpha = oLeft / oRight
         da_do = numpy.array([[1.0, -alpha]]) / oRight
         """
-        dstage1_da = (kLeft/K) ** alpha * log(kLeft/K) * (1-kRight/K)
+        求rphi = stage1 ** oRight = {(kLeft/K) ** alpha * (kRight/K)} ** oRight
+        对alpha的导数(在kLeft为0)的取值
+        常规路径：drphi_d{...} = oRight * {...}^(oRight-1)
+        其中{...}由kLeft变成0，oRight<1时转化为1/{...}为inf
+
+        rphi == (kLeft/K) ** {(alpha + ...) * oRight}
+        drphi_da = rphi * log(kLeft/K) * oRight
+        """
+        """
+        dstage1_da = (kLeft/K) ** alpha * log(kLeft/K) * (kRight/K)
                     = stage1 * log(kLeft/K)
-                    = rphi * [log(kLeft) - log(K)]
         if kLeft == 0:
-            stage1 = 0 ** alpha * (1-kRight/K)
+            stage1 = 0 ** alpha * (kRight/K)
             dstage1_da = 0
         """
         stage1 = (kLeft / self.K) ** alpha * (kRight / self.K)
-        dstage1_da = numpy.log(kLeft) - numpy.log(
-            self.K
-        )  # PATCHED[1]: remove {*stage1}
+        dstage1_da = numpy.log(kLeft / self.K)  # PATCHED[1]: remove {*stage1}
         dstage1_da[kLeft == 0] = 0.0
         dstage1_do = dstage1_da * da_do  # PATCHED[1]: missing {*stage1}
         """
