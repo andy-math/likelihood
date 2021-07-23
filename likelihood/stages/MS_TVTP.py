@@ -315,8 +315,8 @@ def _tvtp_grad_generate(
             dL_dstage2 = dL_dlike / 归一化stage2
             dL_dstage2 -= dL_dpost1 * (post1 / 归一化stage2)
             dL_dstage2 -= dL_dpost2 * (post2 / 归一化stage2)
-            dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2 + dL_dlike
-            dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2 + dL_dlike
+            dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2
+            dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2
 
         dL_dprior1 = dL_drawpost1 * likeli1 + dL_dvar * EX2_1 + dL_dEX * out1[1]
         dL_dprior2 = dL_drawpost2 * likeli2 + dL_dvar * EX2_2 + dL_dEX * out1[2]
