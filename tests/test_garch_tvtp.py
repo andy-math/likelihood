@@ -103,7 +103,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     constraint = nll.get_constraints()
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
-    opts.check_iter = 5
+    opts.check_iter = 40
     opts.check_rel = 5e-2
     opts.tol_grad = 1e-4
     opts.border_abstol = 1e-10
