@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import sys
 from typing import Callable, Tuple
 
 import numpy
@@ -9,6 +10,9 @@ from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
 from numba import float64  # type: ignore
 from overloads.typing import ndarray
+
+_eps = sys.float_info.epsilon
+_realmax = sys.float_info.max
 
 
 def _tvtp_output0_generate(
@@ -80,6 +84,9 @@ def _tvtp_eval_generate(
         rawpath21, rawpath22 = (1.0 - p11) * lag_post1, p22 * lag_post2
 
         归一化stage1: float = (rawpath11 + rawpath12) + (rawpath21 + rawpath22)
+        # 如果归一化stage1出现0，就是前序likelihood跑飞了
+        if 归一化stage1 == 0:
+            归一化stage1 = 1
 
         path11 = rawpath11 / 归一化stage1
         path12 = rawpath12 / 归一化stage1
@@ -89,8 +96,8 @@ def _tvtp_eval_generate(
         prior1 = path11 + path12
         prior2 = path21 + path22
 
-        contrib11 = path11 / prior1 if prior1 else 0.5
-        contrib22 = path22 / prior2 if prior2 else 0.5
+        contrib11 = path11 / prior1 if prior1 > _eps else 0.5
+        contrib22 = path22 / prior2 if prior2 > _eps else 0.5
 
         rawlag1 = lag[:halfLag]
         rawlag2 = lag[halfLag:]
@@ -111,10 +118,19 @@ def _tvtp_eval_generate(
         rawpost1: float = prior1 * likeli1
         rawpost2: float = prior2 * likeli2
 
-        归一化stage2 = rawpost1 + rawpost2
-        if 归一化stage2 == 0:
-            rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
-        post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+        if rawpost1 + rawpost2 < _eps:
+            # 如果likelihood跑飞了，
+            # 那么应当将其后所有推理概率置为0，以对misleading施以最大程度的惩罚，
+            # 而不是以[0.5, 0.5]概率重启。否则重启点处的梯度将是不连续的，
+            # 同时misleading造成的likelihood损失被抹除，
+            # 将在实际预测中产生不可预期的结果。
+            rawpost1, rawpost2 = 0.0, 0.0
+            post1, post2 = 0.0, 0.0
+            likelihood = -_realmax
+        else:
+            归一化stage2 = rawpost1 + rawpost2
+            post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+            likelihood = math.log(归一化stage2)
         """
         关于归一化问题的鲁棒的梯度推导
         f: (rawpost1, rawpost2) -> (post1, post1)
@@ -144,7 +160,7 @@ def _tvtp_eval_generate(
                 (
                     numpy.array(
                         [
-                            math.log(rawpost1 + rawpost2),
+                            likelihood,
                             EX,
                             var,
                             post1,
@@ -236,6 +252,11 @@ def _tvtp_grad_generate(
         rawpath21, rawpath22 = (1.0 - p11) * lag_post1, p22 * lag_post2
 
         归一化stage1: float = (rawpath11 + rawpath12) + (rawpath21 + rawpath22)
+        # 如果归一化stage1出现0，就是前序likelihood跑飞了
+        stage1_patched = False
+        if 归一化stage1 == 0:
+            归一化stage1 = 1
+            stage1_patched = True
 
         path11 = rawpath11 / 归一化stage1
         path12 = rawpath12 / 归一化stage1
@@ -245,8 +266,19 @@ def _tvtp_grad_generate(
         prior1 = path11 + path12
         prior2 = path21 + path22
 
-        contrib11 = path11 / prior1 if prior1 else 0.5
-        contrib22 = path22 / prior2 if prior2 else 0.5
+        if prior1 > _eps:
+            contrib11 = path11 / prior1
+            prior1_patched = False
+        else:
+            contrib11 = 0.5
+            prior1_patched = True
+
+        if prior2 > _eps:
+            contrib22 = path22 / prior2
+            prior2_patched = False
+        else:
+            contrib22 = 0.5
+            prior2_patched = True
 
         rawlag1 = lag[:halfLag]
         rawlag2 = lag[halfLag:]
@@ -257,12 +289,16 @@ def _tvtp_grad_generate(
         rawpost1: float = prior1 * likeli1
         rawpost2: float = prior2 * likeli2
 
-        归一化stage2 = rawpost1 + rawpost2
-        _stage2_patched = False
-        if 归一化stage2 == 0:
-            rawpost1, rawpost2, 归一化stage2 = 0.5, 0.5, 1.0
-            _stage2_patched = True
-        post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+        if rawpost1 + rawpost2 < _eps:
+            rawpost1, rawpost2 = 0.0, 0.0
+            post1, post2 = 0.0, 0.0
+            # likelihood = -_realmax
+            rawpost_patched = True
+        else:
+            归一化stage2 = rawpost1 + rawpost2
+            post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+            # likelihood = math.log(归一化stage2)
+            rawpost_patched = False
 
         EX2_1 = out1[2] + out1[1] * out1[1]
         EX2_2 = out2[2] + out2[1] * out2[1]
@@ -273,16 +309,14 @@ def _tvtp_grad_generate(
         dL_dEX2_2 = dL_dvar * prior2
         dL_dEX += -dL_dvar * (2 * EX)
 
-        dL_dlike /= 归一化stage2
-        dL_dstage2 = -dL_dpost1 * (post1 / 归一化stage2) - dL_dpost2 * (post2 / 归一化stage2)
-        dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2 + dL_dlike
-        dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2 + dL_dlike
-        if _stage2_patched:
+        if rawpost_patched:
             dL_drawpost1, dL_drawpost2 = 0.0, 0.0
-        if not math.isfinite(dL_drawpost1):
-            dL_drawpost1 = 0.0
-        if not math.isfinite(dL_drawpost2):
-            dL_drawpost2 = 0.0
+        else:
+            dL_dstage2 = dL_dlike / 归一化stage2
+            dL_dstage2 -= dL_dpost1 * (post1 / 归一化stage2)
+            dL_dstage2 -= dL_dpost2 * (post2 / 归一化stage2)
+            dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2 + dL_dlike
+            dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2 + dL_dlike
 
         dL_dprior1 = dL_drawpost1 * likeli1 + dL_dvar * EX2_1 + dL_dEX * out1[1]
         dL_dprior2 = dL_drawpost2 * likeli2 + dL_dvar * EX2_2 + dL_dEX * out1[2]
@@ -324,33 +358,31 @@ def _tvtp_grad_generate(
         dL_dcontrib11 = float(dL_dlag1 @ (rawlag1 - rawlag2))
         dL_dcontrib22 = float(dL_dlag2 @ (rawlag2 - rawlag1))
 
-        dL_dprior1 -= (
-            dL_dcontrib11 * (contrib11 / prior1)
-            if prior1 and math.isfinite(contrib11 / prior1)
-            else 0.0
-        )
-        dL_dprior2 -= (
-            dL_dcontrib22 * (contrib22 / prior2)
-            if prior2 and math.isfinite(contrib22 / prior2)
-            else 0.0
-        )
+        dL_dprior1 -= 0.0 if prior1_patched else dL_dcontrib11 * (contrib11 / prior1)
+        dL_dprior2 -= 0.0 if prior2_patched else dL_dcontrib22 * (contrib22 / prior2)
 
-        dL_dpath11 = (dL_dcontrib11 / prior1 if prior1 else 0.0) + dL_dprior1
+        dL_dpath11 = (0.0 if prior1_patched else dL_dcontrib11 / prior1) + dL_dprior1
         dL_dpath12 = dL_dprior1
         dL_dpath21 = dL_dprior2
-        dL_dpath22 = (dL_dcontrib22 / prior2 if prior2 else 0.0) + dL_dprior2
+        dL_dpath22 = (0.0 if prior2_patched else dL_dcontrib22 / prior2) + dL_dprior2
 
-        dL_dstage1 = (
-            -dL_dpath11 * (path11 / 归一化stage1)
-            - dL_dpath12 * (path12 / 归一化stage1)
-            - dL_dpath21 * (path21 / 归一化stage1)
-            - dL_dpath22 * (path22 / 归一化stage1)
-        )
+        if stage1_patched:
+            dL_drawpath11 = 0.0
+            dL_drawpath12 = 0.0
+            dL_drawpath21 = 0.0
+            dL_drawpath22 = 0.0
+        else:
+            dL_dstage1 = (
+                -dL_dpath11 * (path11 / 归一化stage1)
+                - dL_dpath12 * (path12 / 归一化stage1)
+                - dL_dpath21 * (path21 / 归一化stage1)
+                - dL_dpath22 * (path22 / 归一化stage1)
+            )
 
-        dL_drawpath11 = dL_dpath11 / 归一化stage1 + dL_dstage1
-        dL_drawpath12 = dL_dpath12 / 归一化stage1 + dL_dstage1
-        dL_drawpath21 = dL_dpath21 / 归一化stage1 + dL_dstage1
-        dL_drawpath22 = dL_dpath22 / 归一化stage1 + dL_dstage1
+            dL_drawpath11 = dL_dpath11 / 归一化stage1 + dL_dstage1
+            dL_drawpath12 = dL_dpath12 / 归一化stage1 + dL_dstage1
+            dL_drawpath21 = dL_dpath21 / 归一化stage1 + dL_dstage1
+            dL_drawpath22 = dL_dpath22 / 归一化stage1 + dL_dstage1
 
         dL_dlagpost1 = dL_drawpath11 * p11 + dL_drawpath21 * (1.0 - p11)
         dL_dlagpost2 = dL_drawpath12 * (1.0 - p22) + dL_drawpath22 * p22
