@@ -5,7 +5,7 @@ from typing import Any, List, Optional, Tuple, Type, TypeVar
 
 import numpy
 from overloads.shortcuts import assertNoInfNaN, isunique
-from overloads.typing import ndarray
+from overloads.typedefs import ndarray
 
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Penalty import Penalty

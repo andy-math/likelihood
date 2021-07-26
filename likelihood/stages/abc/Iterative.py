@@ -8,7 +8,7 @@ import numpy
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc.Stage import Stage
 from numba import float64, optional, types
-from overloads.typing import ndarray
+from overloads.typedefs import ndarray
 
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray, ndarray]
 _Iterative_gradinfo_numba = types.Tuple(

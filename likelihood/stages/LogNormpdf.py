@@ -5,7 +5,7 @@ from typing import Optional, Tuple, cast
 import numpy
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Stage import Constraints
-from overloads.typing import ndarray
+from overloads.typedefs import ndarray
 
 _LogNormpdf_gradinfo_t = ndarray
 

@@ -7,7 +7,7 @@ from likelihood import likelihood
 from likelihood.stages.Garch import Garch
 from likelihood.stages.LogNormpdf_var import LogNormpdf_var
 from likelihood.Variables import Variables
-from overloads.typing import ndarray
+from overloads.typedefs import ndarray
 from optimizer import trust_region
 from overloads import difference
 

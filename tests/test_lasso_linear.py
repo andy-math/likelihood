@@ -8,7 +8,7 @@ from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.Variables import Variables
 from optimizer import trust_region
 from overloads import difference
-from overloads.typing import ndarray
+from overloads.typedefs import ndarray
 
 from tests.common import nll2func
 

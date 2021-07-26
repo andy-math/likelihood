@@ -9,7 +9,7 @@ from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
 from numba import float64  # type: ignore
-from overloads.typing import ndarray
+from overloads.typedefs import ndarray
 
 _eps = sys.float_info.epsilon
 _realmax = sys.float_info.max
