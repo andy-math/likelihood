@@ -3,6 +3,7 @@ import math
 
 import numpy
 import numpy.linalg
+
 from likelihood import likelihood
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Garch_mean import Garch_mean
@@ -13,7 +14,6 @@ from likelihood.Variables import Variables
 from optimizer import trust_region
 from overloads import difference
 from overloads.typedefs import ndarray
-
 from tests.common import nll2func
 
 
@@ -103,7 +103,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     constraint = nll.get_constraints()
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
-    opts.check_iter = 40
+    opts.check_iter = 30
     opts.check_rel = 5e-2
     opts.tol_grad = 1e-4
     opts.border_abstol = 1e-10
