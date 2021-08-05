@@ -125,7 +125,7 @@ def _tvtp_eval_generate(
             # 同时misleading造成的likelihood损失被抹除，
             # 将在实际预测中产生不可预期的结果。
             rawpost1, rawpost2 = 0.0, 0.0
-            post1, post2 = 0.0, 0.0
+            post1, post2 = 0.5, 0.5
             likelihood = -_realmax
         else:
             归一化stage2 = rawpost1 + rawpost2
@@ -291,7 +291,7 @@ def _tvtp_grad_generate(
 
         if rawpost1 + rawpost2 < _eps:
             rawpost1, rawpost2 = 0.0, 0.0
-            post1, post2 = 0.0, 0.0
+            post1, post2 = 0.5, 0.5
             # likelihood = -_realmax
             rawpost_patched = True
         else:
