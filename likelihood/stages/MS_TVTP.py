@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import sys
-from typing import Callable, Tuple
+from typing import Callable, Dict, Literal, Tuple
 
 import numpy
 from numba import float64  # type: ignore
@@ -470,7 +470,13 @@ _provider_signature = float64(float64[:])
 _provider_gradient_signature = float64[:](float64[:], float64, float64)
 
 
-providers = {
+providers: Dict[
+    Literal["normpdf"],
+    Tuple[
+        Jitted_Function[Callable[[ndarray], float]],
+        Jitted_Function[Callable[[ndarray, float, float], ndarray]],
+    ],
+] = {
     "normpdf": (
         Jitted_Function(_provider_signature, (), normpdf_provider),
         Jitted_Function(_provider_gradient_signature, (), normpdf_provider_gradient),
