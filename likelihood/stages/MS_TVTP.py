@@ -5,10 +5,11 @@ import sys
 from typing import Callable, Tuple
 
 import numpy
+from numba import float64  # type: ignore
+
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
-from numba import float64  # type: ignore
 from overloads.typedefs import ndarray
 
 _eps = sys.float_info.epsilon
@@ -112,8 +113,11 @@ def _tvtp_eval_generate(
             coeff[halfCoeff:], input[halfInput:], lag2, pre[halfPre:]
         )
 
-        likeli1: float = likeli_provider(out_1)
-        likeli2: float = likeli_provider(out_2)
+        loglikeli1: float = likeli_provider(out_1)
+        loglikeli2: float = likeli_provider(out_2)
+
+        likeli1 = math.exp(loglikeli1)
+        likeli2 = math.exp(loglikeli2)
 
         rawpost1: float = prior1 * likeli1
         rawpost2: float = prior2 * likeli2
@@ -243,8 +247,11 @@ def _tvtp_grad_generate(
         dL_dout1 = dL_do[:halfOutput]
         dL_dout2 = dL_do[halfOutput:]
 
-        likeli1: float = likeli_provider(out1)
-        likeli2: float = likeli_provider(out2)
+        loglikeli1: float = likeli_provider(out1)
+        loglikeli2: float = likeli_provider(out2)
+
+        likeli1 = math.exp(loglikeli1)
+        likeli2 = math.exp(loglikeli2)
 
         rawpath11: float
         rawpath22: float
@@ -321,8 +328,11 @@ def _tvtp_grad_generate(
         dL_dprior1 = dL_drawpost1 * likeli1 + dL_dvar * EX2_1 + dL_dEX * out1[1]
         dL_dprior2 = dL_drawpost2 * likeli2 + dL_dvar * EX2_2 + dL_dEX * out1[2]
 
-        dL_dlikeli1 = dL_drawpost1 * prior1
-        dL_dlikeli2 = dL_drawpost2 * prior2
+        dL_dloglikeli1 = dL_drawpost1 * prior1
+        dL_dloglikeli2 = dL_drawpost2 * prior2
+
+        dL_dlikeli1 = dL_dloglikeli1 * likeli1
+        dL_dlikeli2 = dL_dloglikeli2 * likeli2
 
         dL_dout1 += likeli_gradient(out1, likeli1, dL_dlikeli1)
         dL_dout2 += likeli_gradient(out2, likeli2, dL_dlikeli2)
@@ -409,12 +419,16 @@ def _tvtp_grad_generate(
 
 def normpdf_provider() -> Callable[[ndarray], float]:
     def implement(output: ndarray) -> float:
+        """
+        pdf = 1/sqrt(2*pi*var)*exp(-(x-mu)^2/(2*var))
+        log pdf = -1/2(log(2) + log(pi) + log(var) + (x-mu)^2/var)
+        """
         x, mu, var = output[0], output[1], output[2]
         err = x - mu
-        normpdf = (
-            1.0 / math.sqrt(2 * math.pi * var) * math.exp(-(err * err) / (2 * var))
+        normpdf = -(1.0 / 2.0) * (
+            math.log(2) + math.log(math.pi) + math.log(var) + (err * err) / var
         )
-        return normpdf
+        return normpdf  # type: ignore
 
     return implement
 
@@ -422,26 +436,17 @@ def normpdf_provider() -> Callable[[ndarray], float]:
 def normpdf_provider_gradient() -> Callable[[ndarray, float, float], ndarray]:
     def implement(output: ndarray, normpdf: float, dL_dpdf: float) -> ndarray:
         """
-        dpdf_derr = 1/sqrt(2*math.pi*var) * exp( -(err*err)/(2*var) )
-                        * -1/(2*var) * 2*err
-                  = -normpdf * err/var
-        d{exp}_dvar = 1/sqrt(2*math.pi*var) * exp( -(err*err)/(2*var) )
-                        * -(err*err) * -1/(2*var)**2 * 2
-                    = normpdf * (err/var)*(err/var) / 2
-        d{1/sqrt}_dvar = exp( -(err*err)/(2*var) )
-                            * (-1/2)*(2*math.pi*var)**(-3/2) * 2*math.pi
-                    = normpdf * (-1/2) / (2*math.pi*var) * 2*math.pi
-                    = normpdf * (-1/2) / var
-                    = -normpdf /var /2
-
+        d{log pdf}/derr = -err/var
+        d{log pdf}/dvar = -(1/2)(1/var - (err*err)/(var*var))
+                        = (1/2)((err/var)*(err/var) - 1/var)
         """
         x, mu, var = output[0], output[1], output[2]
         err = x - mu
         z = err / var
         dL_doutput = numpy.zeros(output.shape)
 
-        dL_derr = dL_dpdf * (-normpdf * z)
-        dL_dvar = dL_dpdf * (normpdf * (z * z - 1 / var) / 2)
+        dL_derr = dL_dpdf * -z
+        dL_dvar = dL_dpdf * ((1.0 / 2.0) * (z * z - 1.0 / var))
 
         dL_doutput[0] = dL_derr
         dL_doutput[1] = -dL_derr
