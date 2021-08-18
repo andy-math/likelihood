@@ -116,43 +116,31 @@ def _tvtp_eval_generate(
         loglikeli1: float = likeli_provider(out_1)
         loglikeli2: float = likeli_provider(out_2)
 
-        likeli1 = math.exp(loglikeli1)
-        likeli2 = math.exp(loglikeli2)
+        # 寻找一个尽可能小的倍数times=exp(loglikeli_offset)
+        # 使得times*pdf1 == 1或者times*pdf2 == 1
+        # 避免pdf太小出现0
+        if loglikeli1 >= loglikeli2:
+            loglikeli_offset = -loglikeli1
+        else:
+            loglikeli_offset = -loglikeli2
 
+        likeli1 = math.exp(loglikeli1 + loglikeli_offset)
+        likeli2 = math.exp(loglikeli2 + loglikeli_offset)
+
+        # rawpost1, rawpost2, 归一化stage2都是乘以倍数之后的
         rawpost1: float = prior1 * likeli1
         rawpost2: float = prior2 * likeli2
         归一化stage2 = rawpost1 + rawpost2
 
-        if 归一化stage2 < _eps:
-            rawpost1, rawpost2, 归一化stage2 = 0.0, 0.0, 0.0
-            post1, post2 = 0.5, 0.5
-            likelihood = -_realmax
+        if prior1 == 0 or prior2 == 0:
+            # 一侧先验概率为0，则Bayes filter输入输出结果不变。
+            # 此时后验概率直接等于先验概率
+            post1, post2 = prior1, prior2
         else:
-            if prior1 == 0 or prior2 == 0:
-                # 一侧先验概率为0，则Bayes filter输入输出结果不变。
-                # 此时后验概率直接等于先验概率
-                post1, post2 = prior1, prior2
-            else:
-                post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
-            likelihood = math.log(归一化stage2)
-        """
-        关于归一化问题的鲁棒的梯度推导
-        f: (rawpost1, rawpost2) -> (post1, post1)
-        dp1_dr1 = 1/stage2
-        dp2_dr2 = 1/stage2
-        dp1_dstage = -r1/stage2^2
-        dp2_dstage = -r2/stage2^2
-
-        so:
-        dp1_dr1 = dp1_dr1 + dp1_dstage*dstage_dr1
-                = 1/stage2 - r1/stage2^2
-                = [1-r1/(r1+r2)]/(r1+r2)          =  [r2/(r1+r2)]/(r1+r2) ~  0.5/(r1+r2)
-        dp1_dr2 = dp1_dstage*dstage_dr2           = -[r1/(r1+r2)]/(r1+r2) ~ -0.5/(r1+r2)
-        dp2_dr1 = dp2_dstage*dstage_dr1           = -[r2/(r1+r2)]/(r1+r2) ~ -0.5/(r1+r2)
-        dp2_dr2 = dp2_dr2 + dp2_dstage*dstage_dr2
-                = 1/stage2 - r2/stage2^2
-                = (1-r2/(r1+r2))/(r1+r2)          =  [r1/(r1+r2)]/(r1+r2) ~  0.5/(r1+r2)
-        """
+            # 分子分母同时扩大了相同倍数，会被消去
+            post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+        # 从对数之后的似然函数里消去倍数
+        likelihood = math.log(归一化stage2) - loglikeli_offset
 
         EX2_1 = out_1[2] + out_1[1] * out_1[1]
         EX2_2 = out_2[2] + out_2[1] * out_2[1]
@@ -250,9 +238,6 @@ def _tvtp_grad_generate(
         loglikeli1: float = likeli_provider(out1)
         loglikeli2: float = likeli_provider(out2)
 
-        likeli1 = math.exp(loglikeli1)
-        likeli2 = math.exp(loglikeli2)
-
         rawpath11: float
         rawpath22: float
         rawpath11, rawpath12 = p11 * lag_post1, (1.0 - p22) * lag_post2
@@ -293,26 +278,33 @@ def _tvtp_grad_generate(
         lag1 = contrib11 * rawlag1 + (1.0 - contrib11) * rawlag2
         lag2 = (1.0 - contrib22) * rawlag1 + contrib22 * rawlag2
 
+        # 寻找一个尽可能小的倍数times=exp(loglikeli_offset)
+        # 使得times*pdf1 == 1或者times*pdf2 == 1
+        # 避免pdf太小出现0
+        if loglikeli1 >= loglikeli2:
+            loglikeli_offset = -loglikeli1
+        else:
+            loglikeli_offset = -loglikeli2
+
+        likeli1 = math.exp(loglikeli1 + loglikeli_offset)
+        likeli2 = math.exp(loglikeli2 + loglikeli_offset)
+
+        # rawpost1, rawpost2, 归一化stage2都是乘以倍数之后的
         rawpost1: float = prior1 * likeli1
         rawpost2: float = prior2 * likeli2
         归一化stage2 = rawpost1 + rawpost2
 
-        if 归一化stage2 < _eps:
-            rawpost_patched = True
-            rawpost1, rawpost2, 归一化stage2 = 0.0, 0.0, 0.0
-            post1, post2 = 0.5, 0.5
-            # likelihood = -_realmax
+        if prior1 == 0 or prior2 == 0:
+            post_shortpath = True
+            # 一侧先验概率为0，则Bayes filter输入输出结果不变。
+            # 此时后验概率直接等于先验概率
+            post1, post2 = prior1, prior2
         else:
-            rawpost_patched = False
-            if prior1 == 0 or prior2 == 0:
-                post_shortpath = True
-                # 一侧先验概率为0，则Bayes filter输入输出结果不变。
-                # 此时后验概率直接等于先验概率
-                post1, post2 = prior1, prior2
-            else:
-                post_shortpath = False
-                post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
-            # likelihood = math.log(归一化stage2)
+            post_shortpath = False
+            # 分子分母同时扩大了相同倍数，会被消去
+            post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+        # 从对数之后的似然函数里消去倍数
+        # likelihood = math.log(归一化stage2) - loglikeli_offset
 
         EX2_1 = out1[2] + out1[1] * out1[1]
         EX2_2 = out2[2] + out2[1] * out2[1]
@@ -324,19 +316,17 @@ def _tvtp_grad_generate(
         dL_dEX += -dL_dvar * (2 * EX)
 
         dL_dprior1, dL_dprior2 = 0.0, 0.0
-        if rawpost_patched:
-            dL_drawpost1, dL_drawpost2 = 0.0, 0.0
+        dL_dstage2 = dL_dlike / 归一化stage2
+        dL_dlikeoffset = -dL_dlike
+        if post_shortpath:
+            dL_dprior1 += dL_dpost1
+            dL_dprior2 += dL_dpost2
+            dL_drawpost1, dL_drawpost2 = dL_dstage2, dL_dstage2
         else:
-            dL_dstage2 = dL_dlike / 归一化stage2
-            if post_shortpath:
-                dL_dprior1 += dL_dpost1
-                dL_dprior2 += dL_dpost2
-                dL_drawpost1, dL_drawpost2 = dL_dstage2, dL_dstage2
-            else:
-                dL_dstage2 -= dL_dpost1 * (post1 / 归一化stage2)
-                dL_dstage2 -= dL_dpost2 * (post2 / 归一化stage2)
-                dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2
-                dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2
+            dL_dstage2 -= dL_dpost1 * (post1 / 归一化stage2)
+            dL_dstage2 -= dL_dpost2 * (post2 / 归一化stage2)
+            dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2
+            dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2
 
         dL_dprior1 += dL_drawpost1 * likeli1 + dL_dvar * EX2_1 + dL_dEX * out1[1]
         dL_dprior2 += dL_drawpost2 * likeli2 + dL_dvar * EX2_2 + dL_dEX * out2[1]
@@ -345,7 +335,14 @@ def _tvtp_grad_generate(
         dL_dlikeli2 = dL_drawpost2 * prior2
 
         dL_dloglikeli1 = dL_dlikeli1 * likeli1
+        dL_dlikeoffset += dL_dloglikeli1
         dL_dloglikeli2 = dL_dlikeli2 * likeli2
+        dL_dlikeoffset += dL_dloglikeli2
+
+        if loglikeli1 >= loglikeli2:
+            dL_dloglikeli1 -= dL_dlikeoffset
+        else:
+            dL_dloglikeli2 -= dL_dlikeoffset
 
         dL_dout1 += likeli_gradient(out1, likeli1, dL_dloglikeli1)
         dL_dout2 += likeli_gradient(out2, likeli2, dL_dloglikeli2)
