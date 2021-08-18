@@ -121,19 +121,19 @@ def _tvtp_eval_generate(
 
         rawpost1: float = prior1 * likeli1
         rawpost2: float = prior2 * likeli2
+        归一化stage2 = rawpost1 + rawpost2
 
-        if rawpost1 + rawpost2 < _eps:
-            # 如果likelihood跑飞了，
-            # 那么应当将其后所有推理概率置为0，以对misleading施以最大程度的惩罚，
-            # 而不是以[0.5, 0.5]概率重启。否则重启点处的梯度将是不连续的，
-            # 同时misleading造成的likelihood损失被抹除，
-            # 将在实际预测中产生不可预期的结果。
-            rawpost1, rawpost2 = 0.0, 0.0
+        if 归一化stage2 < _eps:
+            rawpost1, rawpost2, 归一化stage2 = 0.0, 0.0, 0.0
             post1, post2 = 0.5, 0.5
             likelihood = -_realmax
         else:
-            归一化stage2 = rawpost1 + rawpost2
-            post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+            if prior1 == 0 or prior2 == 0:
+                # 一侧先验概率为0，则Bayes filter输入输出结果不变。
+                # 此时后验概率直接等于先验概率
+                post1, post2 = prior1, prior2
+            else:
+                post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
             likelihood = math.log(归一化stage2)
         """
         关于归一化问题的鲁棒的梯度推导
@@ -295,17 +295,24 @@ def _tvtp_grad_generate(
 
         rawpost1: float = prior1 * likeli1
         rawpost2: float = prior2 * likeli2
+        归一化stage2 = rawpost1 + rawpost2
 
-        if rawpost1 + rawpost2 < _eps:
-            rawpost1, rawpost2 = 0.0, 0.0
+        if 归一化stage2 < _eps:
+            rawpost_patched = True
+            rawpost1, rawpost2, 归一化stage2 = 0.0, 0.0, 0.0
             post1, post2 = 0.5, 0.5
             # likelihood = -_realmax
-            rawpost_patched = True
         else:
-            归一化stage2 = rawpost1 + rawpost2
-            post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
-            # likelihood = math.log(归一化stage2)
             rawpost_patched = False
+            if prior1 == 0 or prior2 == 0:
+                post_shortpath = True
+                # 一侧先验概率为0，则Bayes filter输入输出结果不变。
+                # 此时后验概率直接等于先验概率
+                post1, post2 = prior1, prior2
+            else:
+                post_shortpath = False
+                post1, post2 = rawpost1 / 归一化stage2, rawpost2 / 归一化stage2
+            # likelihood = math.log(归一化stage2)
 
         EX2_1 = out1[2] + out1[1] * out1[1]
         EX2_2 = out2[2] + out2[1] * out2[1]
@@ -316,26 +323,32 @@ def _tvtp_grad_generate(
         dL_dEX2_2 = dL_dvar * prior2
         dL_dEX += -dL_dvar * (2 * EX)
 
+        dL_dprior1, dL_dprior2 = 0.0, 0.0
         if rawpost_patched:
             dL_drawpost1, dL_drawpost2 = 0.0, 0.0
         else:
             dL_dstage2 = dL_dlike / 归一化stage2
-            dL_dstage2 -= dL_dpost1 * (post1 / 归一化stage2)
-            dL_dstage2 -= dL_dpost2 * (post2 / 归一化stage2)
-            dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2
-            dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2
+            if post_shortpath:
+                dL_dprior1 += dL_dpost1
+                dL_dprior2 += dL_dpost2
+                dL_drawpost1, dL_drawpost2 = dL_dstage2, dL_dstage2
+            else:
+                dL_dstage2 -= dL_dpost1 * (post1 / 归一化stage2)
+                dL_dstage2 -= dL_dpost2 * (post2 / 归一化stage2)
+                dL_drawpost1 = dL_dpost1 / 归一化stage2 + dL_dstage2
+                dL_drawpost2 = dL_dpost2 / 归一化stage2 + dL_dstage2
 
-        dL_dprior1 = dL_drawpost1 * likeli1 + dL_dvar * EX2_1 + dL_dEX * out1[1]
-        dL_dprior2 = dL_drawpost2 * likeli2 + dL_dvar * EX2_2 + dL_dEX * out1[2]
+        dL_dprior1 += dL_drawpost1 * likeli1 + dL_dvar * EX2_1 + dL_dEX * out1[1]
+        dL_dprior2 += dL_drawpost2 * likeli2 + dL_dvar * EX2_2 + dL_dEX * out1[2]
 
-        dL_dloglikeli1 = dL_drawpost1 * prior1
-        dL_dloglikeli2 = dL_drawpost2 * prior2
+        dL_dlikeli1 = dL_drawpost1 * prior1
+        dL_dlikeli2 = dL_drawpost2 * prior2
 
-        dL_dlikeli1 = dL_dloglikeli1 * likeli1
-        dL_dlikeli2 = dL_dloglikeli2 * likeli2
+        dL_dloglikeli1 = dL_dlikeli1 * likeli1
+        dL_dloglikeli2 = dL_dlikeli2 * likeli2
 
-        dL_dout1 += likeli_gradient(out1, likeli1, dL_dlikeli1)
-        dL_dout2 += likeli_gradient(out2, likeli2, dL_dlikeli2)
+        dL_dout1 += likeli_gradient(out1, likeli1, dL_dloglikeli1)
+        dL_dout2 += likeli_gradient(out2, likeli2, dL_dloglikeli2)
         dL_dout1[1] += dL_dEX * prior1 + dL_dEX2_1 * (2 * out1[1])
         dL_dout2[1] += dL_dEX * prior2 + dL_dEX2_2 * (2 * out2[1])
         dL_dout1[2] += dL_dEX2_1
