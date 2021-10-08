@@ -15,12 +15,12 @@ from tests.common import nll2func
 
 def run_once(n: int, m: int, seed: int = 0) -> None:
     numpy.random.seed(seed)
-    x: ndarray = numpy.concatenate(  # type: ignore
+    x: ndarray = numpy.concatenate(
         (numpy.random.randn(n, m), numpy.ones((n, 1))), axis=1
     )
     beta = numpy.random.randn(m + 1)
     y: ndarray = x @ beta + numpy.random.randn(n)
-    beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)  # type: ignore
+    beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)
     abserr_decomp = difference.absolute(beta, beta_decomp)
 
     stage1 = Linear(

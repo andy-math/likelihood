@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, List, Optional, Tuple
 
 import numpy
+
 from likelihood.stages.abc.Stage import Constraints, Stage
 from overloads.typedefs import ndarray
 
@@ -24,7 +25,7 @@ class Merge(Stage[_Merge_gradinfo_t]):
             )
             output.append(_output)
             gradinfo.append(g)
-        output_: ndarray = numpy.concatenate(output, axis=1)  # type: ignore
+        output_: ndarray = numpy.concatenate(output, axis=1)
         if not grad:
             return output_, None
         return output_, gradinfo
@@ -46,8 +47,8 @@ class Merge(Stage[_Merge_gradinfo_t]):
             dL_di.append(_dL_di)
             dL_dc.append(_dL_dc)
         return (
-            numpy.concatenate(dL_di, axis=1),  # type: ignore
-            numpy.concatenate(dL_dc),  # type: ignore
+            numpy.concatenate(dL_di, axis=1),
+            numpy.concatenate(dL_dc),
         )
 
     def get_constraints(self) -> Constraints:

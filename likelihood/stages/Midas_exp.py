@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import numpy
+
 from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.abc.Convolution import Convolution
 from likelihood.stages.abc.Stage import Constraints

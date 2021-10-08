@@ -5,9 +5,10 @@ from typing import Callable, Optional, Tuple
 
 import numba  # type: ignore
 import numpy
+from numba import float64, optional, types
+
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc.Stage import Stage
-from numba import float64, optional, types
 from overloads.typedefs import ndarray
 
 _Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray, ndarray]
@@ -86,7 +87,7 @@ def _grad_generator(
         _dL_dc, dL_di[0, :], dL_d0, dL_dpre = grad_func(
             coeff, inputs[0, :], output0, outputs[0, :], dL_do[0, :], dL_dpre
         )
-        dL_dc += _dL_dc + dL_d0 @ d0_dc + dL_dpre @ dpre_dc  # type: ignore
+        dL_dc += _dL_dc + dL_d0 @ d0_dc + dL_dpre @ dpre_dc
         return dL_di, dL_dc
 
     return implement

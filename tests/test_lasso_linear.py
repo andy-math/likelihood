@@ -21,7 +21,7 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
     beta: ndarray = n * numpy.random.randn(m)
     beta[-1] = 0.0
     y: ndarray = x @ beta + numpy.random.randn(n)
-    beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)  # type: ignore
+    beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None) 
     relerr_decomp = difference.relative(beta[:-1], beta_decomp[:-1])
 
     stage1 = Linear(
