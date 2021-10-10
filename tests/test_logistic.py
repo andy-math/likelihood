@@ -2,6 +2,7 @@
 
 import numpy
 import numpy.linalg
+
 from likelihood import likelihood
 from likelihood.stages.Linear import Linear
 from likelihood.stages.Logistic import Logistic
@@ -10,13 +11,12 @@ from likelihood.Variables import Variables
 from optimizer import trust_region
 from overloads import difference
 from overloads.typedefs import ndarray
-
 from tests.common import nll2func
 
 
 def generate(coeff: ndarray, n: int, seed: int = 0) -> Variables[int]:
     numpy.random.seed(seed)
-    x: ndarray = numpy.concatenate( 
+    x: ndarray = numpy.concatenate(
         (numpy.random.rand(n, 1), numpy.ones((n, 1))), axis=1
     )
     y = 1.0 / (numpy.exp(-x @ coeff) + 1.0) + numpy.random.randn(n)

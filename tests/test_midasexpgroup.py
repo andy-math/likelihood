@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy
 import numpy.linalg
@@ -8,7 +8,7 @@ import numpy.linalg
 from likelihood import likelihood
 from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.LogNormpdf import LogNormpdf
-from likelihood.stages.Midas_exp import Midas_exp
+from likelihood.stages.Midas_exp_group import Midas_exp_group
 from likelihood.Variables import Variables
 from optimizer import trust_region
 from overloads import difference
@@ -17,35 +17,37 @@ from overloads.typedefs import ndarray
 from tests.common import nll2func
 
 
-def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> ndarray:
+def generate(coeff: ndarray, n: int, k: int, seed: int = 0) -> Tuple[ndarray, ndarray]:
     numpy.random.seed(seed)
     omega = float(coeff)
     assert 0 < omega < 1
     assert n > k
-    kernel = omega ** numpy.arange(1.0, k + 1.0)[::-1]
+    kernel = omega ** numpy.arange(1.0, k + 1.0)
     kernel = kernel / numpy.sum(kernel)
     assertNoInfNaN(kernel)
-    x = numpy.zeros((n + k * 10,))
-    for i in range(k):
-        x[i] = numpy.random.randn()
-    for i in range(k, n + k * 10):
-        start = i - k
-        stop = i
-        x[i] = x[start:stop] @ kernel + numpy.random.randn()
-    start = k * 10
-    return x[start:]  # type: ignore
+    x = numpy.random.randn(n, k)
+    return x, x @ kernel + numpy.random.randn(n)
 
 
 def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
-    x = generate(coeff, n, k, seed=seed)
-    x, y = x[:-1], x[1:]
-    input = Variables(tuple(range(n - 1)), ("Y", y), ("X", x))
+    x, y = generate(coeff, n, k, seed=seed)
+    input = Variables(
+        tuple(range(n)),
+        ("Y", y),
+        ("X", None),
+        *((f"X{i}", x[:, i]) for i in range(k)),
+    )
     beta0 = numpy.array([0.5, 1.0])
 
-    stage1 = Midas_exp("omega", ("X",), ("X",), k=k)
+    stage1 = Midas_exp_group("omega", tuple(f"X{i}" for i in range(k)), "X")
     stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"))
 
-    nll = likelihood.negLikelihood(("omega", "var"), ("Y", "X"), (stage1, stage2), None)
+    nll = likelihood.negLikelihood(
+        ("omega", "var"),
+        ("Y", "X", *(f"X{i}" for i in range(k))),
+        (stage1, stage2),
+        None,
+    )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 
@@ -68,22 +70,29 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     print("abserr_mle: ", abserr_mle)
     assert result.success
     assert 2 < result.iter < 200
-    assert abserr_mle < 0.05
+    assert abserr_mle < 0.1
 
 
 def known_issue(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
-    x = generate(coeff, n, k, seed=seed)
-    x, y = x[:-1], x[1:]
-    input = Variables(tuple(range(n - 1)), ("Y", y), ("X", x))
+    x, y = generate(coeff, n, k, seed=seed)
+    input = Variables(
+        tuple(range(n)),
+        ("Y", y),
+        ("X", None),
+        *((f"X{i}", x[:, i]) for i in range(k)),
+    )
     beta0 = numpy.array([0.0, 1.0])
 
-    stage1 = Midas_exp("omega", ("X",), ("X",), k=k)
+    stage1 = Midas_exp_group("omega", tuple(f"X{i}" for i in range(k)), "X")
     stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"))
 
     ce: Optional[BaseException] = None
     try:
         nll = likelihood.negLikelihood(
-            ("omega", "var"), ("Y", "X"), (stage1, stage2), None
+            ("omega", "var"),
+            ("Y", "X", *(f"X{i}" for i in range(k))),
+            (stage1, stage2),
+            None,
         )
         nll.eval(beta0, input, regularize=False)
     except BaseException as e:
