@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+from typing import cast
+
 import numpy
 import numpy.linalg
+import scipy.stats  # type: ignore
+
 from likelihood import likelihood
 from likelihood.stages.Lasso import Lasso
 from likelihood.stages.Linear import Linear
@@ -9,39 +13,77 @@ from likelihood.Variables import Variables
 from optimizer import trust_region
 from overloads import difference
 from overloads.typedefs import ndarray
-
 from tests.common import nll2func
 
 
-def run_once(n: int, m: int, seed: int = 0) -> None:
-    numpy.random.seed(seed)
-    rrrr = numpy.random.randn(n, m)
-    rrrr[:, -1] = rrrr[:, 0] - rrrr[:, -1] / 1000
-    x = rrrr
-    beta: ndarray = n * numpy.random.randn(m)
-    beta[-1] = 0.0
-    y: ndarray = x @ beta + numpy.random.randn(n)
-    beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None) 
-    relerr_decomp = difference.relative(beta[:-1], beta_decomp[:-1])
+class Sample:
+    beta: ndarray
+    X: ndarray
+    Y: ndarray
+    lambda_: float
+    beta_decomp: ndarray
+
+    def symm_eig(self, A: ndarray) -> ndarray:
+        A = (A.T + A) / 2
+        return cast(ndarray, numpy.linalg.eigh(A)[0])
+
+    def orthogonal_X(self, X: ndarray) -> ndarray:
+        for i in range(1, X.shape[1]):
+            norm = numpy.sqrt(X[:, i] @ X[:, i])
+            X[:, i] -= X[:, :i] @ numpy.linalg.lstsq(X[:, :i], X[:, i], rcond=None)[0]
+            X[:, i] *= norm / numpy.sqrt(X[:, i] @ X[:, i])
+        return X
+
+    def soft_threshold(self, beta: ndarray, lambda_: ndarray) -> ndarray:
+        beta = numpy.sign(beta) * numpy.maximum(numpy.abs(beta) - lambda_, 0.0)
+        return beta
+
+    def lasso_decomp(self) -> ndarray:
+        m, n = self.X.shape
+        beta_decomp: ndarray = numpy.linalg.lstsq(self.X, self.Y, rcond=None)[0]
+        beta_decomp = self.soft_threshold(
+            beta_decomp,
+            (m / 2.0 * self.lambda_)
+            * numpy.linalg.lstsq(self.X.T @ self.X, numpy.ones((n,)), rcond=None)[0],
+        )
+        return beta_decomp
+
+    def __init__(self, m: int, n: int) -> None:
+        self.beta = self.symm_eig(numpy.random.rand(n, n).T)
+        self.X = self.orthogonal_X(scipy.stats.norm.ppf(numpy.random.rand(n, m).T))
+        self.Y = self.X @ self.beta + scipy.stats.norm.ppf(numpy.random.rand(m))
+        self.lambda_ = 2 * numpy.quantile(
+            numpy.abs(numpy.linalg.lstsq(self.X, self.Y, rcond=None)[0]), 0.3
+        )
+        self.beta_decomp = self.lasso_decomp()
+
+
+numpy.random.seed(5489)
+
+
+def run_once(m: int, n: int) -> None:
+    sample = Sample(m, n)
+
+    beta0 = numpy.zeros((n + 1))
+    beta0[-1] = 1.0
+    input = Variables(
+        tuple(range(m)),
+        ("Y", sample.Y),
+        *((f"var{i+1}", sample.X[:, i]) for i in range(n)),
+    )
 
     stage1 = Linear(
-        tuple(f"b{i}" for i in range(1, m + 1)),
-        tuple(f"var{i}" for i in range(1, m + 1)),
+        tuple(f"b{i}" for i in range(1, n + 1)),
+        tuple(f"var{i}" for i in range(1, n + 1)),
         "var1",
     )
     stage2 = LogNormpdf("var", ("Y", "var1"), ("Y", "var1"))
-    penalty = Lasso(stage1.coeff_names, 1.0, ("Y", "var1"), "Y")
+    penalty = Lasso(stage1.coeff_names, sample.lambda_, ("Y", "var1"), "Y")
     nll = likelihood.negLikelihood(
         stage1.coeff_names + ("var",),
-        ("Y",) + tuple(f"var{i}" for i in range(1, m + 1)),
+        ("Y",) + tuple(f"var{i}" for i in range(1, n + 1)),
         (stage1, stage2),
         penalty,
-    )
-
-    beta0 = numpy.zeros((beta.shape[0] + 1))
-    beta0[-1] = 1.0
-    input = Variables(
-        tuple(range(n)), ("Y", y), *((f"var{i+1}", x[:, i]) for i in range(m))
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=True)
@@ -58,24 +100,41 @@ def run_once(n: int, m: int, seed: int = 0) -> None:
         opts,
     )
     beta_mle = result.x[:-1]
-    relerr_mle = difference.relative(beta[:-1], beta_mle[:-1])
-    print("result.success: ", result.success)
-    print("result.delta: ", result.delta)
-    print("beta:   ", beta)
-    print("decomp: ", beta_decomp)
-    print("mle:    ", beta_mle)
-    print("relerr_decomp: ", relerr_decomp)
-    print("relerr_mle:    ", relerr_mle)
-    assert result.success
-    assert 5 < result.iter < 1000
-    assert relerr_decomp < 0.1
-    assert relerr_mle < relerr_decomp
+    abserr = difference.absolute(beta_mle, sample.beta_decomp)
+    relerr = abserr / numpy.mean(numpy.abs(sample.beta_decomp))
+    print(f"result.success: {result.success}")
+    print(f"relerr        : {relerr}")
+    print(f"abserr        : {abserr}")
+    print(
+        "result.x      : \n",
+        numpy.concatenate(
+            (
+                sample.beta_decomp.reshape((-1, 1)),
+                beta_mle.reshape((-1, 1)),
+            ),
+            axis=1,
+        ),
+    )
+    assert relerr < 0.3
+    assert abserr < 0.3
 
 
 class Test_1:
-    def test_1(self) -> None:
-        run_once(1000, 4)
+    def test1(self) -> None:
+        run_once(m=1000, n=4)
+
+    def test2(self) -> None:
+        run_once(m=1000, n=8)
+
+    def test3(self) -> None:
+        run_once(m=1000, n=16)
+
+    def test4(self) -> None:
+        run_once(m=1000, n=32)
 
 
 if __name__ == "__main__":
-    Test_1().test_1()
+    Test_1().test1()
+    Test_1().test2()
+    Test_1().test3()
+    Test_1().test4()
