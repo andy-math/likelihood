@@ -58,10 +58,8 @@ class Sample:
         self.beta_decomp = self.lasso_decomp()
 
 
-numpy.random.seed(5489)
-
-
 def run_once(m: int, n: int) -> None:
+    numpy.random.seed(5489)
     sample = Sample(m, n)
 
     beta0 = numpy.zeros((n + 1))
@@ -121,6 +119,7 @@ def run_once(m: int, n: int) -> None:
 
 class Test_1:
     def test1(self) -> None:
+        numpy.random.seed(5489)
         run_once(m=1000, n=4)
         run_once(m=1000, n=8)
         run_once(m=1000, n=16)
