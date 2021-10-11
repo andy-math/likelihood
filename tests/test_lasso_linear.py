@@ -59,7 +59,6 @@ class Sample:
 
 
 def run_once(m: int, n: int) -> None:
-    numpy.random.seed(5489)
     sample = Sample(m, n)
 
     beta0 = numpy.zeros((n + 1))
