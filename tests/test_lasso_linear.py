@@ -122,19 +122,10 @@ def run_once(m: int, n: int) -> None:
 class Test_1:
     def test1(self) -> None:
         run_once(m=1000, n=4)
-
-    def test2(self) -> None:
         run_once(m=1000, n=8)
-
-    def test3(self) -> None:
         run_once(m=1000, n=16)
-
-    def test4(self) -> None:
         run_once(m=1000, n=32)
 
 
 if __name__ == "__main__":
     Test_1().test1()
-    Test_1().test2()
-    Test_1().test3()
-    Test_1().test4()
