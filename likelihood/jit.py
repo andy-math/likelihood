@@ -105,22 +105,3 @@ class JittedFunction(Generic[_function_t]):
 
     def __call__(_) -> NoReturn:
         assert False  # pragma: no cover
-
-
-def jit(
-    signature: _signature_t,
-) -> Callable[
-    [Callable[..., _function_t]],
-    Callable[[Tuple[JittedFunction[Any], ...]], JittedFunction[_function_t]],
-]:
-    def decorate(
-        generator: Callable[..., _function_t]
-    ) -> Callable[[Tuple[JittedFunction[Any], ...]], JittedFunction[_function_t]]:
-        def call(
-            dependent: Tuple[JittedFunction[Any], ...]
-        ) -> JittedFunction[_function_t]:
-            return JittedFunction(signature, dependent, generator)
-
-        return call
-
-    return decorate
