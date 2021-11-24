@@ -7,7 +7,7 @@ from typing import Callable, Dict, Literal, Tuple
 import numpy
 from numba import float64  # type: ignore
 
-from likelihood.jit import Jitted_Function
+from likelihood.jit import JittedFunction
 from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
 from overloads.typedefs import ndarray
@@ -469,13 +469,13 @@ _provider_gradient_signature = float64[:](float64[:], float64, float64)
 providers: Dict[
     Literal["normpdf"],
     Tuple[
-        Jitted_Function[Callable[[ndarray], float]],
-        Jitted_Function[Callable[[ndarray, float, float], ndarray]],
+        JittedFunction[Callable[[ndarray], float]],
+        JittedFunction[Callable[[ndarray, float, float], ndarray]],
     ],
 ] = {
     "normpdf": (
-        Jitted_Function(_provider_signature, (), normpdf_provider),
-        Jitted_Function(_provider_gradient_signature, (), normpdf_provider_gradient),
+        JittedFunction(_provider_signature, (), normpdf_provider),
+        JittedFunction(_provider_gradient_signature, (), normpdf_provider_gradient),
     ),
 }
 
@@ -485,8 +485,8 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Signature.GradInfo])
         self,
         submodels: Tuple[Iterative.Iterative, Iterative.Iterative],
         provider: Tuple[
-            Jitted_Function[Callable[[ndarray], float]],
-            Jitted_Function[Callable[[ndarray, float, float], ndarray]],
+            JittedFunction[Callable[[ndarray], float]],
+            JittedFunction[Callable[[ndarray, float, float], ndarray]],
         ],
         data_in_names: Tuple[str, str],
         data_out_names: Tuple[str, str, str, str, str],
@@ -501,17 +501,17 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Signature.GradInfo])
             data_in_names,
             data_out_names,
             submodels,
-            Jitted_Function(
+            JittedFunction(
                 Iterative._Numba.Output0,
                 tuple(x._output0_scalar for x in submodels),
                 _tvtp_output0_generate,
             ),
-            Jitted_Function(
+            JittedFunction(
                 Iterative._Numba.Eval,
                 tuple(x._eval_scalar for x in submodels) + provider[:1],
                 _tvtp_eval_generate,
             ),
-            Jitted_Function(
+            JittedFunction(
                 Iterative._Numba.Grad,
                 tuple(x._grad_scalar for x in submodels) + provider,
                 _tvtp_grad_generate,

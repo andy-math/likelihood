@@ -3,73 +3,66 @@ from __future__ import annotations
 import multiprocessing
 import pickle
 import time
-from typing import Any, Callable, Dict, Generic, NoReturn, Optional, Tuple, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    NewType,
+    NoReturn,
+    Optional,
+    Tuple,
+    TypeVar,
+)
 
 import numba  # type: ignore
 
-T2 = TypeVar("T2", covariant=True)
+_signature_t = NewType("_signature_t", object)
+_function_t = TypeVar("_function_t", covariant=True)
 
 _output_width_m = 0
 _output_width_n = 0
 _Jitted_Function_Cache: Dict[Tuple[bytes, ...], Tuple[Any, Any]] = {}
 
 
-class Jitted_Function(Generic[T2]):
-    signature: numba.core.typing.templates.Signature
-    dependent: Tuple[Jitted_Function[Any], ...]
+class JittedFunction(Generic[_function_t]):
+    signature: _signature_t
     pickled_bytecode: Tuple[bytes, ...]
+    dependent: Tuple[JittedFunction[Any], ...]
 
     def __init__(
         self,
-        signature: numba.core.typing.templates.Signature,
-        dependent: Tuple[Jitted_Function[Any], ...],
-        generator: Callable[..., T2],
+        signature: _signature_t,
+        dependent: Tuple[JittedFunction[Any], ...],
+        generator: Callable[..., _function_t],
     ) -> None:
         # picklable test
-        pickled_bytecode = tuple(
-            [
-                pickle.dumps(generator),
-                *(y for x in dependent for y in x.pickled_bytecode),
-            ]
+        pickled_bytecode = (
+            pickle.dumps(generator),
+            *(y for x in dependent for y in x.pickled_bytecode),
         )
 
-        self.__setstate__((signature, dependent, pickled_bytecode))
+        self.__setstate__((signature, pickled_bytecode, dependent))
 
     def __getstate__(
         self,
-    ) -> Tuple[
-        numba.core.typing.templates.Signature,
-        Tuple[Jitted_Function[Any], ...],
-        Tuple[bytes, ...],
-    ]:
-        return (
-            self.signature,
-            self.dependent,
-            self.pickled_bytecode,
-        )
+    ) -> Tuple[_signature_t, Tuple[bytes, ...], Tuple[JittedFunction[Any], ...]]:
+        return (self.signature, self.pickled_bytecode, self.dependent)
 
     def __setstate__(
         self,
-        state: Tuple[
-            numba.core.typing.templates.Signature,
-            Tuple[Jitted_Function[Any], ...],
-            Tuple[bytes, ...],
-        ],
+        state: Tuple[_signature_t, Tuple[bytes, ...], Tuple[JittedFunction[Any], ...]],
     ) -> None:
         global _output_width_m, _output_width_n
-        (
-            self.signature,
-            self.dependent,
-            self.pickled_bytecode,
-        ) = state
+        (self.signature, self.pickled_bytecode, self.dependent) = state
         generator = self._get_generator()
         _output_width_m = max(_output_width_m, len(generator.__module__))
         _output_width_n = max(_output_width_n, len(generator.__name__))
 
-    def _get_generator(self) -> Callable[..., T2]:
+    def _get_generator(self) -> Callable[..., _function_t]:
         return pickle.loads(self.pickled_bytecode[0])  # type: ignore
 
-    def _compile(self, compile: bool) -> Tuple[Optional[T2], T2]:
+    def _compile(self, compile: bool) -> Tuple[Optional[_function_t], _function_t]:
         if self.pickled_bytecode in _Jitted_Function_Cache:
             return _Jitted_Function_Cache[self.pickled_bytecode]
 
@@ -87,7 +80,6 @@ class Jitted_Function(Generic[T2]):
 
         start_time = time.time()
         func = numba.njit(self.signature)(
-            # load_func(self.innerfunc)
             generator(*(x.func() for x in self.dependent))
         )
         _Jitted_Function_Cache[self.pickled_bytecode] = (func, py_func)
@@ -102,14 +94,33 @@ class Jitted_Function(Generic[T2]):
 
         return func, py_func
 
-    def func(self) -> T2:
+    def func(self) -> _function_t:
         func, _ = self._compile(True)
         assert func is not None
         return func
 
-    def py_func(self) -> T2:
+    def py_func(self) -> _function_t:
         _, py_func = self._compile(False)
         return py_func
 
     def __call__(_) -> NoReturn:
         assert False  # pragma: no cover
+
+
+def jit(
+    signature: _signature_t,
+) -> Callable[
+    [Callable[..., _function_t]],
+    Callable[[Tuple[JittedFunction[Any], ...]], JittedFunction[_function_t]],
+]:
+    def decorate(
+        generator: Callable[..., _function_t]
+    ) -> Callable[[Tuple[JittedFunction[Any], ...]], JittedFunction[_function_t]]:
+        def call(
+            dependent: Tuple[JittedFunction[Any], ...]
+        ) -> JittedFunction[_function_t]:
+            return JittedFunction(signature, dependent, generator)
+
+        return call
+
+    return decorate

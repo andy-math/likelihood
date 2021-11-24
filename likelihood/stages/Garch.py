@@ -4,7 +4,7 @@ from typing import Callable, Tuple
 
 import numpy
 
-from likelihood.jit import Jitted_Function
+from likelihood.jit import JittedFunction
 from likelihood.stages.abc import Iterative
 from likelihood.stages.abc.Stage import Constraints
 from overloads.typedefs import ndarray
@@ -92,9 +92,9 @@ class Garch(Iterative.Iterative):
             (data_in_name,),
             (data_out_name,),
             (),
-            Jitted_Function(Iterative._Numba.Output0, (), _garch_output0_generate),
-            Jitted_Function(Iterative._Numba.Eval, (), _grach_eval_generate),
-            Jitted_Function(Iterative._Numba.Grad, (), _garch_grad_generate),
+            JittedFunction(Iterative._Numba.Output0, (), _garch_output0_generate),
+            JittedFunction(Iterative._Numba.Eval, (), _grach_eval_generate),
+            JittedFunction(Iterative._Numba.Grad, (), _garch_grad_generate),
         )
 
     def get_constraints(_) -> Constraints:

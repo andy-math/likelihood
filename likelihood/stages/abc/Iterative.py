@@ -7,7 +7,7 @@ import numba  # type: ignore
 import numpy
 from numba import float64, optional, types
 
-from likelihood.jit import Jitted_Function
+from likelihood.jit import JittedFunction
 from likelihood.stages.abc.Stage import Stage
 from overloads.typedefs import ndarray
 
@@ -109,12 +109,12 @@ def _grad_generator(grad_func: _Signature.Grad) -> _Signature.LoopGrad:
 
 
 class Iterative(Stage[_Signature.GradInfo], metaclass=ABCMeta):
-    _eval_impl: Jitted_Function[_Signature.LoopEval]
-    _grad_impl: Jitted_Function[_Signature.LoopGrad]
+    _eval_impl: JittedFunction[_Signature.LoopEval]
+    _grad_impl: JittedFunction[_Signature.LoopGrad]
 
-    _output0_scalar: Jitted_Function[_Signature.Output0]
-    _eval_scalar: Jitted_Function[_Signature.Eval]
-    _grad_scalar: Jitted_Function[_Signature.Grad]
+    _output0_scalar: JittedFunction[_Signature.Output0]
+    _eval_scalar: JittedFunction[_Signature.Eval]
+    _grad_scalar: JittedFunction[_Signature.Grad]
 
     def __init__(
         self,
@@ -122,15 +122,15 @@ class Iterative(Stage[_Signature.GradInfo], metaclass=ABCMeta):
         data_in_names: Tuple[str, ...],
         data_out_names: Tuple[str, ...],
         submodels: Tuple[Iterative, ...],
-        output0: Jitted_Function[_Signature.Output0],
-        eval: Jitted_Function[_Signature.Eval],
-        grad: Jitted_Function[_Signature.Grad],
+        output0: JittedFunction[_Signature.Output0],
+        eval: JittedFunction[_Signature.Eval],
+        grad: JittedFunction[_Signature.Grad],
     ) -> None:
         super().__init__(names, data_in_names, data_out_names, submodels)
-        self._eval_impl = Jitted_Function(
+        self._eval_impl = JittedFunction(
             _Numba.LoopEval, (output0, eval), _eval_generator
         )
-        self._grad_impl = Jitted_Function(_Numba.LoopGrad, (grad,), _grad_generator)
+        self._grad_impl = JittedFunction(_Numba.LoopGrad, (grad,), _grad_generator)
         self._output0_scalar = output0
         self._eval_scalar = eval
         self._grad_scalar = grad
