@@ -480,7 +480,7 @@ providers: Dict[
 }
 
 
-class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t]):
+class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Signature.GradInfo]):
     def __init__(
         self,
         submodels: Tuple[Iterative.Iterative, Iterative.Iterative],
@@ -502,17 +502,17 @@ class MS_TVTP(Iterative.Iterative, Logpdf.Logpdf[Iterative._Iterative_gradinfo_t
             data_out_names,
             submodels,
             Jitted_Function(
-                Iterative.output0_signature,
+                Iterative._Numba.Output0,
                 tuple(x._output0_scalar for x in submodels),
                 _tvtp_output0_generate,
             ),
             Jitted_Function(
-                Iterative.eval_signature,
+                Iterative._Numba.Eval,
                 tuple(x._eval_scalar for x in submodels) + provider[:1],
                 _tvtp_eval_generate,
             ),
             Jitted_Function(
-                Iterative.grad_signature,
+                Iterative._Numba.Grad,
                 tuple(x._grad_scalar for x in submodels) + provider,
                 _tvtp_grad_generate,
             ),

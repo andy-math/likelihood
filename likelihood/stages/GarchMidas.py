@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Tuple
 
 import numpy
+
 from likelihood.jit import Jitted_Function
 from likelihood.stages.abc import Iterative
 from likelihood.stages.abc.Stage import Constraints
@@ -108,10 +109,10 @@ class GarchMidas(Iterative.Iterative):
             data_out_names,
             (),
             Jitted_Function(
-                Iterative.output0_signature, (), _garch_midas_output0_generate
+                Iterative._Numba.Output0, (), _garch_midas_output0_generate
             ),
-            Jitted_Function(Iterative.eval_signature, (), _grach_midas_eval_generate),
-            Jitted_Function(Iterative.grad_signature, (), _garch_midas_grad_generate),
+            Jitted_Function(Iterative._Numba.Eval, (), _grach_midas_eval_generate),
+            Jitted_Function(Iterative._Numba.Grad, (), _garch_midas_grad_generate),
         )
 
     def get_constraints(_) -> Constraints:

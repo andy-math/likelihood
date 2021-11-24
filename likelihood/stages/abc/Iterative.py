@@ -11,38 +11,58 @@ from likelihood.jit import Jitted_Function
 from likelihood.stages.abc.Stage import Stage
 from overloads.typedefs import ndarray
 
-_Iterative_gradinfo_t = Tuple[ndarray, ndarray, ndarray, ndarray, ndarray]
-_Iterative_gradinfo_numba = types.Tuple(
-    (float64[::1], float64[:, ::1], float64[:, ::1], float64[:, ::1], float64[:, ::1])
-)
-output0_signature = types.Tuple(
-    (float64[::1], float64[:, ::1], float64[::1], float64[:, ::1])
-)(float64[::1])
-eval_signature = types.UniTuple(float64[::1], 2)(
-    float64[::1], float64[::1], float64[::1], float64[::1]
-)
-grad_signature = types.UniTuple(float64[::1], 4)(
-    float64[::1], float64[::1], float64[::1], float64[::1], float64[::1], float64[::1]
-)
 
-_eval_generator_signature = types.Tuple(
-    (float64[:, ::1], optional(_Iterative_gradinfo_numba))
-)(float64[::1], float64[:, ::1], numba.boolean)
-_grad_generator_signature = types.Tuple((float64[:, ::1], float64[::1]))(
-    float64[::1], _Iterative_gradinfo_numba, float64[:, ::1]
-)
+class _Signature:
+    GradInfo = Tuple[ndarray, ndarray, ndarray, ndarray, ndarray]
+    Output0 = Callable[[ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]]
+    Eval = Callable[[ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]
+    LoopEvalRet = Tuple[ndarray, Optional[GradInfo]]
+    LoopEval = Callable[[ndarray, ndarray, bool], LoopEvalRet]
+    Grad = Callable[
+        [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
+        Tuple[ndarray, ndarray, ndarray, ndarray],
+    ]
+    LoopGrad = Callable[[ndarray, GradInfo, ndarray], Tuple[ndarray, ndarray]]
+
+
+class _Numba:
+    GradInfo = types.Tuple(
+        (
+            float64[::1],
+            float64[:, ::1],
+            float64[:, ::1],
+            float64[:, ::1],
+            float64[:, ::1],
+        )
+    )
+    Output0 = types.Tuple(
+        (float64[::1], float64[:, ::1], float64[::1], float64[:, ::1])
+    )(float64[::1])
+    Eval = types.UniTuple(float64[::1], 2)(
+        float64[::1], float64[::1], float64[::1], float64[::1]
+    )
+    Grad = types.UniTuple(float64[::1], 4)(
+        float64[::1],
+        float64[::1],
+        float64[::1],
+        float64[::1],
+        float64[::1],
+        float64[::1],
+    )
+    LoopEval = types.Tuple((float64[:, ::1], optional(GradInfo)))(
+        float64[::1], float64[:, ::1], numba.boolean
+    )
+    LoopGrad = types.Tuple((float64[:, ::1], float64[::1]))(
+        float64[::1], GradInfo, float64[:, ::1]
+    )
 
 
 def _eval_generator(
-    output0_func: Callable[[ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]],
-    eval_func: Callable[[ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]],
-) -> Callable[
-    [ndarray, ndarray, bool],
-    Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
-]:
+    output0_func: _Signature.Output0, eval_func: _Signature.Eval
+) -> _Signature.LoopEval:
     def implement(
         coeff: ndarray, inputs: ndarray, grad: bool
-    ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
+    ) -> _Signature.LoopEvalRet:
         output0, d0_dc, preserve, dpre_dc = output0_func(coeff)
         nSample, nOutput = inputs.shape[0], output0.shape[0]
         outputs = numpy.empty((nSample, nOutput))
@@ -58,14 +78,9 @@ def _eval_generator(
     return implement
 
 
-def _grad_generator(
-    grad_func: Callable[
-        [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
-        Tuple[ndarray, ndarray, ndarray, ndarray],
-    ],
-) -> Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]:
+def _grad_generator(grad_func: _Signature.Grad) -> _Signature.LoopGrad:
     def implement(
-        coeff: ndarray, gradinfo: _Iterative_gradinfo_t, dL_do: ndarray
+        coeff: ndarray, gradinfo: _Signature.GradInfo, dL_do: ndarray
     ) -> Tuple[ndarray, ndarray]:
         output0, inputs, outputs, d0_dc, dpre_dc = gradinfo
         nSample, nInput = inputs.shape
@@ -93,29 +108,13 @@ def _grad_generator(
     return implement
 
 
-class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
-    _eval_impl: Jitted_Function[
-        Callable[
-            [ndarray, ndarray, bool],
-            Tuple[ndarray, Optional[_Iterative_gradinfo_t]],
-        ]
-    ]
-    _grad_impl: Jitted_Function[
-        Callable[[ndarray, _Iterative_gradinfo_t, ndarray], Tuple[ndarray, ndarray]]
-    ]
+class Iterative(Stage[_Signature.GradInfo], metaclass=ABCMeta):
+    _eval_impl: Jitted_Function[_Signature.LoopEval]
+    _grad_impl: Jitted_Function[_Signature.LoopGrad]
 
-    _output0_scalar: Jitted_Function[
-        Callable[[ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]]
-    ]
-    _eval_scalar: Jitted_Function[
-        Callable[[ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]
-    ]
-    _grad_scalar: Jitted_Function[
-        Callable[
-            [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
-            Tuple[ndarray, ndarray, ndarray, ndarray],
-        ]
-    ]
+    _output0_scalar: Jitted_Function[_Signature.Output0]
+    _eval_scalar: Jitted_Function[_Signature.Eval]
+    _grad_scalar: Jitted_Function[_Signature.Grad]
 
     def __init__(
         self,
@@ -123,33 +122,22 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
         data_in_names: Tuple[str, ...],
         data_out_names: Tuple[str, ...],
         submodels: Tuple[Iterative, ...],
-        output0: Jitted_Function[
-            Callable[[ndarray], Tuple[ndarray, ndarray, ndarray, ndarray]]
-        ],
-        eval: Jitted_Function[
-            Callable[[ndarray, ndarray, ndarray, ndarray], Tuple[ndarray, ndarray]]
-        ],
-        grad: Jitted_Function[
-            Callable[
-                [ndarray, ndarray, ndarray, ndarray, ndarray, ndarray],
-                Tuple[ndarray, ndarray, ndarray, ndarray],
-            ]
-        ],
+        output0: Jitted_Function[_Signature.Output0],
+        eval: Jitted_Function[_Signature.Eval],
+        grad: Jitted_Function[_Signature.Grad],
     ) -> None:
         super().__init__(names, data_in_names, data_out_names, submodels)
         self._eval_impl = Jitted_Function(
-            _eval_generator_signature, (output0, eval), _eval_generator
+            _Numba.LoopEval, (output0, eval), _eval_generator
         )
-        self._grad_impl = Jitted_Function(
-            _grad_generator_signature, (grad,), _grad_generator
-        )
+        self._grad_impl = Jitted_Function(_Numba.LoopGrad, (grad,), _grad_generator)
         self._output0_scalar = output0
         self._eval_scalar = eval
         self._grad_scalar = grad
 
     def _eval(
         self, coeff: ndarray, inputs: ndarray, *, grad: bool, debug: bool
-    ) -> Tuple[ndarray, Optional[_Iterative_gradinfo_t]]:
+    ) -> Tuple[ndarray, Optional[_Signature.GradInfo]]:
         if debug:
             return self._eval_impl.py_func()(coeff, inputs, grad)
         if numpy.isfortran(inputs):
@@ -159,7 +147,7 @@ class Iterative(Stage[_Iterative_gradinfo_t], metaclass=ABCMeta):
     def _grad(
         self,
         coeff: ndarray,
-        gradinfo: _Iterative_gradinfo_t,
+        gradinfo: _Signature.GradInfo,
         dL_do: ndarray,
         *,
         debug: bool
