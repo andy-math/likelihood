@@ -5,11 +5,10 @@ import sys
 from typing import Callable, Dict, Literal, Tuple
 
 import numpy
-from numba import float64  # type: ignore
-
 from likelihood.jit import JittedFunction
 from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
+from numba import float64  # type: ignore
 from overloads.typedefs import ndarray
 
 _eps = sys.float_info.epsilon
@@ -28,10 +27,10 @@ def _tvtp_output0_generate(
         out0_1, dout_1, pre_1, dpre_1 = out0_f1(coeff[:halfCoeff])
         out0_2, dout_2, pre_2, dpre_2 = out0_f2(coeff[halfCoeff:])
 
-        out0: ndarray = numpy.concatenate(
+        out0: ndarray = numpy.concatenate(  # type: ignore
             (numpy.array([0.0, 0.0, 0.0, 0.5, 0.5]), out0_1, out0_2)
         )
-        pre: ndarray = numpy.concatenate((pre_1, pre_2))
+        pre: ndarray = numpy.concatenate((pre_1, pre_2))  # type: ignore
 
         (nOut,) = out0_1.shape
         (nPre,) = pre_1.shape
@@ -148,7 +147,7 @@ def _tvtp_eval_generate(
         var = max((prior1 * EX2_1 + prior2 * EX2_2) - EX * EX, 0.0)
 
         return (
-            numpy.concatenate(
+            numpy.concatenate(  # type: ignore
                 (
                     numpy.array(
                         [
@@ -368,8 +367,12 @@ def _tvtp_grad_generate(
             dL_dpre[halfPre:],
         )
 
-        dL_drawlag1: ndarray = dL_dlag2 * (1.0 - contrib22) + dL_dlag1 * contrib11
-        dL_drawlag2: ndarray = dL_dlag1 * (1.0 - contrib11) + dL_dlag2 * contrib22
+        dL_drawlag1: ndarray = (
+            dL_dlag2 * (1.0 - contrib22) + dL_dlag1 * contrib11  # type: ignore
+        )
+        dL_drawlag2: ndarray = (
+            dL_dlag1 * (1.0 - contrib11) + dL_dlag2 * contrib22  # type: ignore
+        )
 
         dL_dcontrib11 = float(dL_dlag1 @ (rawlag1 - rawlag2))
         dL_dcontrib22 = float(dL_dlag2 @ (rawlag2 - rawlag1))
@@ -406,11 +409,11 @@ def _tvtp_grad_generate(
         dL_dp11 = dL_drawpath11 * lag_post1 - dL_drawpath21 * lag_post1
         dL_dp22 = dL_drawpath22 * lag_post2 - dL_drawpath12 * lag_post2
 
-        dL_dcoeff: ndarray = numpy.concatenate((dL_dcoeff1, dL_dcoeff2))
-        dL_dinput: ndarray = numpy.concatenate(
+        dL_dcoeff: ndarray = numpy.concatenate((dL_dcoeff1, dL_dcoeff2))  # type: ignore
+        dL_dinput: ndarray = numpy.concatenate(  # type: ignore
             (numpy.array([dL_dp11, dL_dp22]), dL_dinput1, dL_dinput2)
         )
-        dL_drawlag: ndarray = numpy.concatenate(
+        dL_drawlag: ndarray = numpy.concatenate(  # type: ignore
             (
                 numpy.array([0.0, 0.0, 0.0, dL_dlagpost1, dL_dlagpost2]),
                 dL_drawlag1,

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Optional, Tuple, cast
 
 import numpy
-
 from likelihood.stages.abc.Logpdf import Logpdf
 from likelihood.stages.abc.Stage import Constraints
 from overloads.typedefs import ndarray
@@ -32,7 +31,9 @@ class LogNormpdf(Logpdf[_LogNormpdf_gradinfo_t]):
         x: ndarray = mu_x[:, [1]] - mu_x[:, [0]]
         constant = numpy.log(var) + numpy.log(2.0) + numpy.log(numpy.pi)
         logP = (-1.0 / 2.0) * (constant + (x * x) / var)
-        output: ndarray = numpy.concatenate((logP, numpy.full(logP.shape, var)), axis=1)
+        output: ndarray = numpy.concatenate(  # type: ignore
+            (logP, numpy.full(logP.shape, var)), axis=1
+        )
         if not grad:
             return output, None
         return output, x

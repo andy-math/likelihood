@@ -4,7 +4,6 @@ from typing import cast
 import numpy
 import numpy.linalg
 import scipy.stats  # type: ignore
-
 from likelihood import likelihood
 from likelihood.stages.Lasso import Lasso
 from likelihood.stages.Linear import Linear
@@ -13,6 +12,7 @@ from likelihood.Variables import Variables
 from optimizer import trust_region
 from overloads import difference
 from overloads.typedefs import ndarray
+
 from tests.common import nll2func
 
 
@@ -24,13 +24,16 @@ class Sample:
     beta_decomp: ndarray
 
     def symm_eig(self, A: ndarray) -> ndarray:
-        A = (A.T + A) / 2
-        return cast(ndarray, numpy.linalg.eigh(A)[0])
+        A = (A.T + A) / 2  # type: ignore
+        return cast(ndarray, numpy.linalg.eigh(A)[0])  # type: ignore
 
     def orthogonal_X(self, X: ndarray) -> ndarray:
         for i in range(1, X.shape[1]):
             norm = numpy.sqrt(X[:, i] @ X[:, i])
-            X[:, i] -= X[:, :i] @ numpy.linalg.lstsq(X[:, :i], X[:, i], rcond=None)[0]
+            X[:, i] -= (
+                X[:, :i]
+                @ numpy.linalg.lstsq(X[:, :i], X[:, i], rcond=None)[0]  # type: ignore
+            )
             X[:, i] *= norm / numpy.sqrt(X[:, i] @ X[:, i])
         return X
 
@@ -40,11 +43,15 @@ class Sample:
 
     def lasso_decomp(self) -> ndarray:
         m, n = self.X.shape
-        beta_decomp: ndarray = numpy.linalg.lstsq(self.X, self.Y, rcond=None)[0]
+        beta_decomp: ndarray = numpy.linalg.lstsq(  # type: ignore
+            self.X, self.Y, rcond=None
+        )[0]
         beta_decomp = self.soft_threshold(
             beta_decomp,
             (m / 2.0 * self.lambda_)
-            * numpy.linalg.lstsq(self.X.T @ self.X, numpy.ones((n,)), rcond=None)[0],
+            * numpy.linalg.lstsq(  # type: ignore
+                self.X.T @ self.X, numpy.ones((n,)), rcond=None
+            )[0],
         )
         return beta_decomp
 
@@ -52,8 +59,11 @@ class Sample:
         self.beta = self.symm_eig(numpy.random.rand(n, n).T)
         self.X = self.orthogonal_X(scipy.stats.norm.ppf(numpy.random.rand(n, m).T))
         self.Y = self.X @ self.beta + scipy.stats.norm.ppf(numpy.random.rand(m))
-        self.lambda_ = 2 * numpy.quantile(
-            numpy.abs(numpy.linalg.lstsq(self.X, self.Y, rcond=None)[0]), 0.3
+        self.lambda_ = 2 * numpy.quantile(  # type: ignore
+            numpy.abs(
+                numpy.linalg.lstsq(self.X, self.Y, rcond=None)[0]  # type: ignore
+            ),
+            0.3,
         )
         self.beta_decomp = self.lasso_decomp()
 
@@ -104,7 +114,7 @@ def run_once(m: int, n: int) -> None:
     print(f"abserr        : {abserr}")
     print(
         "result.x      : \n",
-        numpy.concatenate(
+        numpy.concatenate(  # type: ignore
             (
                 sample.beta_decomp.reshape((-1, 1)),
                 beta_mle.reshape((-1, 1)),

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 import numpy
-
 from likelihood.stages.abc.Stage import Constraints, Stage
 from overloads.typedefs import ndarray
 
@@ -22,7 +21,7 @@ class Linear(Stage[_Linear_gradinfo_t]):
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_Linear_gradinfo_t]]:
-        output = (input @ coeff).reshape((-1, 1))
+        output = (input @ coeff).reshape((-1, 1))  # type: ignore
         if not grad:
             return output, None
         return output, input

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy
 import numpy.linalg
-
 from likelihood import likelihood
 from likelihood.stages.Linear import Linear
 from likelihood.stages.LogNormpdf import LogNormpdf
@@ -10,17 +9,18 @@ from likelihood.Variables import Variables
 from optimizer import trust_region
 from overloads import difference
 from overloads.typedefs import ndarray
+
 from tests.common import nll2func
 
 
 def run_once(n: int, m: int, seed: int = 0) -> None:
     numpy.random.seed(seed)
-    x: ndarray = numpy.concatenate(
+    x: ndarray = numpy.concatenate(  # type: ignore
         (numpy.random.randn(n, m), numpy.ones((n, 1))), axis=1
     )
     beta = numpy.random.randn(m + 1)
     y: ndarray = x @ beta + numpy.random.randn(n)
-    beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)
+    beta_decomp, _, _, _ = numpy.linalg.lstsq(x, y, rcond=None)  # type: ignore
     abserr_decomp = difference.absolute(beta, beta_decomp)
 
     stage1 = Linear(

@@ -4,7 +4,6 @@ import math
 from typing import Optional, Tuple
 
 import numpy
-
 from likelihood.stages.abc.Penalty import Penalty
 from overloads.typedefs import ndarray
 
@@ -99,6 +98,6 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
             + (self.Lambda / (2.0)) * numpy.sum(numpy.abs(beta)) / (var * var)
         )
         return (
-            numpy.concatenate((dL_dlogP, dL_dvar), axis=1),
+            numpy.concatenate((dL_dlogP, dL_dvar), axis=1),  # type: ignore
             dL_dbeta,
         )
