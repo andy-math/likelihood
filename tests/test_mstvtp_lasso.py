@@ -40,6 +40,42 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     return x
 
 
+class NLL(likelihood.negLikelihood):
+    def __init__(self) -> None:
+        super().__init__(
+            ("p11b1", "p22b1"),
+            (
+                ("Y", "zeros", "ones")
+                + ("Y1", "mean1", "var1")
+                + ("Y2", "mean2", "var2")
+                + ("p11col", "p22col")
+            ),
+            (
+                Linear(("p11b1",), ("ones",), "p11col"),
+                Linear(("p22b1",), ("ones",), "p22col"),
+                Merge(
+                    (
+                        Logistic(("p11col",), ("p11col",)),
+                        Logistic(("p22col",), ("p22col",)),
+                    )
+                ),
+                Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1")),
+                Copy(("Y", "ones"), ("Y2", "mean2")),
+                Copy(("ones",), ("var2",)),
+                MS_TVTP(
+                    (
+                        Iterize(("Y1", "mean1", "var1"), ("Y1", "mean1", "var1")),
+                        Iterize(("Y2", "mean2", "var2"), ("Y2", "mean2", "var2")),
+                    ),
+                    providers["normpdf"],
+                    ("p11col", "p22col"),
+                    ("Y", "zeros", "ones", "p11col", "p22col"),
+                ),
+            ),
+            Lasso(("p11b1", "p22b1"), 1.0, ("Y", "ones"), "Y"),
+        )
+
+
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
@@ -52,42 +88,8 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([0.1, 0.1])
 
-    nll = likelihood.negLikelihood(
-        ("p11b1", "p22b1"),
-        (
-            ("Y", "zeros", "ones")
-            + ("Y1", "mean1", "var1")
-            + ("Y2", "mean2", "var2")
-            + ("p11col", "p22col")
-        ),
-        (
-            Linear(("p11b1",), ("ones",), "p11col"),
-            Linear(("p22b1",), ("ones",), "p22col"),
-            Merge(
-                (
-                    Logistic(("p11col",), ("p11col",)),
-                    Logistic(("p22col",), ("p22col",)),
-                )
-            ),
-            Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1")),
-            Copy(("Y", "ones"), ("Y2", "mean2")),
-            Copy(("ones",), ("var2",)),
-            MS_TVTP(
-                (
-                    Iterize(("Y1", "mean1", "var1"), ("Y1", "mean1", "var1")),
-                    Iterize(("Y2", "mean2", "var2"), ("Y2", "mean2", "var2")),
-                ),
-                providers["normpdf"],
-                ("p11col", "p22col"),
-                ("Y", "zeros", "ones", "p11col", "p22col"),
-            ),
-        ),
-        Lasso(("p11b1", "p22b1"), 1.0, ("Y", "ones"), "Y"),
-    )
-
+    nll = NLL()
     func, grad = nll2func(nll, beta0, input, regularize=True)
-
-    constraint = nll.get_constraints()
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
 
@@ -95,7 +97,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         func,
         grad,
         beta0 if n > 10 else coeff,
-        constraint,
+        nll.get_constraints(),
         opts,
     )
     beta_mle = result.x

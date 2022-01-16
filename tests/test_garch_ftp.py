@@ -51,6 +51,43 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     return x
 
 
+class NLL(likelihood.negLikelihood):
+    def __init__(self) -> None:
+        super().__init__(
+            ("p11", "p22", "c1", "a1", "b1", "c2", "a2", "b2"),
+            (
+                ("Y", "zeros", "ones")
+                + ("Y1", "mean1", "var1", "EX2_1")
+                + ("Y2", "mean2", "var2", "EX2_2")
+                + ("p11col", "p22col")
+            ),
+            (
+                Copy(("Y", "zeros"), ("Y1", "mean1")),
+                Copy(("Y", "zeros"), ("Y2", "mean2")),
+                Assign("p11", "p11col", 0.0, 1.0),
+                Assign("p22", "p22col", 0.0, 1.0),
+                MS_TVTP(
+                    (
+                        Garch_mean(
+                            ("c1", "a1", "b1"),
+                            ("Y1", "mean1"),
+                            ("Y1", "mean1", "var1", "EX2_1"),
+                        ),
+                        Garch_mean(
+                            ("c2", "a2", "b2"),
+                            ("Y2", "mean2"),
+                            ("Y2", "mean2", "var2", "EX2_2"),
+                        ),
+                    ),
+                    providers["normpdf"],
+                    ("p11col", "p22col"),
+                    ("Y", "zeros", "ones", "p11col", "p22col"),
+                ),
+            ),
+            None,
+        )
+
+
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
@@ -63,55 +100,20 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([0.8, 0.8, 0.011, 0.089, 0.89, 0.022, 0.078, 0.89])
 
-    nll = likelihood.negLikelihood(
-        ("p11", "p22", "c1", "a1", "b1", "c2", "a2", "b2"),
-        (
-            ("Y", "zeros", "ones")
-            + ("Y1", "mean1", "var1", "EX2_1")
-            + ("Y2", "mean2", "var2", "EX2_2")
-            + ("p11col", "p22col")
-        ),
-        (
-            Copy(("Y", "zeros"), ("Y1", "mean1")),
-            Copy(("Y", "zeros"), ("Y2", "mean2")),
-            Assign("p11", "p11col", 0.0, 1.0),
-            Assign("p22", "p22col", 0.0, 1.0),
-            MS_TVTP(
-                (
-                    Garch_mean(
-                        ("c1", "a1", "b1"),
-                        ("Y1", "mean1"),
-                        ("Y1", "mean1", "var1", "EX2_1"),
-                    ),
-                    Garch_mean(
-                        ("c2", "a2", "b2"),
-                        ("Y2", "mean2"),
-                        ("Y2", "mean2", "var2", "EX2_2"),
-                    ),
-                ),
-                providers["normpdf"],
-                ("p11col", "p22col"),
-                ("Y", "zeros", "ones", "p11col", "p22col"),
-            ),
-        ),
-        None,
-    )
-
-    func, grad = nll2func(nll, beta0, input, regularize=False)
-
-    constraint = nll.get_constraints()
-
     opts = trust_region.Trust_Region_Options(max_iter=1000)
     opts.check_iter = 10
     opts.tol_grad = 1e-4
     opts.max_stall_iter = 100
     opts.abstol_fval = 1e-4
 
+    nll = NLL()
+    func, grad = nll2func(nll, beta0, input, regularize=False)
+
     result = trust_region.trust_region(
         func,
         grad,
         beta0 if n > 10 else coeff,
-        constraint,
+        nll.get_constraints(),
         opts,
     )
     beta_mle = result.x

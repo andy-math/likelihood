@@ -76,8 +76,6 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     func, grad = nll2func(nll, beta0, input, regularize=False)
 
-    constraint = nll.get_constraints()
-
     opts = trust_region.Trust_Region_Options(max_iter=300)
     opts.tol_grad = 1e-4
     opts.check_rel = 0.05
@@ -86,7 +84,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         func,
         grad,
         beta0 if n > 10 else coeff,
-        constraint,
+        nll.get_constraints(),
         opts,
     )
     beta_mle = result.x

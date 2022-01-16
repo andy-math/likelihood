@@ -53,6 +53,44 @@ def generate(coeff: ndarray, n: int, seed: int = 0) -> ndarray:
     return x
 
 
+class NLL(likelihood.negLikelihood):
+    def __init__(self) -> None:
+        super().__init__(
+            ("p11b1", "p22b1", "c1", "a1", "b1", "c2", "a2", "b2"),
+            (
+                ("Y", "zeros", "ones")
+                + ("Y1", "mean1", "var1", "EX2_1")
+                + ("Y2", "mean2", "var2", "EX2_2")
+                + ("p11col", "p22col")
+            ),
+            (
+                Linear(("p11b1",), ("ones",), "p11col"),
+                Linear(("p22b1",), ("ones",), "p22col"),
+                Logistic(("p11col", "p22col"), ("p11col", "p22col")),
+                Copy(("Y", "zeros"), ("Y1", "mean1")),
+                Copy(("Y", "zeros"), ("Y2", "mean2")),
+                MS_TVTP(
+                    (
+                        Garch_mean(
+                            ("c1", "a1", "b1"),
+                            ("Y1", "mean1"),
+                            ("Y1", "mean1", "var1", "EX2_1"),
+                        ),
+                        Garch_mean(
+                            ("c2", "a2", "b2"),
+                            ("Y2", "mean2"),
+                            ("Y2", "mean2", "var2", "EX2_2"),
+                        ),
+                    ),
+                    providers["normpdf"],
+                    ("p11col", "p22col"),
+                    ("Y", "zeros", "ones", "p11col", "p22col"),
+                ),
+            ),
+            None,
+        )
+
+
 def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     x = generate(coeff, n, seed=seed)
 
@@ -65,44 +103,9 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([1.0, 1.0, 0.011, 0.089, 0.89, 0.022, 0.078, 0.89])
 
-    nll = likelihood.negLikelihood(
-        ("p11b1", "p22b1", "c1", "a1", "b1", "c2", "a2", "b2"),
-        (
-            ("Y", "zeros", "ones")
-            + ("Y1", "mean1", "var1", "EX2_1")
-            + ("Y2", "mean2", "var2", "EX2_2")
-            + ("p11col", "p22col")
-        ),
-        (
-            Linear(("p11b1",), ("ones",), "p11col"),
-            Linear(("p22b1",), ("ones",), "p22col"),
-            Logistic(("p11col", "p22col"), ("p11col", "p22col")),
-            Copy(("Y", "zeros"), ("Y1", "mean1")),
-            Copy(("Y", "zeros"), ("Y2", "mean2")),
-            MS_TVTP(
-                (
-                    Garch_mean(
-                        ("c1", "a1", "b1"),
-                        ("Y1", "mean1"),
-                        ("Y1", "mean1", "var1", "EX2_1"),
-                    ),
-                    Garch_mean(
-                        ("c2", "a2", "b2"),
-                        ("Y2", "mean2"),
-                        ("Y2", "mean2", "var2", "EX2_2"),
-                    ),
-                ),
-                providers["normpdf"],
-                ("p11col", "p22col"),
-                ("Y", "zeros", "ones", "p11col", "p22col"),
-            ),
-        ),
-        None,
-    )
+    nll = NLL()
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
-
-    constraint = nll.get_constraints()
 
     opts = trust_region.Trust_Region_Options(max_iter=300)
     opts.check_iter = 30
@@ -114,7 +117,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
         func,
         grad,
         beta0 if n > 10 else coeff,
-        constraint,
+        nll.get_constraints(),
         opts,
     )
     beta_mle = result.x
