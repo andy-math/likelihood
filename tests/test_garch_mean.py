@@ -35,11 +35,14 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([numpy.std(y) ** 2 * 0.1, 0.1, 0.8])
 
-    stage1 = Garch_mean(("c", "a", "b"), ("Y", "mean"), ("Y", "mean", "var", "EX2"))
-    stage2 = LogNormpdf_var(("Y", "var"), ("Y", "var"))
-
     nll = likelihood.negLikelihood(
-        ("c", "a", "b"), ("Y", "mean", "var", "EX2"), (stage1, stage2), None
+        ("c", "a", "b"),
+        ("Y", "mean", "var", "EX2"),
+        (
+            Garch_mean(("c", "a", "b"), ("Y", "mean"), ("Y", "mean", "var", "EX2")),
+            LogNormpdf_var(("Y", "var"), ("Y", "var")),
+        ),
+        None,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)

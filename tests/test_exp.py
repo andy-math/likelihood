@@ -39,12 +39,9 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
-
     constraint = nll.get_constraints()
-
     opts = trust_region.Trust_Region_Options(max_iter=300)
     opts.check_rel = 0.02
-
     result = trust_region.trust_region(
         func,
         grad,

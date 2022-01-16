@@ -4,7 +4,6 @@ from typing import Optional
 
 import numpy
 import numpy.linalg
-
 from likelihood import likelihood
 from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.LogNormpdf import LogNormpdf
@@ -14,6 +13,7 @@ from optimizer import trust_region
 from overloads import difference
 from overloads.shortcuts import assertNoInfNaN
 from overloads.typedefs import ndarray
+
 from tests.common import nll2func
 
 
@@ -42,10 +42,15 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0) -> None:
     input = Variables(tuple(range(n - 1)), ("Y", y), ("X", x))
     beta0 = numpy.array([0.5, 1.0])
 
-    stage1 = Midas_exp("omega", ("X",), ("X",), k=k)
-    stage2 = LogNormpdf("var", ("Y", "X"), ("Y", "X"))
-
-    nll = likelihood.negLikelihood(("omega", "var"), ("Y", "X"), (stage1, stage2), None)
+    nll = likelihood.negLikelihood(
+        ("omega", "var"),
+        ("Y", "X"),
+        (
+            Midas_exp("omega", ("X",), ("X",), k=k),
+            LogNormpdf("var", ("Y", "X"), ("Y", "X")),
+        ),
+        None,
+    )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 

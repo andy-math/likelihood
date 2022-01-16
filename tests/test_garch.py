@@ -7,9 +7,9 @@ from likelihood import likelihood
 from likelihood.stages.Garch import Garch
 from likelihood.stages.LogNormpdf_var import LogNormpdf_var
 from likelihood.Variables import Variables
-from overloads.typedefs import ndarray
 from optimizer import trust_region
 from overloads import difference
+from overloads.typedefs import ndarray
 
 from tests.common import nll2func
 
@@ -32,10 +32,15 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = Variables(tuple(range(n - 1)), ("Y", y), ("X", x))
     beta0 = numpy.array([numpy.std(y) ** 2 * 0.1, 0.1, 0.8])
 
-    stage1 = Garch(("c", "a", "b"), "X", "X")
-    stage2 = LogNormpdf_var(("Y", "X"), ("Y", "X"))
-
-    nll = likelihood.negLikelihood(("c", "a", "b"), ("Y", "X"), (stage1, stage2), None)
+    nll = likelihood.negLikelihood(
+        ("c", "a", "b"),
+        ("Y", "X"),
+        (
+            Garch(("c", "a", "b"), "X", "X"),
+            LogNormpdf_var(("Y", "X"), ("Y", "X")),
+        ),
+        None,
+    )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)
 

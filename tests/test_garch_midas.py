@@ -8,9 +8,9 @@ from likelihood.stages.GarchMidas import GarchMidas
 from likelihood.stages.LogNormpdf_var import LogNormpdf_var
 from likelihood.stages.Midas_exp import Midas_exp
 from likelihood.Variables import Variables
-from overloads.typedefs import ndarray
 from optimizer import trust_region
 from overloads import difference
+from overloads.typedefs import ndarray
 
 from tests.common import nll2func
 
@@ -40,16 +40,18 @@ def run_once(coeff: ndarray, n: int, k: int, seed: int = 0, times: int = 10) -> 
     )
     beta0 = numpy.array([0.8, 0.1, 0.1, 0.8])
 
-    stage1 = Midas_exp("omega", ("long",), ("long",), k=k)
-    stage2 = GarchMidas(
-        ("c", "a", "b"), ("Y", "variance", "long"), ("Y", "drop", "variance", "long")
-    )
-    stage3 = LogNormpdf_var(("Y", "variance"), ("Y", "variance"))
-
     nll = likelihood.negLikelihood(
         ("omega", "c", "a", "b"),
         ("Y", "variance", "long", "drop"),
-        (stage1, stage2, stage3),
+        (
+            Midas_exp("omega", ("long",), ("long",), k=k),
+            GarchMidas(
+                ("c", "a", "b"),
+                ("Y", "variance", "long"),
+                ("Y", "drop", "variance", "long"),
+            ),
+            LogNormpdf_var(("Y", "variance"), ("Y", "variance")),
+        ),
         None,
     )
 

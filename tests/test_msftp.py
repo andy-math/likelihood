@@ -48,31 +48,30 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([0.8, 0.8])
 
-    using_var_names = (
-        *("Y", "zeros", "ones"),
-        *("Y1", "mean1", "var1"),
-        *("Y2", "mean2", "var2"),
-        *("p11col", "p22col"),
-    )
-
-    stage4 = Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1"))
-    stage5 = Copy(("Y", "ones"), ("Y2", "mean2"))
-    stage6 = Copy(("ones",), ("var2",))
-    submodel1 = Iterize(("Y1", "mean1", "var1"), ("Y1", "mean1", "var1"))
-    submodel2 = Iterize(("Y2", "mean2", "var2"), ("Y2", "mean2", "var2"))
-    assign1 = Assign("p11", "p11col", 0.0, 1.0)
-    assign2 = Assign("p22", "p22col", 0.0, 1.0)
-    stage7 = MS_TVTP(
-        (submodel1, submodel2),
-        providers["normpdf"],
-        ("p11col", "p22col"),
-        ("Y", "zeros", "ones", "p11col", "p22col"),
-    )
-
     nll = likelihood.negLikelihood(
         ("p11", "p22"),
-        using_var_names,
-        (stage4, stage5, stage6, assign1, assign2, stage7),
+        (
+            ("Y", "zeros", "ones")
+            + ("Y1", "mean1", "var1")
+            + ("Y2", "mean2", "var2")
+            + ("p11col", "p22col")
+        ),
+        (
+            Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1")),
+            Copy(("Y", "ones"), ("Y2", "mean2")),
+            Copy(("ones",), ("var2",)),
+            Assign("p11", "p11col", 0.0, 1.0),
+            Assign("p22", "p22col", 0.0, 1.0),
+            MS_TVTP(
+                (
+                    Iterize(("Y1", "mean1", "var1"), ("Y1", "mean1", "var1")),
+                    Iterize(("Y2", "mean2", "var2"), ("Y2", "mean2", "var2")),
+                ),
+                providers["normpdf"],
+                ("p11col", "p22col"),
+                ("Y", "zeros", "ones", "p11col", "p22col"),
+            ),
+        ),
         None,
     )
     func, grad = nll2func(nll, beta0, input, regularize=False)

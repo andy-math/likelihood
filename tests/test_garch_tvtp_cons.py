@@ -66,16 +66,14 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([1.0, 1.0, 0.011, 0.022, 0.078, 0.89])
 
-    using_var_names = (
-        *("Y", "zeros", "ones"),
-        *("Y1", "mean1", "var1", "EX2_1"),
-        *("Y2", "mean2", "var2", "EX2_2"),
-        *("p11col", "p22col"),
-    )
-
     nll = likelihood.negLikelihood(
         ("p11b1", "p22b1", "c1", "c2", "a", "b"),
-        using_var_names,
+        (
+            ("Y", "zeros", "ones")
+            + ("Y1", "mean1", "var1", "EX2_1")
+            + ("Y2", "mean2", "var2", "EX2_2")
+            + ("p11col", "p22col")
+        ),
         (
             Linear(("p11b1",), ("ones",), "p11col"),
             Linear(("p22b1",), ("ones",), "p22col"),

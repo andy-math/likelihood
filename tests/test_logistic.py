@@ -27,12 +27,15 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     input = generate(coeff, n, seed=seed)
     beta0 = numpy.array([0.0, 0.0, 1.0])
 
-    stage1 = Linear(("b1", "b0"), ("X", "ones"), "X")
-    stage2 = Logistic(("X",), ("X",))
-    stage3 = LogNormpdf("var", ("Y", "X"), ("Y", "X"))
-
     nll = likelihood.negLikelihood(
-        ("b1", "b0", "var"), ("Y", "X", "ones"), (stage1, stage2, stage3), None
+        ("b1", "b0", "var"),
+        ("Y", "X", "ones"),
+        (
+            Linear(("b1", "b0"), ("X", "ones"), "X"),
+            Logistic(("X",), ("X",)),
+            LogNormpdf("var", ("Y", "X"), ("Y", "X")),
+        ),
+        None,
     )
 
     func, grad = nll2func(nll, beta0, input, regularize=False)

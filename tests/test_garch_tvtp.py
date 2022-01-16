@@ -3,7 +3,6 @@ import math
 
 import numpy
 import numpy.linalg
-
 from likelihood import likelihood
 from likelihood.stages.Copy import Copy
 from likelihood.stages.Garch_mean import Garch_mean
@@ -14,6 +13,7 @@ from likelihood.Variables import Variables
 from optimizer import trust_region
 from overloads import difference
 from overloads.typedefs import ndarray
+
 from tests.common import nll2func
 
 
@@ -65,36 +65,38 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([1.0, 1.0, 0.011, 0.089, 0.89, 0.022, 0.078, 0.89])
 
-    using_var_names = (
-        *("Y", "zeros", "ones"),
-        *("Y1", "mean1", "var1", "EX2_1"),
-        *("Y2", "mean2", "var2", "EX2_2"),
-        *("p11col", "p22col"),
-    )
-
-    stage1 = Linear(("p11b1",), ("ones",), "p11col")
-    stage2 = Linear(("p22b1",), ("ones",), "p22col")
-    stage3 = Logistic(("p11col", "p22col"), ("p11col", "p22col"))
-    stage4 = Copy(("Y", "zeros"), ("Y1", "mean1"))
-    stage5 = Copy(("Y", "zeros"), ("Y2", "mean2"))
-    # x mu var EX2
-    submodel1 = Garch_mean(
-        ("c1", "a1", "b1"), ("Y1", "mean1"), ("Y1", "mean1", "var1", "EX2_1")
-    )
-    submodel2 = Garch_mean(
-        ("c2", "a2", "b2"), ("Y2", "mean2"), ("Y2", "mean2", "var2", "EX2_2")
-    )
-    stage6 = MS_TVTP(
-        (submodel1, submodel2),
-        providers["normpdf"],
-        ("p11col", "p22col"),
-        ("Y", "zeros", "ones", "p11col", "p22col"),
-    )
-
     nll = likelihood.negLikelihood(
         ("p11b1", "p22b1", "c1", "a1", "b1", "c2", "a2", "b2"),
-        using_var_names,
-        (stage1, stage2, stage3, stage4, stage5, stage6),
+        (
+            ("Y", "zeros", "ones")
+            + ("Y1", "mean1", "var1", "EX2_1")
+            + ("Y2", "mean2", "var2", "EX2_2")
+            + ("p11col", "p22col")
+        ),
+        (
+            Linear(("p11b1",), ("ones",), "p11col"),
+            Linear(("p22b1",), ("ones",), "p22col"),
+            Logistic(("p11col", "p22col"), ("p11col", "p22col")),
+            Copy(("Y", "zeros"), ("Y1", "mean1")),
+            Copy(("Y", "zeros"), ("Y2", "mean2")),
+            MS_TVTP(
+                (
+                    Garch_mean(
+                        ("c1", "a1", "b1"),
+                        ("Y1", "mean1"),
+                        ("Y1", "mean1", "var1", "EX2_1"),
+                    ),
+                    Garch_mean(
+                        ("c2", "a2", "b2"),
+                        ("Y2", "mean2"),
+                        ("Y2", "mean2", "var2", "EX2_2"),
+                    ),
+                ),
+                providers["normpdf"],
+                ("p11col", "p22col"),
+                ("Y", "zeros", "ones", "p11col", "p22col"),
+            ),
+        ),
         None,
     )
 

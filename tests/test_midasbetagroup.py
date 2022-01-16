@@ -4,7 +4,6 @@ from typing import Optional, Tuple
 
 import numpy
 import numpy.linalg
-
 from likelihood import likelihood
 from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.LogNormpdf import LogNormpdf
@@ -14,6 +13,7 @@ from optimizer import trust_region
 from overloads import difference
 from overloads.shortcuts import assertNoInfNaN
 from overloads.typedefs import ndarray
+
 from tests.common import nll2func
 
 

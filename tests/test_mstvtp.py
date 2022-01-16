@@ -51,37 +51,36 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
     )
     beta0 = numpy.array([0.0, 0.0])
 
-    using_var_names = (
-        *("Y", "zeros", "ones"),
-        *("Y1", "mean1", "var1"),
-        *("Y2", "mean2", "var2"),
-        *("p11col", "p22col"),
-    )
-
-    stage1 = Linear(("p11b1",), ("ones",), "p11col")
-    stage2 = Linear(("p22b1",), ("ones",), "p22col")
-    stage3 = Merge(
-        (
-            Logistic(("p11col",), ("p11col",)),
-            Logistic(("p22col",), ("p22col",)),
-        )
-    )
-    stage4 = Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1"))
-    stage5 = Copy(("Y", "ones"), ("Y2", "mean2"))
-    stage6 = Copy(("ones",), ("var2",))
-    submodel1 = Iterize(("Y1", "mean1", "var1"), ("Y1", "mean1", "var1"))
-    submodel2 = Iterize(("Y2", "mean2", "var2"), ("Y2", "mean2", "var2"))
-    stage7 = MS_TVTP(
-        (submodel1, submodel2),
-        providers["normpdf"],
-        ("p11col", "p22col"),
-        ("Y", "zeros", "ones", "p11col", "p22col"),
-    )
-
     nll = likelihood.negLikelihood(
         ("p11b1", "p22b1"),
-        using_var_names,
-        (stage1, stage2, stage3, stage4, stage5, stage6, stage7),
+        (
+            ("Y", "zeros", "ones")
+            + ("Y1", "mean1", "var1")
+            + ("Y2", "mean2", "var2")
+            + ("p11col", "p22col")
+        ),
+        (
+            Linear(("p11b1",), ("ones",), "p11col"),
+            Linear(("p22b1",), ("ones",), "p22col"),
+            Merge(
+                (
+                    Logistic(("p11col",), ("p11col",)),
+                    Logistic(("p22col",), ("p22col",)),
+                )
+            ),
+            Copy(("Y", "zeros", "ones"), ("Y1", "mean1", "var1")),
+            Copy(("Y", "ones"), ("Y2", "mean2")),
+            Copy(("ones",), ("var2",)),
+            MS_TVTP(
+                (
+                    Iterize(("Y1", "mean1", "var1"), ("Y1", "mean1", "var1")),
+                    Iterize(("Y2", "mean2", "var2"), ("Y2", "mean2", "var2")),
+                ),
+                providers["normpdf"],
+                ("p11col", "p22col"),
+                ("Y", "zeros", "ones", "p11col", "p22col"),
+            ),
+        ),
         None,
     )
 

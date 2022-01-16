@@ -9,10 +9,10 @@ from likelihood.KnownIssue import KnownIssue
 from likelihood.stages.LogNormpdf import LogNormpdf
 from likelihood.stages.Midas_beta import Midas_beta
 from likelihood.Variables import Variables
-from overloads import difference
-from overloads.typedefs import ndarray
 from optimizer import trust_region
+from overloads import difference
 from overloads.shortcuts import assertNoInfNaN
+from overloads.typedefs import ndarray
 
 from tests.common import nll2func
 
