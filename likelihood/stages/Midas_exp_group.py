@@ -1,9 +1,7 @@
 from typing import Callable, Optional, Tuple
 
-from mypy_extensions import NamedArg
-
-from likelihood.stages.abc.Stage import Constraints, Stage
-from likelihood.stages.Linear import Linear
+from likelihood.stages.abc.Stage import Constraints, Eval_t, Grad_t, Stage
+from likelihood.stages.Linear import Linear, _Linear_gradinfo_t
 from likelihood.stages.Midas_exp import Midas_exp
 from overloads.typedefs import ndarray
 
@@ -11,23 +9,8 @@ _Midas_exp_group_gradinfo_t = Tuple[ndarray, ndarray, ndarray]
 
 
 class Midas_exp_group(Stage[_Midas_exp_group_gradinfo_t]):
-    _linear_eval: Optional[
-        Callable[
-            [
-                ndarray,
-                ndarray,
-                NamedArg(bool, "grad"),  # noqa: F821
-                NamedArg(bool, "debug"),  # noqa: F821
-            ],
-            Tuple[ndarray, Optional[ndarray]],
-        ]
-    ]
-    _linear_grad: Optional[
-        Callable[
-            [ndarray, ndarray, ndarray, NamedArg(bool, "debug")],  # noqa: F821
-            Tuple[ndarray, ndarray],
-        ]
-    ]
+    _linear_eval: Eval_t[_Linear_gradinfo_t]
+    _linear_grad: Grad_t[_Linear_gradinfo_t]
     _kernel: Optional[Callable[[ndarray], Tuple[ndarray, ndarray]]]
     _constraints: Optional[Callable[[], Constraints]]
 

@@ -1,11 +1,21 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Generic, List, NamedTuple, Optional, Tuple, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    List,
+    NamedTuple,
+    Optional,
+    Protocol,
+    Tuple,
+    TypeVar,
+)
 
 import numpy
-from overloads.typedefs import ndarray
 from overloads.shortcuts import assertNoInfNaN, isunique
+from overloads.typedefs import ndarray
 
 
 def _concatenate(*tuples: Tuple[str, ...]) -> Tuple[str, ...]:
@@ -20,6 +30,24 @@ class Constraints(NamedTuple):
     b: ndarray
     lb: ndarray
     ub: ndarray
+
+
+eval_gradinfo_t = TypeVar("eval_gradinfo_t", covariant=True)
+grad_gradinfo_t = TypeVar("grad_gradinfo_t", contravariant=True)
+
+
+class Eval_t(Protocol, Generic[eval_gradinfo_t]):
+    def __call__(
+        self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
+    ) -> Tuple[ndarray, Optional[eval_gradinfo_t]]:
+        ...
+
+
+class Grad_t(Protocol, Generic[grad_gradinfo_t]):
+    def __call__(
+        self, coeff: ndarray, input: grad_gradinfo_t, dL_do: ndarray, *, debug: bool
+    ) -> Tuple[ndarray, ndarray]:
+        ...
 
 
 _gradinfo_t = TypeVar("_gradinfo_t", contravariant=True)
@@ -66,19 +94,19 @@ class Stage(Generic[_gradinfo_t], metaclass=ABCMeta):
     def _eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
     ) -> Tuple[ndarray, Optional[_gradinfo_t]]:
-        pass  # pragma: no cover
+        ...  # pragma: no cover
 
     @abstractmethod
     def _grad(
         self, coeff: ndarray, gradinfo: _gradinfo_t, dL_do: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
-        pass  # pragma: no cover
+        ...  # pragma: no cover
 
     @abstractmethod
     def get_constraints(
         self,
     ) -> Constraints:
-        pass  # pragma: no cover
+        ...  # pragma: no cover
 
     def eval(
         self, coeff: ndarray, input: ndarray, *, grad: bool, debug: bool
