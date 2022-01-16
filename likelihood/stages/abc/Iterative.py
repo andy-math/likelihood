@@ -5,7 +5,7 @@ from typing import Callable, Optional, Tuple
 
 import numba  # type: ignore
 import numpy
-from likelihood.jit import JittedFunction
+from likelihood.jit import JittedFunction, _signature_t
 from likelihood.stages.abc.Stage import Stage
 from numba import float64, optional, types
 from overloads.typedefs import ndarray
@@ -25,34 +25,46 @@ class _Signature:
 
 
 class _Numba:
-    GradInfo = types.Tuple(
-        (
-            float64[::1],
-            float64[:, ::1],
-            float64[:, ::1],
-            float64[:, ::1],
-            float64[:, ::1],
+    GradInfo = _signature_t(
+        types.Tuple(
+            (
+                float64[::1],
+                float64[:, ::1],
+                float64[:, ::1],
+                float64[:, ::1],
+                float64[:, ::1],
+            )
         )
     )
-    Output0 = types.Tuple(
-        (float64[::1], float64[:, ::1], float64[::1], float64[:, ::1])
-    )(float64[::1])
-    Eval = types.UniTuple(float64[::1], 2)(
-        float64[::1], float64[::1], float64[::1], float64[::1]
+    Output0 = _signature_t(
+        types.Tuple((float64[::1], float64[:, ::1], float64[::1], float64[:, ::1]))(
+            float64[::1]
+        )
     )
-    Grad = types.UniTuple(float64[::1], 4)(
-        float64[::1],
-        float64[::1],
-        float64[::1],
-        float64[::1],
-        float64[::1],
-        float64[::1],
+    Eval = _signature_t(
+        types.UniTuple(float64[::1], 2)(
+            float64[::1], float64[::1], float64[::1], float64[::1]
+        )
     )
-    LoopEval = types.Tuple((float64[:, ::1], optional(GradInfo)))(
-        float64[::1], float64[:, ::1], numba.boolean
+    Grad = _signature_t(
+        types.UniTuple(float64[::1], 4)(
+            float64[::1],
+            float64[::1],
+            float64[::1],
+            float64[::1],
+            float64[::1],
+            float64[::1],
+        )
     )
-    LoopGrad = types.Tuple((float64[:, ::1], float64[::1]))(
-        float64[::1], GradInfo, float64[:, ::1]
+    LoopEval = _signature_t(
+        types.Tuple((float64[:, ::1], optional(GradInfo)))(
+            float64[::1], float64[:, ::1], numba.boolean
+        )
+    )
+    LoopGrad = _signature_t(
+        types.Tuple((float64[:, ::1], float64[::1]))(
+            float64[::1], GradInfo, float64[:, ::1]
+        )
     )
 
 

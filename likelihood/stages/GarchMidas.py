@@ -97,7 +97,7 @@ def _garch_midas_grad_generate() -> Callable[
 
 class GarchMidas(Iterative.Iterative):
     def __init__(
-        _,
+        self,
         names: Tuple[str, str, str],
         data_in_names: Tuple[str, str, str],
         data_out_names: Tuple[str, str, str, str],
@@ -113,7 +113,7 @@ class GarchMidas(Iterative.Iterative):
             JittedFunction(Iterative._Numba.Grad, (), _garch_midas_grad_generate),
         )
 
-    def get_constraints(_) -> Constraints:
+    def get_constraints(self) -> Constraints:
         """
         根据短期项garch方程：
         h = c + a*e^2 + b*h

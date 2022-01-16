@@ -31,7 +31,7 @@ class Assign(Stage[_Assign_gradinfo_t]):
         return numpy.full((length, 1), coeff), None
 
     def _grad(
-        self, _: ndarray, output: _Assign_gradinfo_t, dL_dR: ndarray, *, debug: bool
+        self, coeff: ndarray, output: _Assign_gradinfo_t, dL_dR: ndarray, *, debug: bool
     ) -> Tuple[ndarray, ndarray]:
         (length, _) = dL_dR.shape
         return numpy.empty((length, 0)), cast(ndarray, numpy.sum(dL_dR, axis=0))

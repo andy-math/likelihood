@@ -5,7 +5,7 @@ import sys
 from typing import Callable, Dict, Literal, Tuple
 
 import numpy
-from likelihood.jit import JittedFunction
+from likelihood.jit import JittedFunction, _signature_t
 from likelihood.stages.abc import Iterative, Logpdf
 from likelihood.stages.abc.Stage import Constraints
 from numba import float64  # type: ignore
@@ -465,8 +465,8 @@ def normpdf_provider_gradient() -> Callable[[ndarray, float, float], ndarray]:
     return implement
 
 
-_provider_signature = float64(float64[:])
-_provider_gradient_signature = float64[:](float64[:], float64, float64)
+_provider_signature = _signature_t(float64(float64[:]))
+_provider_gradient_signature = _signature_t(float64[:](float64[:], float64, float64))
 
 
 providers: Dict[

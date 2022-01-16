@@ -82,7 +82,7 @@ def _iterize_grad_generate() -> Callable[
 
 class Iterize(Iterative.Iterative):
     def __init__(
-        _,
+        self,
         data_in_names: Union[Tuple[str], Tuple[str, str], Tuple[str, str, str]],
         data_out_names: Union[Tuple[str], Tuple[str, str], Tuple[str, str, str]],
     ) -> None:
@@ -106,7 +106,7 @@ class Iterize(Iterative.Iterative):
             JittedFunction(Iterative._Numba.Grad, (), _iterize_grad_generate),
         )
 
-    def get_constraints(_) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.empty((0, 0))
         b = numpy.empty((0,))
         lb = numpy.empty((0,))

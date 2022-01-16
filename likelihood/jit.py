@@ -13,6 +13,7 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
+    cast,
 )
 
 import numba  # type: ignore
@@ -79,8 +80,9 @@ class JittedFunction(Generic[_function_t]):
         )
 
         start_time = time.time()
-        func = numba.njit(self.signature)(
-            generator(*(x.func() for x in self.dependent))
+        func = cast(
+            _function_t,
+            numba.njit(self.signature)(generator(*(x.func() for x in self.dependent))),
         )
         _Jitted_Function_Cache[self.pickled_bytecode] = (func, py_func)
 
@@ -103,5 +105,5 @@ class JittedFunction(Generic[_function_t]):
         _, py_func = self._compile(False)
         return py_func
 
-    def __call__(_) -> NoReturn:
+    def __call__(self) -> NoReturn:
         assert False  # pragma: no cover

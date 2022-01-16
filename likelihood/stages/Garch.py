@@ -81,7 +81,7 @@ def _garch_grad_generate() -> Callable[
 
 class Garch(Iterative.Iterative):
     def __init__(
-        _,
+        self,
         names: Tuple[str, str, str],
         data_in_name: str,
         data_out_name: str,
@@ -97,7 +97,7 @@ class Garch(Iterative.Iterative):
             JittedFunction(Iterative._Numba.Grad, (), _garch_grad_generate),
         )
 
-    def get_constraints(_) -> Constraints:
+    def get_constraints(self) -> Constraints:
         A = numpy.array([[0.0, 1.0, 1.0]])
         b = numpy.array([1.0])
         lb = numpy.array([0.0, 0.0, 0.0])

@@ -63,7 +63,7 @@ def run_once(coeff: ndarray, n: int, seed: int = 0) -> None:
 
 
 class Test_1:
-    def test_1(_) -> None:
+    def test_1(self) -> None:
         run_once(numpy.array([0.01, 0.25, 0.7]), 1000)
 
 
