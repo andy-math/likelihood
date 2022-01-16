@@ -47,10 +47,10 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
                           = constant - 1/b * sum[j]{|beta[j]|}
 
             log likeli[i] = log{ 1/sqrt(var[i]*2pi) * exp(-err[i]^2/(2var[i])) } }
-                          = constant - 1/2log(var[i]) + 1/2err[i]^2/(var[i]))
+                          = constant - 1/2log(var[i]) + 1/2err[i]^2/(var[i])
 
             log posteriori[i] = constant - {
-                                                1/2log(var[i]) + 1/2err[i]^2/(var[i]))
+                                                1/2log(var[i]) + 1/2err[i]^2/(var[i])
                                                 + 1/b * sum[j]{|beta[j]|}
                                             }
 
