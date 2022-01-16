@@ -90,9 +90,10 @@ class Lasso(Penalty[_Lasso_gradinfo_t]):
                                         + L/2*sum[j](|beta[j]|) / (var[i]*var[i])
         """
         (var,) = _var
-        dL_dbeta = -dL_dlogP.flatten() @ (
-            (self.Lambda / (2.0 * var)) * numpy.sign(beta)
-        )
+        dL_dbeta = -(  # type: ignore
+            dL_dlogP.flatten() @ (self.Lambda / (2.0 * var))
+        ) * numpy.sign(beta)
+
         dL_dvar = dL_dlogP * (
             -beta.shape[0] / var
             + (self.Lambda / (2.0)) * numpy.sum(numpy.abs(beta)) / (var * var)
